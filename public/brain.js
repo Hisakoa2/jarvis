@@ -109,7 +109,7 @@ const Brain = (() => {
 
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
-  const STOP = new Set('the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
+  const STOP = new Set('water glass glasses drank drink drinking bottle bottles hydrate trade trades trading tonight night watch watching movie movies film films show shows book books read reading novel timer timers minute minutes seconds hour hours dollar dollars bucks spent spend spending food eat hungry dinner lunch breakfast snack habit habits streak streaks list todo todos task tasks check checked countdown countdowns days weeks christmas birthday trip remember forget locker vibe vibes wear jacket coat hoodie outfit outside feeling feel feels sleep slept bed bedtime wake woke awake morning routine bored tired great good okay mood moods partial partials contracts contract units half quarter challenge best worst biggest record stats your yours jarvis milk eggs trash money expense expenses quote motivate motivation the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
 
   function lev(a, b) {
     if (a === b) return 0;
@@ -1074,6 +1074,7 @@ const Brain = (() => {
   // ---- reminders ---------------------------------------------------------------------
   function remWhen(k, r, spoken) {
     if (r.due == null) return 'next time you open the app';
+    if (r.repeat) return `${r.repeat.label} at ${sayT(r.due, k.tz)} (next: ${fmtT(r.due, k.tz, true)})`.replace(/ \(next.*$/, spoken ? '' : '$&');
     const ms = r.due - k.now, tmr = new Intl.DateTimeFormat('en-CA', { timeZone: k.tz }).format(new Date(r.due)) !== new Intl.DateTimeFormat('en-CA', { timeZone: k.tz }).format(new Date(k.now));
     const clock = fmtT(r.due, k.tz, tmr && ms > 864e5) + (spoken ? '' : '');
     if (ms < 3 * 3600e3) return spoken ? `in ${words(ms)}` : `in ${words(ms)} (${clock})`;
@@ -1788,6 +1789,7 @@ const Brain = (() => {
     if (bare) { ctx.openProject(bare); return wrap(reply(`Opening <b>${esc(bare.name)}</b>.`, `Opening ${bare.name}.`)); }
 
     const S = scoreIntents(c, fixed, hasNums, k, ctx);
+    if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
     const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
     let id = ranked.length ? ranked[0][0] : null;
     if (!id || ranked[0][1] < 3) { const b = bankMatch(fixed); if (b) id = b; }
@@ -1890,6 +1892,10 @@ const Brain = (() => {
       }
       case 'projects': return wrap(reply(`Your projects:<br>${chips((ctx.projects || []).map((p) => 'open ' + p.name))}`, `You have ${(ctx.projects || []).length} projects: ${(ctx.projects || []).map((p) => p.name).join(', ')}.`));
       default: {
+        if (id && id.startsWith('life:') && typeof Life !== 'undefined') {
+          const r = Life.run(id.slice(5), text, fixed, k, ctx);
+          if (r) return r.then ? r.then(wrap) : wrap(r);
+        }
         const sug = suggestions(fixed);
         return reply(`${pick('unk', ['I didn’t quite catch that', 'Not sure I follow', 'I’m not sure what you mean'])}${k.t}. Maybe:<br>${chips(sug)}<br><span class="dim">Say “help” for ideas.</span>`,
           `${pick('unk2', ["Sorry, I didn't catch that", "I'm not sure I follow", 'Could you say that another way'])}${k.t}? You could ask ${sug.slice(0, 2).join(', or ')}.`);
@@ -1908,18 +1914,20 @@ const Brain = (() => {
     seen0.lastBoot = k.now; seenSet(seen0);
     const rems = k.reminders ? k.reminders.takeOnOpen(k.now) : [];
     const remH = rems.length ? ` <b>Reminder${rems.length > 1 ? 's' : ''}:</b> ${rems.map((r) => esc(cap1(r.text))).join(' · ')}.` : '';
-    const remS = rems.length ? ` You asked me to remind you: ${rems.map((r) => r.text).join(', and ')}.` : '';
+    let remS = rems.length ? ` You asked me to remind you: ${rems.map((r) => r.text).join(', and ')}.` : '';
+    let remH2 = remH;
+    if (typeof Life !== 'undefined') { const lg = Life.greetLine(k); if (lg) { remH2 += ' ' + lg.html; remS += ' ' + lg.say; } }
     if (recent) {
       const back = pick('back', [`Welcome back${k.t}.`, `Back again${k.t}.`, `Good to have you back${k.t}.`, `Right where you left me${k.t}.`]);
       const sp2 = specialLines(k).join(' ');
       const pg = paperGreeting(k) || { html: '', say: '' };
       const px = g ? ` Gold <b>${f2(g.price.bid)}</b>.` : '';
       const pxs = g ? ` Gold ${sayPrice(g.price.bid)}.` : '';
-      return reply(`${back}${remH}${sp2 ? ' ' + sp2 : ''}${px}${pg.html}`, noEmoji(`${back}${remS}${sp2 ? ' ' + sp2 : ''}${pxs}${pg.say}`));
+      return reply(`${back}${remH2}${sp2 ? ' ' + sp2 : ''}${px}${pg.html}`, noEmoji(`${back}${remS}${sp2 ? ' ' + sp2 : ''}${pxs}${pg.say}`));
     }
     const sp = specialLines(k).join(' ');
     const intro0 = pick('boot', [`${greet(k)}. All systems online.`, `${greet(k)}. JARVIS online and ready.`, `Systems online. ${greet(k)}.`]) + (sp ? ' ' + sp : '');
-    const intro = intro0 + remH;
+    const intro = intro0 + remH2;
     if (!g) return reply(intro, noEmoji(intro0 + remS));
     const w = wellnessLine(k);
     if (k.market.state === 'weekend') { const pg = paperGreeting(k) || { html: '', say: '' }; const wk = weeklyTeaser(k); if (wk) { pg.html += ' ' + wk.html; pg.say += ' ' + wk.say; } return reply(`${intro} ${m.html} Gold closed the week at <b>${f2(g.price.bid)}</b>.${pg.html}${w ? ' ' + w : ''}`, noEmoji(`${intro} ${m.say} Gold closed at ${sayPrice(g.price.bid)}.${pg.say}${w ? ' ' + w : ''}`)); }
@@ -1936,7 +1944,9 @@ const Brain = (() => {
       const t = stripWake(clean(raw));
       if (!t) return 0;
       const fixed = correct(t, []);
-      const S = scoreIntents(concepts(fixed), fixed, /\d/.test(fixed), context(ctx), ctx);
+      const kk = context(ctx);
+      const S = scoreIntents(concepts(fixed), fixed, /\d/.test(fixed), kk, ctx);
+      if (typeof Life !== 'undefined') Object.assign(S, Life.score(t, fixed, S, kk));
       let top = Math.max(0, ...Object.values(S));
       if (top < 3 && bankMatch(fixed)) top = 3;
       const tw = t.split(' ');
@@ -1944,5 +1954,23 @@ const Brain = (() => {
     } catch { return 0; }
   }
 
-  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine };
+  // JARVIS's own daily trade: which way, where, and how good the setup is.
+  // force = true late in the day, so it still takes its one trade.
+  function botPlan(ctx, force) {
+    const k = context(ctx), g = k.g;
+    if (!g || !g.price || !g.price.tradeable) return null;
+    let dir = g.bias.bias === 'Bullish' ? 1 : g.bias.bias === 'Bearish' ? -1 : 0;
+    if (!dir) { const r = g.mtf.rows.find((x) => x.tf === 'H4') || g.mtf.rows[0]; dir = r && r.trend === 'Bullish' ? 1 : r && r.trend === 'Bearish' ? -1 : 0; }
+    if (!dir) { if (!force) return null; dir = g.price.bid >= (g.levels.list.find((l) => /open/i.test(l.name)) || { price: g.price.bid }).price ? 1 : -1; }
+    const sc = scoreTrade(k, dir, 'day');
+    const good = inPrime(k) && sc.score >= 2;
+    if (!good && !force) return null;
+    const pl = buildPlan(k, dir, 'day');
+    const risk = Math.abs(pl.entry - pl.stop);
+    let tp = pl.tp1;
+    if (Math.abs(tp - pl.entry) < risk * 1.5) tp = pl.entry + dir * risk * 1.5; // always better than 1 to 1
+    return { dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why: good ? 'setup lined up with the bias in prime hours' : 'late in the day, so I took the best side I had' };
+  }
+
+  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, context, reply, pick };
 })();

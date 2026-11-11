@@ -27,10 +27,10 @@ const Paper = (() => {
 
   // ---- orders -----------------------------------------------------------------
   // side +1 buy / -1 sell. entry null = market. Returns { position } or { order }.
-  function place({ side, units, entry = null, sl = null, tp = null, bid, ask, auto = false, style = 'day', note = '' }) {
+  function place({ side, units, entry = null, sl = null, tp = null, bid, ask, auto = false, style = 'day', note = '', bot = false }) {
     units = Math.max(1, Math.round(units));
     const mkt = side > 0 ? ask : bid;
-    const base = { id: st.nextId++, side, units, sl: sl == null ? null : r2(sl), tp: tp == null ? null : r2(tp), auto, style, note };
+    const base = { id: st.nextId++, side, units, sl: sl == null ? null : r2(sl), tp: tp == null ? null : r2(tp), auto, style, note, bot: !!bot };
     if (entry != null && Math.abs(entry - mkt) > 0.5) {
       // pending: limit if it's a better price than now, stop-entry if worse
       const type = side > 0 ? (entry < mkt ? 'limit' : 'stop') : (entry > mkt ? 'limit' : 'stop');
@@ -47,9 +47,9 @@ const Paper = (() => {
 
   function fill(order, px, at) {
     st.orders = st.orders.filter((o) => o !== order);
-    const position = { id: order.id, side: order.side, units: order.units, sl: order.sl, tp: order.tp, auto: order.auto, style: order.style, note: order.note, entry: r2(px), openedAt: at };
+    const position = { id: order.id, side: order.side, units: order.units, sl: order.sl, tp: order.tp, auto: order.auto, style: order.style, note: order.note, bot: !!order.bot, entry: r2(px), openedAt: at };
     st.positions.push(position);
-    event('filled', { side: order.side, units: order.units, entry: position.entry });
+    event('filled', { side: order.side, units: order.units, entry: position.entry, bot: !!order.bot });
     return position;
   }
 
@@ -59,7 +59,7 @@ const Paper = (() => {
     const pl = pnlAt(p, px);
     st.positions = st.positions.filter((x) => x !== p);
     st.balance = r2(st.balance + pl);
-    const h = { id: p.id, side: p.side, units: p.units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason, openedAt: p.openedAt, closedAt: at };
+    const h = { id: p.id, side: p.side, units: p.units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason, openedAt: p.openedAt, closedAt: at, bot: !!p.bot };
     st.history.unshift(h);
     if (st.history.length > 200) st.history.pop();
     if (reason !== 'manual') event(reason, h);
@@ -72,14 +72,41 @@ const Paper = (() => {
     save();
     return out;
   }
-  function closeOne(id, bid, ask) {
+  function closeOne(id, bid, ask, reason = 'manual') {
     const p = st.positions.find((x) => x.id === id);
     if (!p) return null;
-    const h = close(id, closePx(p, bid, ask));
+    const h = close(id, closePx(p, bid, ask), reason);
     save();
     return h;
   }
 
+  // Add a finished trade straight to history (JARVIS's catch-up trade worked out from candles)
+  function record({ side, units, entry, exit, sl, tp, reason, openedAt, closedAt, bot }) {
+    const pl = r2(units * (exit - entry) * side);
+    st.balance = r2(st.balance + pl);
+    const h = { id: st.nextId++, side, units, entry: r2(entry), exit: r2(exit), sl: r2(sl), tp: r2(tp), pl, reason, openedAt, closedAt, bot: !!bot };
+    st.history.push(h);
+    st.history.sort((a, b) => b.closedAt - a.closedAt);
+    if (st.history.length > 200) st.history.pop();
+    save();
+    return h;
+  }
+  // Close part of a trade (e.g. 20 of 50 units). The rest stays open.
+  function partial(id, units, bid, ask) {
+    const p = st.positions.find((x) => x.id === id);
+    if (!p) return null;
+    units = Math.round(units);
+    if (units >= p.units) return closeOne(id, bid, ask);
+    if (units < 1) return null;
+    const px = closePx(p, bid, ask), pl = r2(units * (px - p.entry) * p.side);
+    p.units -= units;
+    st.balance = r2(st.balance + pl);
+    const h = { id: p.id, side: p.side, units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason: 'partial', openedAt: p.openedAt, closedAt: Date.now(), bot: !!p.bot, left: p.units };
+    st.history.unshift(h);
+    if (st.history.length > 200) st.history.pop();
+    save();
+    return h;
+  }
   function modify(id, { sl, tp }) {
     const p = st.positions.find((x) => x.id === id) || st.orders.find((x) => x.id === id);
     if (!p) return null;
@@ -157,7 +184,7 @@ const Paper = (() => {
   function markSeen() { st.events.forEach((e) => { e.seen = true; }); save(); }
 
   return {
-    place, closeAll, closeOne, modify, cancel, tick, replay, reset, stats, unseen, markSeen, pnlAt, closePx,
+    place, closeAll, closeOne, partial, record, modify, cancel, tick, replay, reset, stats, unseen, markSeen, pnlAt, closePx,
     positions: () => st.positions, orders: () => st.orders, history: () => st.history,
     lastCheck: () => st.lastCheck, busy: () => st.positions.length > 0 || st.orders.length > 0,
     onChange: (f) => listeners.push(f),

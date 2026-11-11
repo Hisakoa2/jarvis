@@ -81,25 +81,55 @@ const Reminders = (() => {
     return t;
   }
 
+  // Repeating: "every Monday", "every day", "every morning", "on Tuesdays", "weekly"
+  const DOWS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const REPEAT = /\b(?:every\s*day|everyday|daily|each day|every (morning|night|evening|afternoon)|(?:every|each)\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)s?|on\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday)s|every week|weekly)\b/;
+  function parseRepeat(s, now, tz) {
+    const m = s.match(REPEAT);
+    if (!m) return null;
+    const dayName = m[2] || m[3] || (/week/.test(m[0]) ? new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(new Date(now)).toLowerCase() : null);
+    const part = m[1];
+    const rest = s.replace(m[0], ' ');
+    const w = parseWhen(rest, now, tz);
+    let h = part === 'night' || part === 'evening' ? 20 : part === 'afternoon' ? 14 : 8, mi = 0;
+    if (w.due != null && w.when === 'time') { const pp = Sessions.parts(new Date(w.due), tz); h = pp.h; mi = pp.mi; }
+    let off = 0;
+    if (dayName) {
+      const today = DOWS.indexOf(new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'long' }).format(new Date(now)).toLowerCase());
+      off = (DOWS.indexOf(dayName) - today + 7) % 7;
+    }
+    let due = atClock(now, tz, h, mi, off);
+    const period = dayName ? 7 * 864e5 : 864e5;
+    while (due <= now) due += period;
+    return { due, rest: w.rest, repeat: { period, label: dayName ? 'every ' + dayName[0].toUpperCase() + dayName.slice(1) : part ? 'every ' + part : 'every day' } };
+  }
+
   function add(raw, now, tz) {
-    const w = parseWhen(raw.toLowerCase().replace(/[’‘]/g, "'"), now, tz);
+    const low = raw.toLowerCase().replace(/[’‘]/g, "'");
+    const rp = parseRepeat(low, now, tz);
+    const w = rp || parseWhen(low, now, tz);
     const text = tidy(w.rest);
     if (!text || text.length < 2) return null;
     const r = { id: now.toString(36) + Math.random().toString(36).slice(2, 5), text, due: w.due, created: now, session: SESSION };
+    if (rp) r.repeat = rp.repeat;
     list.push(r); save();
     return r;
   }
   // Reminders to show at app launch: timed ones that are due, and "next open" ones made in an earlier launch
-  function takeOnOpen(now) {
-    const out = list.filter((r) => (r.due == null ? r.session !== SESSION : r.due <= now));
-    if (out.length) { list = list.filter((r) => !out.includes(r)); save(); }
+  // Used-up reminders go away; repeating ones move to their next time
+  function consume(out, now) {
+    if (!out.length) return out;
+    for (const r of out) if (r.repeat) { while (r.due <= now) r.due += r.repeat.period; }
+    list = list.filter((r) => !out.includes(r) || r.repeat);
+    save();
     return out;
+  }
+  function takeOnOpen(now) {
+    return consume(list.filter((r) => (r.due == null ? r.session !== SESSION : r.due <= now)), now);
   }
   // While the app is open: timed reminders that just came due
   function takeDue(now) {
-    const out = list.filter((r) => r.due != null && r.due <= now);
-    if (out.length) { list = list.filter((r) => !out.includes(r)); save(); }
-    return out;
+    return consume(list.filter((r) => r.due != null && r.due <= now), now);
   }
   // Coming back to the app after a while counts as "opening" it for next-open reminders
   function takeOnReturn() {
@@ -116,5 +146,5 @@ const Reminders = (() => {
     return before - list.length;
   }
   function all() { return list.slice().sort((a, b) => (a.due || Infinity) - (b.due || Infinity)); }
-  return { add, takeOnOpen, takeDue, takeOnReturn, remove, all, parseWhen, tidy };
+  return { add, parseRepeat, takeOnOpen, takeDue, takeOnReturn, remove, all, parseWhen, tidy };
 })();

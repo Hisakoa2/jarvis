@@ -228,7 +228,8 @@
   // ---------- paper trading ----------
   const money2 = (n) => `${n < 0 ? '−' : n > 0 ? '+' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   function paperAnnounce(events) {
-    for (const e of events || []) {
+    events = (events || []).filter((e) => !e.bot); // JARVIS's own trade stays quiet — ask about it or check the panel
+    for (const e of events) {
       const l = Brain.paperEventLine(e, prefs.title);
       if (l.text) callout(`paper-${e.type}-${e.at}-${e.entry}`, l.text, l.say);
     }
@@ -240,6 +241,7 @@
   function paperTick(g) {
     if (!g || !g.price || !g.price.tradeable) { renderPaper(); return; }
     paperAnnounce(Paper.tick(g.price.bid, g.price.ask));
+    try { Life.botTick(ctx, g); } catch (e) { console.warn('bot', e); }
     renderPaper();
   }
   // Catch up on what happened while the app was closed (5-minute candles)
@@ -266,15 +268,28 @@
         let prog = '';
         if (p.sl != null && p.tp != null && gold) { const f = Math.max(0, Math.min(1, (px - p.sl) / (p.tp - p.sl))); prog = `<div class="paper-prog"><i style="left:${(f * 100).toFixed(1)}%"></i><span>SL ${p.sl.toFixed(2)}</span><span>TP ${p.tp.toFixed(2)}</span></div>`; }
         const lv = `<span class="paper-lv">SL ${p.sl != null ? p.sl.toFixed(2) : '—'} · TP ${p.tp != null ? p.tp.toFixed(2) : '—'}</span>`;
-        return `<div class="paper-pos ${p.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${p.side > 0 ? 'BUY' : 'SELL'}</b> ${p.units} @ ${p.entry.toFixed(2)} <span class="paper-pl">${pl(v)}</span></div>` +
-          `<div class="paper-row">${lv}<span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-be="${p.id}" title="Move stop to break-even">BE</button><button type="button" class="ghost-btn paper-close" data-edit="${p.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-close="${p.id}">CLOSE</button></span></div>${prog}</div>`;
+        return `<div class="paper-pos ${p.side > 0 ? 'buy' : 'sell'}${p.bot ? ' bot' : ''}"><div class="paper-row">${p.bot ? '<span class="bot-tag">JARVIS</span>' : ''}<b>${p.side > 0 ? 'BUY' : 'SELL'}</b> ${p.units} @ ${p.entry.toFixed(2)} <span class="paper-pl">${pl(v)}</span></div>` +
+          `<div class="paper-row">${lv}<span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-be="${p.id}" title="Move stop to break-even">BE</button><button type="button" class="ghost-btn paper-close" data-half="${p.id}" title="Close half">½</button><button type="button" class="ghost-btn paper-close" data-edit="${p.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-close="${p.id}">CLOSE</button></span></div>${prog}</div>`;
       }).join('') + (pos.length > 1 ? `<div class="paper-row"><button type="button" class="ghost-btn paper-close danger" data-closeall="1">CLOSE ALL (${pos.length})</button></div>` : '') : `<div class="dim small paper-empty">No open paper trades. Use SELL / BUY above, or say “sell now”, “put a buy order at 3990”.</div>`) +
       (ord.length ? ord.map((o) => `<div class="paper-pos order ${o.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${o.side > 0 ? 'BUY' : 'SELL'} ${o.type.toUpperCase()}</b> ${o.units} @ ${o.entry.toFixed(2)} <span class="paper-pl dim">PENDING</span></div><div class="paper-row"><span class="paper-lv">SL ${o.sl != null ? o.sl.toFixed(2) : '—'} · TP ${o.tp != null ? o.tp.toFixed(2) : '—'}</span><span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-edit="${o.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-cancel="${o.id}">CANCEL</button></span></div></div>`).join('') : '') +
-      (hist.length ? `<div class="paper-hist">${hist.map((h) => `<span title="${new Date(h.closedAt).toLocaleString()}">${h.side > 0 ? 'B' : 'S'} ${h.reason === 'tp' ? 'TP' : h.reason === 'manual' ? '✕' : 'SL'} ${pl(h.pl)}</span>`).join('')}</div>` : '');
+      (hist.length ? `<div class="paper-hist">${hist.map((h) => `<span class="${h.bot ? 'bot' : ''}" title="${new Date(h.closedAt).toLocaleString()}${h.bot ? ' — JARVIS' : ''}">${h.bot ? 'J·' : ''}${h.side > 0 ? 'B' : 'S'} ${h.reason === 'tp' ? 'TP' : h.reason === 'manual' ? '✕' : h.reason === 'partial' ? '½' : h.reason === 'session_end' ? 'END' : 'SL'} ${pl(h.pl)}</span>`).join('')}</div>` : '') +
+      botLine();
+  }
+  // One line about JARVIS's own trade for today
+  function botLine() {
+    if (typeof Life === 'undefined') return '';
+    const s = Life.botStatus({ now: Date.now() });
+    let txt;
+    if (s.open) txt = `In a ${s.open.side > 0 ? 'BUY' : 'SELL'} today — ask “how’s your trade”`;
+    else if (s.closed.length) { const v = s.closed.reduce((a, h) => a + h.pl, 0); txt = `Today’s trade done: <span class="${v >= 0 ? 'up' : 'down'}">${money2(v)}</span>`; }
+    else txt = 'Waiting for today’s setup (one trade a day, 40+ units)';
+    return `<div class="bot-line"><span class="bot-tag">JARVIS TRADER</span> ${txt}</div>`;
   }
   const findTrade = (id) => Paper.positions().find((p) => p.id === id) || Paper.orders().find((o) => o.id === id);
   const isPending = (t) => Paper.orders().includes(t);
   $('paper').addEventListener('click', (e) => {
+    const half = e.target.closest('[data-half]');
+    if (half && gold) { const h = Paper.partial(+half.dataset.half, (findTrade(+half.dataset.half) || { units: 0 }).units / 2, gold.price.bid, gold.price.ask); if (h) log('Partial close', `Closed ${h.units} @ ${h.exit.toFixed(2)} <span class="${h.pl >= 0 ? 'up' : 'down'}">${money2(h.pl)}</span>${h.left ? ` — ${h.left} still running` : ''}.`); }
     const c = e.target.closest('[data-close]'), x = e.target.closest('[data-cancel]'), be = e.target.closest('[data-be]'), ed = e.target.closest('[data-edit]'), all = e.target.closest('[data-closeall]');
     const closeLog = (h) => h && log('Close paper trade', `Closed ${h.side > 0 ? 'BUY' : 'SELL'} ${h.units} @ ${h.entry.toFixed(2)} → ${h.exit.toFixed(2)} <span class="${h.pl >= 0 ? 'up' : 'down'}">${money2(h.pl)}</span>.`);
     if (c && gold) closeLog(Paper.closeOne(+c.dataset.close, gold.price.bid, gold.price.ask));
@@ -715,6 +730,7 @@
     document.body.classList.add('engaged');
     $('boot').classList.add('done');
     setTimeout(() => { $('boot').hidden = true; document.body.classList.remove('booting'); }, 700);
+    if (typeof Life !== 'undefined') Life.botCatchUp(prefs.riskPct).then((l) => { if (l.length) renderPaper(); }).catch(() => {});
     const hello = Brain.greeting(ctx());
     const e = log('JARVIS online', hello.html);
     Voice.speak(hello.say, { onStart: () => e.classList.add('speaking'), onEnd: () => e.classList.remove('speaking') });
@@ -738,6 +754,17 @@
     }
   }
   setInterval(() => { if (document.body.classList.contains('engaged')) remindPop(Reminders.takeDue(Date.now())); }, 15000);
+  // timers (chime) and water reminders
+  function chime() {
+    try {
+      const A = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.25, 0.5].forEach((d, i) => { const o = A.createOscillator(), g = A.createGain(); o.frequency.value = [880, 1175, 1568][i]; g.gain.setValueAtTime(0.0001, A.currentTime + d); g.gain.exponentialRampToValueAtTime(0.3, A.currentTime + d + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, A.currentTime + d + 0.35); o.connect(g).connect(A.destination); o.start(A.currentTime + d); o.stop(A.currentTime + d + 0.4); });
+    } catch {}
+  }
+  setInterval(() => {
+    if (!document.body.classList.contains('engaged') || typeof Life === 'undefined') return;
+    for (const x of Life.due(Date.now(), TZ())) { callout(x.key, x.text, x.say, x.tag); if (x.chime) { chime(); log('timer', `<span class="warn">${esc(x.text)}</span>`); } }
+  }, 2000);
   let hiddenAt = 0;
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { hiddenAt = Date.now(); return; }

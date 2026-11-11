@@ -1,0 +1,71 @@
+/* ============ JARVIS v8: modern sci-fi glass look (loads last, overrides the older HUD style) ============ */
+:root {
+  --bg: #03060c;
+  --panel: linear-gradient(160deg, rgba(18, 34, 52, 0.62), rgba(6, 14, 24, 0.55));
+  --cyan: #3ee8ff;
+  --cyan-dim: rgba(62, 232, 255, 0.22);
+  --cyan-faint: rgba(62, 232, 255, 0.07);
+  --violet: #8b7bff;
+  --text: #e6f6ff;
+  --dim: #7d93a6;
+  --bull: #2ff5a6;
+  --bear: #ff5a7a;
+  --neutral: #ffcf5a;
+  --disp: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --glow: 0 0 0 3px rgba(62, 232, 255, 0.12);
+  --r: 18px;
+}
+body {
+  background:
+    radial-gradient(900px 520px at 85% -10%, rgba(139, 123, 255, 0.16), transparent 60%),
+    radial-gradient(800px 600px at -10% 10%, rgba(62, 232, 255, 0.13), transparent 60%),
+    radial-gradient(700px 500px at 50% 120%, rgba(47, 245, 166, 0.06), transparent 60%),
+    var(--bg);
+  background-attachment: fixed;
+}
+/* glass panels: rounded, soft blur, light gradient edge — no clipped corners or brackets */
+.panel {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: var(--r);
+  clip-path: none;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(62, 232, 255, 0.04);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  overflow: hidden;
+}
+.panel::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 1px; width: auto; border: 0; filter: none;
+  background: linear-gradient(90deg, transparent, rgba(62, 232, 255, 0.55), rgba(139, 123, 255, 0.45), transparent);
+  opacity: 0.8;
+}
+.panel::after { display: none; }
+.panel-head {
+  font-family: var(--disp); font-weight: 600; font-size: 12px; letter-spacing: 0.16em;
+  color: rgba(230, 246, 255, 0.72); border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tag { border-radius: 999px; border-color: rgba(62, 232, 255, 0.25); background: rgba(62, 232, 255, 0.06); letter-spacing: 0.08em; font-weight: 600; }
+.price, .val, .readouts b { font-family: var(--disp); }
+.cmd-form { border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.09); background: rgba(8, 18, 30, 0.7); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+.cmd-form:focus-within { border-color: rgba(62, 232, 255, 0.5); box-shadow: var(--glow); }
+.ghost-btn, .icon-btn, .link-btn { border-radius: 10px; }
+.ghost-btn { border-color: rgba(255, 255, 255, 0.12); background: rgba(255, 255, 255, 0.03); transition: background 0.15s, border-color 0.15s; }
+.ghost-btn:hover { background: rgba(62, 232, 255, 0.08); border-color: rgba(62, 232, 255, 0.4); }
+.tk-btn { border-radius: 12px; }
+.tk-btn.buy { background: linear-gradient(180deg, rgba(47, 245, 166, 0.16), rgba(47, 245, 166, 0.05)); }
+.tk-btn.sell { background: linear-gradient(180deg, rgba(255, 90, 122, 0.16), rgba(255, 90, 122, 0.05)); }
+.ticket-fields input, .settings input[type=text], .settings input[type=password], .settings select { border-radius: 10px; border-color: rgba(255, 255, 255, 0.1); background: rgba(0, 0, 0, 0.3); }
+dialog.settings { border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(8, 16, 28, 0.92); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px); }
+.toast { border-radius: 14px; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.paper-pos { border-radius: 12px; }
+.paper-hist span { border-radius: 999px; }
+#cmdOutput > div { border-radius: 14px; }
+.topbar { -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+
+/* JARVIS trader */
+.bot-tag { display: inline-block; font-family: var(--disp); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; padding: 1px 7px; margin-right: 6px; border-radius: 999px; color: #0b0820; background: linear-gradient(90deg, var(--cyan), var(--violet)); vertical-align: 1px; }
+.paper-pos.bot { box-shadow: inset 3px 0 0 var(--violet); }
+.paper-hist span.bot { border-color: rgba(139, 123, 255, 0.5) !important; }
+.bot-line { margin-top: 10px; padding: 8px 10px; border-radius: 12px; font-size: 13px; background: rgba(139, 123, 255, 0.08); border: 1px solid rgba(139, 123, 255, 0.2); }
+
+@media (prefers-reduced-motion: reduce) { .core-svg * { animation: none !important; } }

@@ -185,6 +185,41 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v8
+
+**JARVIS trader.** JARVIS takes its own paper trade once per trading day (6 PM to 5 PM New York time). It uses your same paper account, so its result adds to your P&L.
+- It waits for a setup that matches the bias during prime hours. If nothing lines up by 2 PM New York time, it takes the best side it has.
+- Every trade is **at least 40 units** (contracts) and the target is always **1.5× the stop** or more, so it's better than 1:1.
+- It never moves its stop. At 4:50 PM New York time it closes its own trade so each day stands on its own.
+- It stays quiet. You'll only see it in the paper panel (purple **JARVIS** tag and the "JARVIS TRADER" line), or when you ask "how did your trade go today?" or "what's your record?"
+- A web page can't run while your phone is closed. If the app was closed all day, JARVIS works out that day's trade from the price history the next time you open it, using one fixed rule: at 9:30 AM it goes with the move since the 6 PM open.
+
+**Trading extras**
+- Partials: "take partials for 20 contracts", "close half", or the **½** button on a trade.
+- "best trade", "worst trade this week", "best and worst trade"
+- "give me a trading challenge", "how am I doing on the challenge"
+
+**Life tools** (saved on your phone only)
+- Water: "I drank 2 glasses of water", "how much water did I drink today", "set water goal to 10", "turn on water reminders" (a pop-up every 2 hours from 9 AM to 9 PM).
+- Habits: "add habit reading", "I read today", "my habits" (shows streaks).
+- Check-in and mood: "I feel great", "I'm tired", "check in", "how have I been feeling". Answers are always encouraging.
+- Repeating reminders: "remind me every Monday to take out the trash", "remind me every day at 9 to stretch".
+- To-do list: "add milk and eggs to my list", "what's on my list", "check off milk", "clear my list".
+- Countdowns: "add a countdown to my trip on March 3rd", "change trip to March 10th", "how many days until Christmas", "my countdowns", "delete countdown trip".
+- Remember things: "remember my locker is 42", "what's my locker number?", "what do you remember", "forget my locker".
+- Sleep: "going to bed" / "I'm up" logs your sleep. Also "I slept 7 hours", "how did I sleep", "what time should I go to sleep if I wake up at 6".
+- Money: "I spent 20 dollars on food", "how much did I spend this week", "undo last expense".
+- Timers: "set a timer for 10 minutes", "how much time is left", "cancel timer". It plays a chime, so keep the app open.
+- Morning routine: "morning routine" or "start my day" gives you weather, gold, news, reminders, your list, habits and countdowns.
+
+**Just talk to it**
+- "how's your day?", "what's the vibe today / tonight?", "what's it feeling like outside?", "what should I wear?", "do I need a jacket?"
+- "any books to read?", "trading books", "any movies to watch?", "shows to binge", "what should I eat?", "what's for dinner?"
+- "motivate me", "daily quote", "I'm bored", "are you real?"
+- If a sentence doesn't match anything exactly, JARVIS picks the closest thing it knows.
+
+**New look.** Glass panels with rounded corners and a soft glow. No more retro grid or cut corners.
+
 ---
 
 ## How the bias works (and why it doesn't flicker)
