@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794436579816,
+ "heartbeat": 1794440010131,
  "check": {
-  "at": 1794436579816,
+  "at": 1794440010131,
   "ok": false,
-  "why": "no live price"
+  "why": "setup score 3 (needs 4 outside London/New York hours)"
  },
  "days": {}
 }
