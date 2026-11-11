@@ -173,13 +173,13 @@ Missed ones are kept under the 🔔 bell.
 - turn hands-free on or off
 - turn the boot animation on or off
 
-For the best voice on iPhone: Settings → Accessibility → Spoken Content → Voices → English → download **Daniel (Enhanced)** or **Arthur (Premium)**, then pick it in JARVIS. On PC, Microsoft Edge has very natural "Online (Natural)" voices.
+For the best voice on iPhone: Settings → Accessibility → Read & Speak → Voices → English → download **Daniel (Enhanced)** or **Arthur (Premium)**, then pick it in JARVIS. On PC, Microsoft Edge has very natural "Online (Natural)" voices.
 
 Notes:
 - Speech-to-text is done by Apple or Google, the same service as keyboard dictation. Everything after that is plain code.
 - **Reminders** pop up as a silent REMINDER card (tap to hear) when their time comes while the app is open. Otherwise they're read out the next time you open the app. "Next time I open the app" reminders also show when you come back to the app after 10+ minutes away.
 - **Better hearing:** JARVIS asks the speech engine for several guesses and uses the one that makes the most sense as a command. It also fixes common mishearings ("cell now" → "sell now", "bearish into one" → "bearish until when", "brake even" → "break even").
-- **More human voice (iPhone):** the browser can only use voices installed on your phone. In iPhone **Settings → Accessibility → Spoken Content → Voices → English**, download a voice marked **Premium** (best) or **Enhanced**. Then in JARVIS Settings ⚙ → Voice, pick it and tap Preview. JARVIS picks Premium voices first automatically.
+- **More human voice (iPhone):** the browser can only use voices installed on your phone. In iPhone **Settings → Accessibility → Read & Speak → Voices → English**, download a voice marked **Premium** (best) or **Enhanced**. Then in JARVIS Settings ⚙ → Voice, pick it and tap Preview. JARVIS picks Premium voices first automatically.
 - **Stop button:** while JARVIS is talking, the mic button turns into an orange ■ stop button. Tap it to cut it off. Saying "stop" or pressing Esc works too.
 - **Stop being asked for the mic every time (iPhone):** a website can't give itself permanent mic access; you have to set it once. In Safari, open JARVIS, tap the **aA** button in the address bar → **Website Settings** → **Microphone** → **Allow**. If you use JARVIS from the Home Screen icon, go to **Settings → Apps → Safari → Microphone → Allow**.
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
