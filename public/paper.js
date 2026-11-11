@@ -45,6 +45,16 @@ const Paper = (() => {
     return { position };
   }
 
+  // An already-open trade from somewhere else (JARVIS's cloud trader) — opened at its own price and time.
+  function adopt({ side, units, entry, sl = null, tp = null, openedAt = Date.now(), note = '', bot = true }) {
+    const position = { id: st.nextId++, side, units: Math.max(1, Math.round(units)), sl: sl == null ? null : r2(sl), tp: tp == null ? null : r2(tp), auto: false, style: 'day', note, bot: !!bot, entry: r2(entry), openedAt };
+    st.positions.push(position);
+    save();
+    return position;
+  }
+  // Close at an exact price/time (used when the cloud trader already closed it)
+  function closeAt(id, px, reason = 'manual', at = Date.now()) { const h = close(id, px, reason, at); if (h) { st.history.sort((a, b) => b.closedAt - a.closedAt); save(); } return h; }
+
   function fill(order, px, at) {
     st.orders = st.orders.filter((o) => o !== order);
     const position = { id: order.id, side: order.side, units: order.units, sl: order.sl, tp: order.tp, auto: order.auto, style: order.style, note: order.note, bot: !!order.bot, entry: r2(px), openedAt: at };
@@ -184,7 +194,7 @@ const Paper = (() => {
   function markSeen() { st.events.forEach((e) => { e.seen = true; }); save(); }
 
   return {
-    place, closeAll, closeOne, partial, record, modify, cancel, tick, replay, reset, stats, unseen, markSeen, pnlAt, closePx,
+    place, closeAll, closeOne, partial, record, adopt, closeAt, modify, cancel, tick, replay, reset, stats, unseen, markSeen, pnlAt, closePx,
     positions: () => st.positions, orders: () => st.orders, history: () => st.history,
     lastCheck: () => st.lastCheck, busy: () => st.positions.length > 0 || st.orders.length > 0,
     onChange: (f) => listeners.push(f),

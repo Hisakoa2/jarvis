@@ -82,7 +82,7 @@ const Brain = (() => {
   const CONTRACTIONS = [
     [/\b(what|where|how|who|when|it|that|there|here|gold|today)'?s\b/g, '$1 is'],
     [/\bi'?m\b/g, 'i am'], [/\b(you|we|they)'?re\b/g, '$1 are'], [/\b(i|you|we|they)'?ve\b/g, '$1 have'],
-    [/\b(i|you|we|they|it)'?ll\b/g, '$1 will'], [/\b(i|you|we|they)'?d\b/g, '$1 would'],
+    [/\b(you|they)'?ll\b/g, '$1 will'], [/\b(i|we|it)'ll\b/g, '$1 will'], [/\b(you|they)'?d\b/g, '$1 would'], [/\b(i|we)'d\b/g, '$1 would'],
     [/\bcan'?t\b/g, 'can not'], [/\bwon'?t\b/g, 'will not'], [/\b(do|does|did|is|are|was|should|would|could)n'?t\b/g, '$1 not'],
     [/\bwhats\b/g, 'what is'], [/\bhows\b/g, 'how is'], [/\bwheres\b/g, 'where is'], [/\bwanna\b/g, 'want to'], [/\bgonna\b/g, 'going to'],
     [/\bu\b/g, 'you'], [/\bur\b/g, 'your'], [/\b(?:pls|plz)\b/g, 'please'], [/\bn\.?\s?y\.?c?\b/g, 'ny'],
@@ -124,7 +124,7 @@ const Brain = (() => {
     return prev[n];
   }
   function correct(text, extra) {
-    const vocab = new Set([...VOCAB, ...extra]);
+    const vocab = new Set([...VOCAB, ...extra, ...(typeof Lex !== 'undefined' ? Lex.vocab : [])]);
     return text.split(' ').map((t) => {
       if (t.length < 4 || vocab.has(t) || STOP.has(t) || /\d/.test(t)) return t;
       let best = t, bestD = t.length >= 7 ? 3 : 2;
@@ -814,8 +814,13 @@ const Brain = (() => {
     const want = dir > 0 ? 'Bullish' : 'Bearish', other = dir > 0 ? 'Bearish' : 'Bullish';
     const mins = (60 - k.mi) + 60; // two closed 1H candles needed
     const soon = mins >= 60 ? `${Math.floor(mins / 60)} hr ${mins % 60} min` : `${mins} min`;
-    const time = `<br><span class="dim">There's no clock on it — the bias lasts until price does that. Because it needs 2 hourly closes in a row, the soonest it could change is in about <b>${soon}</b>. Not a guarantee — your call.</span>`;
-    const timeS = ` There's no set time, it lasts until price does that. The soonest it could change is in about ${soon.replace('hr', 'hour').replace('min', 'minutes')}.`;
+    const closed = !k.market.open, soonAt = closed ? k.market.opensAt + 2 * 3600e3 : 0;
+    const time = closed
+      ? `<br><span class="dim">The market is closed, so nothing can change until it reopens (${fmtT(k.market.opensAt, k.tz, true)} ET). It needs 2 hourly closes in a row, so the soonest is about <b>${fmtT(soonAt, k.tz, true)} ET</b>. Not a guarantee — your call.</span>`
+      : `<br><span class="dim">There's no clock on it — the bias lasts until price does that. Because it needs 2 hourly closes in a row, the soonest it could change is in about <b>${soon}</b>. Not a guarantee — your call.</span>`;
+    const timeS = closed
+      ? ` The market is closed, so the soonest it could change is about ${sayWhen(soonAt, k.tz)}, two hours after it reopens.`
+      : ` There's no set time, it lasts until price does that. The soonest it could change is in about ${soon.replace('hr', 'hour').replace('min', 'minutes')}.`;
     if (!dir) {
       const up = flipPoint(k, px, 1, ['Bullish']), dn = flipPoint(k, px, -1, ['Bearish']);
       return reply(`Bias is <b class="warn">neutral</b> right now${k.t} — neither bullish nor bearish.<ul><li>Turns <span class="up">bullish</span> on 1H closes above <b>${up ? f2(up) : '—'}</b></li><li>Turns <span class="down">bearish</span> on 1H closes below <b>${dn ? f2(dn) : '—'}</b></li></ul>${time}` + demoNote(g),
@@ -835,6 +840,39 @@ const Brain = (() => {
     return reply(`${tH}<b class="${cls(want)}">${T ? 'It stays' : 'Price stays'} ${lc(want)} while 1H candles close ${dir > 0 ? 'above' : 'below'} ~${f2(neutral)}</b> (${f2(Math.abs(px - neutral))} away).` +
       `<ul><li>${dir > 0 ? 'Below' : 'Above'} ${f2(neutral)} → <span class="warn">neutral</span></li>` + (flip ? `<li>${dir > 0 ? 'Below' : 'Above'} ${f2(flip)} → flips <span class="${cls(other)}">${lc(other)}</span> (${f2(Math.abs(px - flip))} away)</li>` : '') + `</ul>${warn}${time}` + demoNote(g),
       `${tS}${T ? 'It stays' : 'Gold stays'} ${lc(want)} while hourly candles close ${dir > 0 ? 'above' : 'below'} ${sayPrice(neutral)}${T ? '' : k.t}, that's ${money(Math.round(Math.abs(px - neutral)))} away.${flip ? ` ${dir > 0 ? 'Below' : 'Above'} ${sayPrice(flip)} it flips ${lc(other)}.` : ''}` + timeS + demoSay(g));
+  }
+
+  // "What's the bias for when the market opens?" — the read going into the next session, and what would change it.
+  function openBiasA(k) {
+    const g = k.g, b = g.bias, r = b.raw, m = k.market, px = g.price.bid, mt = mtfLine(g), p = pendingOf(b);
+    const dir = b.bias === 'Bullish' ? 1 : b.bias === 'Bearish' ? -1 : 0;
+    const closed = !m.open;
+    const head = closed
+      ? `Market's closed${k.t} — it reopens <b>${fmtT(m.opensAt, k.tz, true)} ET</b> (in ${words(m.opensAt - k.now)}).`
+      : `Market is open right now${k.t}, so this is the live read going into the next session.`;
+    const headS = closed ? `The market is closed${k.t}, it reopens in ${words(m.opensAt - k.now)}.` : `The market is open right now${k.t}.`;
+    const lines = [], sayL = [];
+    if (dir) {
+      const other = dir > 0 ? 'Bearish' : 'Bullish';
+      const neutral = flipPoint(k, px, -dir, ['Neutral', other]), flip = flipPoint(k, px, -dir, [other]);
+      if (neutral) { lines.push(`Stays <span class="${cls(b.bias)}">${lc(b.bias)}</span> while hourly candles close ${dir > 0 ? 'above' : 'below'} <b>${f2(neutral)}</b> (${f2(Math.abs(px - neutral))} away)`); sayL.push(`It stays ${lc(b.bias)} while hourly candles close ${dir > 0 ? 'above' : 'below'} ${sayPrice(neutral)}`); }
+      if (flip) { lines.push(`Flips <span class="${cls(other)}">${lc(other)}</span> on closes ${dir > 0 ? 'below' : 'above'} <b>${f2(flip)}</b>`); sayL.push(`it flips ${lc(other)} ${dir > 0 ? 'below' : 'above'} ${sayPrice(flip)}`); }
+      const T = moveTarget(k, dir, px);
+      if (T) { lines.push(`First target in the bias direction: <b>${f2(T.t1.price)}</b> (${esc(T.t1.name)})`); sayL.push(`the first target is about ${sayPrice(T.t1.price)}`); }
+    } else {
+      const up = flipPoint(k, px, 1, ['Bullish']), dn = flipPoint(k, px, -1, ['Bearish']);
+      if (up) { lines.push(`Turns <span class="up">bullish</span> on hourly closes above <b>${f2(up)}</b>`); sayL.push(`it turns bullish above ${sayPrice(up)}`); }
+      if (dn) { lines.push(`Turns <span class="down">bearish</span> on hourly closes below <b>${f2(dn)}</b>`); sayL.push(`bearish below ${sayPrice(dn)}`); }
+    }
+    if (closed) {
+      const soonAt = m.opensAt + 2 * 3600e3;
+      lines.push(`Soonest the bias can change: about <b>${fmtT(soonAt, k.tz, true)} ET</b> (2 hourly closes after the open)`);
+      lines.push(`If price <b>gaps</b> past those levels at the open, the first hourly candles start building the change`);
+    }
+    const plan = dir ? `I'd look for <b class="${cls(b.bias)}">${dir > 0 ? 'buys' : 'sells'}</b> first when it opens, in London and New York hours.` : `No edge from the rules yet — I'd wait for a side to form after the open.`;
+    return reply(
+      `${head}<br>Going into the open, your rules read <b class="${cls(b.bias)}">${b.bias.toUpperCase()}</b> — ${r.bullish} bullish, ${r.bearish} bearish of ${r.total}, from the last close at ${fmtT(b.lastCloseTime, k.tz, true)} ET (${f2(b.lastClose)}). ${p.html}<br>Higher timeframes: ${mt.html}.<ul>${lines.map((x) => `<li>${x}</li>`).join('')}</ul>${plan}<br><span class="dim">Not a guarantee — your call.</span>` + demoNote(g),
+      `${headS} Going into the open, the bias is ${lc(b.bias)}. ${sayL.length ? cap1(sayL.join(', ')) + '.' : ''} ${dir ? `I'd look for ${dir > 0 ? 'buys' : 'sells'} first.` : `I'd wait for a side to form.`} ${p.say}` + demoSay(g));
   }
 
   // Take-profit ideas for a given entry + stop
@@ -1619,7 +1657,7 @@ const Brain = (() => {
   }
 
   // ---------------------------------------------------------------- intents
-  const DATA_INTENTS = new Set(['biasUntil', 'price', 'bias', 'why', 'mtf', 'levels', 'distance', 'range', 'day', 'brief', 'trade', 'account', 'callouts', 'plan', 'review', 'tradenow', 'timing', 'news', 'safe', 'stall', 'tpq', 'weather', 'dayplan']);
+  const DATA_INTENTS = new Set(['openBias', 'biasUntil', 'price', 'bias', 'why', 'mtf', 'levels', 'distance', 'range', 'day', 'brief', 'trade', 'account', 'callouts', 'plan', 'review', 'tradenow', 'timing', 'news', 'safe', 'stall', 'tpq', 'weather', 'dayplan']);
 
   function scoreIntents(c, text, hasNums, k, ctxRaw) {
     const S = {};
@@ -1760,6 +1798,25 @@ const Brain = (() => {
 
   // ctx: { gold(), refresh(force), projects, sessions, openProject(p), clear(), setMuted(b), stopSpeaking(), tz, title,
   //        ambient(on), isAmbient(), callouts() }
+  // Every scorer votes; the highest score wins. Keyword rules + life tools + the big word library (lexicon.js).
+  function pickIntent(c, text, fixed, hasNums, k, ctx) {
+    const S = scoreIntents(c, fixed, hasNums, k, ctx);
+    if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
+    if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(text))) if (v > (S[i] || 0)) S[i] = v;
+    if (S.openBias && S.bias >= 9.9) S.openBias = 9.95; // "buy or sell at the open" — the open is the point
+    const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
+    let id = ranked.length ? ranked[0][0] : null;
+    if (!id || ranked[0][1] < 3) { const b = bankMatch(fixed); if (b) id = b; }
+    return { id, S, ranked };
+  }
+  // Which question a sentence is (used by the vocabulary tests in tools/vocab-test.js)
+  function routeOf(raw, ctx) {
+    const text = stripWake(clean(raw));
+    if (!text) return null;
+    const fixed = correct(text, []);
+    return pickIntent(concepts(fixed), text, fixed, /\d/.test(fixed), context(ctx), ctx);
+  }
+
   function interpret(raw, ctx) {
     const original = clean(raw);
     const hadWake = WAKE.test(original); WAKE.lastIndex = 0;
@@ -1775,7 +1832,7 @@ const Brain = (() => {
     const hasNums = /\d/.test(fixed);
     const k = context(ctx);
     k.sessionsAll = (ctx.sessions.sessions || []).map((s) => ({ s, st: Sessions.status(s) })).filter((x) => x.st).sort((a, b) => (b.st.open - a.st.open) || a.st.opensAt - b.st.opensAt);
-    const note = fixed !== text ? `<span class="dim">(heard “${esc(fixed)}”)</span> ` : '';
+    const note = fixed !== text && text.split(' ').length <= 10 ? `<span class="dim">(heard “${esc(fixed)}”)</span> ` : '';
     const wrap = (r) => (r ? { html: note + r.html, say: r.say } : r);
 
     // open <project> / bare project name
@@ -1788,17 +1845,13 @@ const Brain = (() => {
     const bare = (ctx.projects || []).find((p) => [p.name, ...(p.aliases || [])].map(clean).includes(fixed));
     if (bare) { ctx.openProject(bare); return wrap(reply(`Opening <b>${esc(bare.name)}</b>.`, `Opening ${bare.name}.`)); }
 
-    const S = scoreIntents(c, fixed, hasNums, k, ctx);
-    if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
-    const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
-    let id = ranked.length ? ranked[0][0] : null;
-    if (!id || ranked[0][1] < 3) { const b = bankMatch(fixed); if (b) id = b; }
+    let { id } = pickIntent(c, text, fixed, hasNums, k, ctx);
 
     // social opener in front of a data answer: "hey, how are you, what's the bias?"
     const social = (c.has('HOWAREYOU') || c.has('HELLO')) && id && DATA_INTENTS.has(id)
       ? (c.has('HOWAREYOU') ? pick('soc', [`Doing well${k.t}. `, `All good${k.t}. `, `Running smoothly${k.t}. `]) : pick('soc2', [`${greet(k)}. `, `Hey${k.t}. `])) : '';
 
-    const dirOf = () => (c.has('BUY') && !c.has('SELL') ? 1 : c.has('SELL') && !c.has('BUY') ? -1 : (fixed.search(/\b(buy|long)/) < fixed.search(/\b(sell|short)/) ? 1 : -1));
+    const dirOf = () => (c.has('BUY') && !c.has('SELL') ? 1 : c.has('SELL') && !c.has('BUY') ? -1 : (typeof Lex !== 'undefined' && Lex.side(text)) || (fixed.search(/\b(buy|long)/) < fixed.search(/\b(sell|short)/) ? 1 : -1));
     const biasDir = (kk) => (kk.g && kk.g.bias.bias === 'Bullish' ? 1 : kk.g && kk.g.bias.bias === 'Bearish' ? -1 : 0);
     const styleOf = () => (c.has('SWING') ? 'swing' : c.has('DAYTRADE') ? 'day' : null);
     const needGold = (fn) => {
@@ -1809,7 +1862,8 @@ const Brain = (() => {
 
     switch (id) {
       case 'price': return needGold(() => priceA(k));
-      case 'bias': return needGold(() => biasA(k));
+      case 'bias': return needGold(() => (k.market.open ? biasA(k) : openBiasA(k)));
+      case 'openBias': return needGold(() => openBiasA(k));
       case 'why': return needGold(() => whyA(k, c.has('BULL') ? 'Bullish' : c.has('BEAR') ? 'Bearish' : null));
       case 'mtf': return needGold(() => mtfA(k));
       case 'levels': return needGold(() => levelsA(k));
@@ -1827,9 +1881,9 @@ const Brain = (() => {
         return k.news && !k.news.ok() && k.news.load ? k.news.load().then(go, go) : go();
       }
       case 'birthday': return wrap(birthdayA(k, fixed));
-      case 'biasUntil': return needGold(() => biasUntilA(k, /\b(bullish|bull|uptrend)\b/.test(fixed) ? 1 : /\b(bearish|bear|downtrend)\b/.test(fixed) ? -1 : 0));
+      case 'biasUntil': return needGold(() => biasUntilA(k, /\b(bullish|bull|uptrend)\b/.test(fixed) ? 1 : /\b(bearish|bear|downtrend)\b/.test(fixed) ? -1 : (typeof Lex !== 'undefined' ? Lex.dir(text) : 0)));
       case 'safe': return needGold(() => safeA(k, c.has('BUY') || c.has('SELL') ? dirOf() : biasDir(k)));
-      case 'stall': return needGold(() => stallA(k, /\b(up|higher|rising|rise|climb|climbing|high|top|tops|ceiling|peak|pump|pumping|rally)\b/.test(fixed) ? 1 : /\b(down|lower|falling|fall|drop|dropping|low|bottom|bottoms|floor|dump|dumping)\b/.test(fixed) ? -1 : biasDir(k) || 1));
+      case 'stall': return needGold(() => stallA(k, /\b(up|higher|rising|rise|climb|climbing|high|top|tops|ceiling|peak|pump|pumping|rally)\b/.test(fixed) ? 1 : /\b(down|lower|falling|fall|drop|dropping|low|bottom|bottoms|floor|dump|dumping)\b/.test(fixed) ? -1 : (typeof Lex !== 'undefined' && Lex.dir(text)) || biasDir(k) || 1));
       case 'tpq': {
         const t = parseTrade(fixed);
         if (t.stop) return needGold(() => tpForStopA(k, c.has('BUY') || c.has('SELL') ? dirOf() : (t.entry && t.stop > t.entry ? -1 : 1), t.entry || (k.g ? k.g.price.bid : 0), t.stop, styleOf(), !!t.entry));
@@ -1947,6 +2001,7 @@ const Brain = (() => {
       const kk = context(ctx);
       const S = scoreIntents(concepts(fixed), fixed, /\d/.test(fixed), kk, ctx);
       if (typeof Life !== 'undefined') Object.assign(S, Life.score(t, fixed, S, kk));
+      if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(t))) if (v > (S[i] || 0)) S[i] = v;
       let top = Math.max(0, ...Object.values(S));
       if (top < 3 && bankMatch(fixed)) top = 3;
       const tw = t.split(' ');
@@ -1954,23 +2009,33 @@ const Brain = (() => {
     } catch { return 0; }
   }
 
-  // JARVIS's own daily trade: which way, where, and how good the setup is.
-  // force = true late in the day, so it still takes its one trade.
-  function botPlan(ctx, force) {
+  // JARVIS's own daily trade: only when the setup is actually valid — never just to fill a quota.
+  // Rules: 1H bias must point one way (no neutral), the trade score must agree, no high-impact news
+  // in the next 30 min / last 15 min, not the dead zone 4:00–6:15 PM New York, and the target must be
+  // at least 1.5× the stop. Asia hours need a stronger score than London / New York hours.
+  function botCheck(ctx) {
     const k = context(ctx), g = k.g;
-    if (!g || !g.price || !g.price.tradeable) return null;
-    let dir = g.bias.bias === 'Bullish' ? 1 : g.bias.bias === 'Bearish' ? -1 : 0;
-    if (!dir) { const r = g.mtf.rows.find((x) => x.tf === 'H4') || g.mtf.rows[0]; dir = r && r.trend === 'Bullish' ? 1 : r && r.trend === 'Bearish' ? -1 : 0; }
-    if (!dir) { if (!force) return null; dir = g.price.bid >= (g.levels.list.find((l) => /open/i.test(l.name)) || { price: g.price.bid }).price ? 1 : -1; }
+    if (!g || !g.price || !g.price.tradeable) return { ok: false, why: 'no live price' };
+    if (!k.market.open) return { ok: false, why: 'market closed' };
+    const ny = Sessions.parts(new Date(k.now), 'America/New_York'), mins = ny.h * 60 + ny.mi;
+    if (mins >= 16 * 60 && mins < 18 * 60 + 15) return { ok: false, why: 'outside the trading window (6:15 PM to 4 PM New York)' };
+    const dir = g.bias.bias === 'Bullish' ? 1 : g.bias.bias === 'Bearish' ? -1 : 0;
+    if (!dir) return { ok: false, why: 'bias is neutral, so there is no edge' };
     const sc = scoreTrade(k, dir, 'day');
-    const good = inPrime(k) && sc.score >= 2;
-    if (!good && !force) return null;
+    const news = timingFlags(k).find((x) => x.lvl === 'stop' && /High-impact/.test(x.html));
+    if (news) return { ok: false, dir, score: sc.score, why: 'high-impact news is too close' };
+    const prime = mins >= 3 * 60 && mins < 11 * 60 + 30;
+    const need = prime ? 3 : 4;
+    if (sc.score < need) return { ok: false, dir, score: sc.score, why: `setup score ${sc.score} (needs ${need}${prime ? '' : ' outside London/New York hours'})` };
     const pl = buildPlan(k, dir, 'day');
     const risk = Math.abs(pl.entry - pl.stop);
+    if (!(risk > 0)) return { ok: false, dir, score: sc.score, why: 'no clean stop' };
     let tp = pl.tp1;
     if (Math.abs(tp - pl.entry) < risk * 1.5) tp = pl.entry + dir * risk * 1.5; // always better than 1 to 1
-    return { dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why: good ? 'setup lined up with the bias in prime hours' : 'late in the day, so I took the best side I had' };
+    const why = `${lc(g.bias.bias)} bias, setup score ${sc.score}${prime ? ' in prime hours' : ''}: ${sc.f.filter((x) => x.pts > 0).map((x) => x.say).slice(0, 3).join(', ')}`;
+    return { ok: true, dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why };
   }
+  function botPlan(ctx) { const c = botCheck(ctx); return c.ok ? c : null; }
 
-  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, context, reply, pick };
+  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf };
 })();

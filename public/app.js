@@ -282,7 +282,9 @@
     let txt;
     if (s.open) txt = `In a ${s.open.side > 0 ? 'BUY' : 'SELL'} today — ask “how’s your trade”`;
     else if (s.closed.length) { const v = s.closed.reduce((a, h) => a + h.pl, 0); txt = `Today’s trade done: <span class="${v >= 0 ? 'up' : 'down'}">${money2(v)}</span>`; }
-    else txt = 'Waiting for today’s setup (one trade a day, 40+ units)';
+    else txt = 'Watching for a valid setup (max one a day, 40+ units, sits out if nothing qualifies)';
+    const ci = Life.cloudInfo ? Life.cloudInfo() : null;
+    if (ci && ci.live) txt += ' · <span class="dim">cloud on</span>';
     return `<div class="bot-line"><span class="bot-tag">JARVIS TRADER</span> ${txt}</div>`;
   }
   const findTrade = (id) => Paper.positions().find((p) => p.id === id) || Paper.orders().find((o) => o.id === id);
@@ -725,12 +727,14 @@
     $('bootGo').hidden = false;
     $('bootGo').focus();
   }
+  // copy JARVIS's cloud trades (taken while the phone was off) into the paper account
+  function syncCloud() { if (typeof Life !== 'undefined' && Life.cloudSync) Life.cloudSync(prefs.riskPct).then(() => renderPaper()).catch(() => {}); }
   function engage() {
     if (document.body.classList.contains('engaged')) return;
     document.body.classList.add('engaged');
     $('boot').classList.add('done');
     setTimeout(() => { $('boot').hidden = true; document.body.classList.remove('booting'); }, 700);
-    if (typeof Life !== 'undefined') Life.botCatchUp(prefs.riskPct).then((l) => { if (l.length) renderPaper(); }).catch(() => {});
+    syncCloud();
     const hello = Brain.greeting(ctx());
     const e = log('JARVIS online', hello.html);
     Voice.speak(hello.say, { onStart: () => e.classList.add('speaking'), onEnd: () => e.classList.remove('speaking') });
@@ -781,6 +785,7 @@
     setInterval(tickClocks, 1000);
     setInterval(() => { if (!document.hidden) News.load(); }, 30 * 60e3);
     setInterval(() => { if (!document.hidden) fetchGold(); }, PRICE_POLL_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) { fetchGold().then(() => paperCatchUp()); loadConfig(); News.load(); } });
+    setInterval(() => { if (!document.hidden) syncCloud(); }, 3 * 60e3);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { fetchGold().then(() => paperCatchUp()); loadConfig(); News.load(); syncCloud(); } });
   })();
 })();

@@ -1,0 +1,47 @@
+# JARVIS cloud trader: runs the same trading rules as the app every ~10 minutes, Sunday → Friday,
+# so JARVIS can take (and manage) its one valid paper trade a day even when your phone is off.
+# It only READS prices from OANDA (key stored as a GitHub secret, never in the code) and writes its
+# paper trades to bot/trades.json on the "bot-data" branch. The app copies them into your paper P&L.
+name: JARVIS cloud trader
+
+on:
+  schedule:
+    - cron: '*/10 * * * 0-5'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jarvis-bot
+  cancel-in-progress: false
+
+jobs:
+  trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: bot-data
+          path: botdata
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run the trading rules
+        id: run
+        env:
+          OANDA_API_KEY: ${{ secrets.OANDA_API_KEY }}
+          OANDA_ACCOUNT_ID: ${{ secrets.OANDA_ACCOUNT_ID }}
+          OANDA_ENV: ${{ secrets.OANDA_ENV }}
+        run: node tools/bot-runner.js botdata/bot/trades.json
+      - name: Save trades
+        if: steps.run.outputs.changed == '1'
+        run: |
+          cd botdata
+          git config user.name "JARVIS cloud trader"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bot/trades.json
+          git commit -m "JARVIS cloud trader update" || exit 0
+          git push

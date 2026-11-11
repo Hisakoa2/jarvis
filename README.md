@@ -185,14 +185,38 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v9
+
+**JARVIS only trades when it's actually valid.** It does not force a trade to fill the day.
+- At most one trade per trading day. Entries are allowed from **6:15 PM to 4 PM New York time**.
+- It needs all of these: the 1H bias pointing one way (never neutral), the setup score agreeing (3+ in London/New York hours, 4+ at other times), no high-impact news within 30 minutes, and a target at least **1.5× the stop**.
+- If nothing qualifies, it sits out that day. Ask "how did your trade go today?" and it tells you why it waited.
+- Still at least 40 units, still never moves its stop, still closes its own trade at 4:50 PM.
+
+**Cloud trader (trades while your phone is off).** A copy of the same rules runs on GitHub every 10 minutes, Sunday to Friday. It only reads prices; it never touches your real OANDA account. It saves its paper trades to a small file, and the app copies them into your paper P&L the next time you open it.
+- One-time setup on the PC: double-click **Set up cloud trader.bat**. It copies your OANDA key from `.env` into GitHub's encrypted secret storage (never into the code).
+- Until that's done, JARVIS still trades while the app is open, the same valid-only way.
+- GitHub's timer can run a few minutes late, so entries and exits can be a few minutes off.
+
+**Bias for when the market opens.** When the market is closed, "what's the bias?" gives the read going into the open: which side, where it would flip, the first target, and the soonest it can change (two hourly closes after the open). Ask any time: "what's the bias for Monday", "bullish or bearish at the open", "what will gold do when the market opens".
+
+**When will it be bullish / bearish.** "When will price be bullish?", "when will gold stop being bearish?", "how long will it stay bullish?", "when does the trend flip?" give the exact price that changes it and the soonest time it could change.
+
+**A much bigger word library.** JARVIS now understands questions as meaning groups, in any order, like a combination lock. "When will gold stop being bullish", "bullish till when" and "how long is price gonna stay bullish" all mean the same thing to it. The library holds hundreds of words and slang, and a test checks 2,800+ sentence combinations (`node tools/vocab-test.js`). Examples:
+- "what's price doing", "how's gold looking", "catch me up", "what's going on with the market"
+- "should I buy now", "is it smart to sell here", "would you go long", "is it a good time to trade"
+- "where's price heading", "how low can it go", "what levels should I watch"
+- "log this one glass that I drank", "add a habit of me working out today"
+- Tell it about your day in a whole paragraph. It picks up every feeling word, notices "not" and "never", sees what it's about (work, trading, sleep, gym, people, money), and always answers positively.
+
 ### New in v8
 
 **JARVIS trader.** JARVIS takes its own paper trade once per trading day (6 PM to 5 PM New York time). It uses your same paper account, so its result adds to your P&L.
-- It waits for a setup that matches the bias during prime hours. If nothing lines up by 2 PM New York time, it takes the best side it has.
+- (v9: it now only trades valid setups — see above.)
 - Every trade is **at least 40 units** (contracts) and the target is always **1.5× the stop** or more, so it's better than 1:1.
 - It never moves its stop. At 4:50 PM New York time it closes its own trade so each day stands on its own.
 - It stays quiet. You'll only see it in the paper panel (purple **JARVIS** tag and the "JARVIS TRADER" line), or when you ask "how did your trade go today?" or "what's your record?"
-- A web page can't run while your phone is closed. If the app was closed all day, JARVIS works out that day's trade from the price history the next time you open it, using one fixed rule: at 9:30 AM it goes with the move since the 6 PM open.
+- (v9: the cloud trader covers days when your phone is off — see above.)
 
 **Trading extras**
 - Partials: "take partials for 20 contracts", "close half", or the **½** button on a trade.

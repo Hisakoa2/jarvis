@@ -1,6 +1,7 @@
 // Life tools + JARVIS's own daily trade + everyday conversation.
 // Everything is plain code and saved on this device only (localStorage "jarvis.life").
-//   • JARVIS trader: one paper trade per trading day (6 PM → 5 PM New York), at least 40 units, better than 1:1
+//   • JARVIS trader: at most one paper trade per trading day (6:15 PM → 4 PM New York entries), only when the
+//     setup is valid, at least 40 units, better than 1:1. A cloud copy (tools/bot-runner.js) trades while the phone is off.
 //   • partial closes, best/worst trade, trading challenges
 //   • water, habits, moods, sleep, money, to-do list, countdowns, "remember this", timers, morning routine
 //   • small talk: vibe, what to wear, books, movies, bedtime maths, food ideas, quotes
@@ -40,73 +41,83 @@ const Life = (() => {
     const bal = Paper.stats().balance;
     return Math.max(BOT_MIN_UNITS, Math.round((bal * (riskPct || 1) / 100) / Math.max(risk, 0.5)));
   }
-  // Called on every price update while the app is open
+  // Called on every price update while the app is open.
+  // JARVIS only trades when botCheck() says the setup is valid — never just to fill the day.
+  // When the cloud trader (GitHub, runs while your phone is off) is live, the cloud does the trading
+  // and the app only mirrors it, so the same trade is never taken twice.
+  let lastCheck = null;
   function botTick(ctx, g) {
     if (!g || !g.price || !g.price.tradeable || typeof Paper === 'undefined') return;
     const now = Date.now(), day = tradeDay(now), t = nyParts(now), mins = t.h * 60 + t.mi;
     const rec = st.bot.days[day];
     const open = Paper.positions().find((p) => p.bot);
     // 4:50 PM New York: the session is ending — JARVIS closes its own trade so every day stands alone
-    if (open && mins >= 16 * 60 + 50 && mins < 17 * 60) {
+    if (open && mins >= 16 * 60 + 50 && mins < 17 * 60 && !cloud.live) {
       const h = Paper.closeOne(open.id, g.price.bid, g.price.ask, 'session_end');
       if (h) { const r0 = Object.values(st.bot.days).find((r) => r.id === open.id); if (r0) r0.closedBy = 'session end'; save(); }
       return;
     }
+    if (cloud.live) return;          // the cloud trader is running — it takes the trade
     if (rec || open) return;
-    if (mins >= 16 * 60 + 30 && mins < 18 * 60) return; // too late — close is near
-    const force = mins >= 14 * 60 && mins < 16 * 60 + 30;
-    const plan = B().botPlan(ctx(), force);
-    if (!plan) return;
-    const units = botUnits(plan.risk, ctx().riskPct);
-    const res = Paper.place({ side: plan.dir, units, sl: plan.sl, tp: plan.tp, bid: g.price.bid, ask: g.price.ask, bot: true, note: plan.why });
+    const c = B().botCheck(ctx());
+    lastCheck = { at: now, ...c };
+    if (!c.ok) return;
+    const units = botUnits(c.risk, ctx().riskPct);
+    const res = Paper.place({ side: c.dir, units, sl: c.sl, tp: c.tp, bid: g.price.bid, ask: g.price.ask, bot: true, note: c.why });
     const pos = res.position || res.order;
-    st.bot.days[day] = { id: pos.id, at: now, dir: plan.dir, units, entry: pos.entry, sl: plan.sl, tp: plan.tp, rr: Math.round(plan.rr * 100) / 100, why: plan.why };
+    st.bot.days[day] = { id: pos.id, at: now, dir: c.dir, units, entry: pos.entry, sl: c.sl, tp: c.tp, rr: Math.round(c.rr * 100) / 100, why: c.why };
     trimBot(); save();
   }
   function trimBot() { const ks = Object.keys(st.bot.days).sort(); while (ks.length > 120) delete st.bot.days[ks.shift()]; }
 
-  // App was closed for a whole trading day: work out the trade JARVIS would have taken from 5-minute candles.
-  // Rule (simple and fixed): at 9:30 AM New York go with the move since the 6 PM open,
-  // stop = 3× the average 5-minute range (at least $4), target = 1.5× the stop, close at 4:55 PM.
-  async function botCatchUp(riskPct) {
-    if (typeof Data === 'undefined' || typeof Paper === 'undefined') return [];
-    const today = tradeDay(Date.now());
-    const done = Object.keys(st.bot.days);
-    const last = done.sort().pop();
-    const from = last ? Math.max(Date.now() - 4 * 864e5, st.bot.days[last].at) : Date.now() - 2 * 864e5;
-    let candles;
-    try { candles = await Data.candlesSince(from); } catch { return []; }
-    if (!candles || !candles.length) return [];
-    const byDay = {};
-    for (const c of candles) { const k = tradeDay(c.t); (byDay[k] = byDay[k] || []).push(c); }
+  // ---- cloud trader --------------------------------------------------------------------
+  // A copy of the same rules runs on GitHub every few minutes (tools/bot-runner.js), even with the
+  // phone off. It writes its trades to a small public file; the app copies them into your paper account.
+  const CLOUD_URL = 'https://raw.githubusercontent.com/Hisakoa2/jarvis/bot-data/bot/trades.json';
+  const cloud = { live: false, at: 0, data: null };
+  async function cloudSync(riskPct) {
+    if (typeof Paper === 'undefined') return [];
+    let d;
+    try {
+      const r = await fetch(CLOUD_URL + '?t=' + Math.floor(Date.now() / 60e3), { cache: 'no-store' });
+      if (!r.ok) return [];
+      d = await r.json();
+    } catch { return []; }
+    if (!d || !d.days) return [];
+    cloud.data = d; cloud.at = Date.now();
+    cloud.live = !!(d.enabled && Date.now() - (d.heartbeat || 0) < 3 * 3600e3);
     const out = [];
-    for (const day of Object.keys(byDay).sort()) {
-      if (day >= today || st.bot.days[day]) continue;
-      const cs = byDay[day];
-      const at = (c) => { const p = nyParts(c.t); return p.h * 60 + p.mi; };
-      const ei = cs.findIndex((c) => at(c) >= 9 * 60 + 30 && at(c) < 16 * 60);
-      if (ei < 12) continue;
-      const first = cs[0], e = cs[ei];
-      const dir = e.bc >= (first.bc + first.ac) / 2 ? 1 : -1;
-      const avg = cs.slice(ei - 12, ei).reduce((a, c) => a + (c.bh - c.bl), 0) / 12;
-      const risk = Math.max(4, avg * 3);
-      const entry = dir > 0 ? e.ac : e.bc, sl = entry - dir * risk, tp = entry + dir * risk * 1.5;
-      const units = botUnits(risk, riskPct);
-      let exit = null, reason = 'session_end', closedAt = null;
-      for (const c of cs.slice(ei + 1)) {
-        if (at(c) >= 16 * 60 + 55) { exit = dir > 0 ? c.bc : c.ac; closedAt = c.t; break; }
-        if (dir > 0) { if (c.bl <= sl) { exit = sl; reason = 'stop'; } else if (c.bh >= tp) { exit = tp; reason = 'tp'; } }
-        else { if (c.ah >= sl) { exit = sl; reason = 'stop'; } else if (c.al <= tp) { exit = tp; reason = 'tp'; } }
-        if (exit != null) { closedAt = c.t + 300e3; break; }
+    const hist = Paper.history();
+    for (const day of Object.keys(d.days).sort()) {
+      const c = d.days[day];
+      if (!c || !c.status) continue;
+      let r = st.bot.days[day];
+      if (r && !r.cloud) continue;                       // the app already traded that day itself
+      if (r && r.synced) continue;                       // finished and copied already
+      const units = r ? r.units : botUnits(c.risk, riskPct);
+      if (!r) {
+        if (c.status === 'open') {
+          const pos = Paper.adopt({ side: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, openedAt: c.openedAt, note: c.why, bot: true });
+          r = st.bot.days[day] = { id: pos.id, at: c.openedAt, dir: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, rr: c.rr, why: c.why, cloud: true, sid: c.id };
+        } else {
+          const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true });
+          st.bot.days[day] = { id: h.id, at: c.openedAt, dir: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, rr: c.rr, why: c.why, cloud: true, sid: c.id, synced: true };
+          out.push(h);
+        }
+        continue;
       }
-      if (exit == null) { const c = cs[cs.length - 1]; exit = dir > 0 ? c.bc : c.ac; closedAt = c.t; }
-      const h = Paper.record({ side: dir, units, entry, exit, sl, tp, reason, openedAt: e.t + 300e3, closedAt, bot: true });
-      st.bot.days[day] = { id: h.id, at: e.t + 300e3, dir, units, entry: h.entry, sl: h.sl, tp: h.tp, rr: 1.5, why: 'app was closed — worked out from the 9:30 AM candles', catchUp: true };
-      out.push(h);
+      if (c.status === 'closed') {
+        const pos = Paper.positions().find((p) => p.id === r.id);
+        if (pos) { const h = Paper.closeAt(pos.id, c.exit, c.reason, c.closedAt); if (h) out.push(h); }
+        else if (!hist.some((h) => h.id === r.id)) { const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true }); r.id = h.id; out.push(h); }
+        r.synced = true;
+      }
     }
     trimBot(); save();
     return out;
   }
+  // kept for the app's startup call: no more "made-up" catch-up trades — the cloud trader covers phone-off days
+  async function botCatchUp(riskPct) { return cloudSync(riskPct); }
 
   const botHist = () => (typeof Paper === 'undefined' ? [] : Paper.history().filter((h) => h.bot));
   function botStatus(k) {
@@ -130,9 +141,12 @@ const Life = (() => {
         `Today I took a ${side(h.side)} of ${h.units} from ${Math.round(h.entry)}, and it ${how}. ${pl >= 0 ? 'Made' : 'Lost'} ${sayUsd(pl)}${k.t}. ${mood}`);
     }
     if (s.ord) return R(`I have a pending ${side(s.ord.side)} order at ${s.ord.entry.toFixed(2)}${k.t}, waiting to fill.`);
-    if (k.market.state === 'weekend' || !k.market.open) return R(`Market's closed${k.t}, so no trade right now. I take one every trading day, between the 6 PM open and the 5 PM close.`);
-    return R(`No trade yet today${k.t}. I'm waiting for a clean setup in the bias direction. If nothing lines up by 2 PM New York, I take the best side I have — one trade every day, at least ${BOT_MIN_UNITS} units, always better than 1 to 1.`,
-      `No trade yet today${k.t}. I'm waiting for a clean setup. If nothing lines up by 2 PM, I'll take the best side I have.`);
+    const cl = cloud.data && cloud.data.check, chk = cloud.live && cl ? cl : lastCheck;
+    const reason = chk && !chk.ok && chk.why ? ` Last check${chk.at ? ` (${clock(chk.at, k.tz)})` : ''}: ${chk.why}.` : '';
+    const where = cloud.live ? ' My cloud copy is watching the market even when your phone is off.' : '';
+    if (k.market.state === 'weekend' || !k.market.open) return R(`Market's closed${k.t}, so no trade right now. When it reopens I look for one valid setup per trading day — from 6:15 PM to 4 PM New York.${where}`);
+    return R(`No trade yet today${k.t}. I only take a trade when it's actually valid — bias pointing one way, the setup score agreeing, no big news about to hit, and a target at least 1.5× the stop. If nothing qualifies, I sit out. That's a win too.<span class="dim">${esc(reason)}${where}</span>`,
+      `No trade yet today${k.t}. I only get in when the setup is actually valid, and if nothing qualifies, I sit out.${reason}`);
   }
   function botStatsA(k) {
     const H = botHist().filter((h) => h.reason !== 'partial');
@@ -240,10 +254,12 @@ const Life = (() => {
     if (g && /\b(set|change|make|update)\b/.test(t)) { st.waterGoal = +g[1]; save(); return R(`Water goal set to <b>${st.waterGoal} glasses</b> a day${k.t}.`); }
     if (/\b(turn on|enable|start)\b.*\bwater reminders?\b|\bwater reminders? on\b|\bremind me to drink (?:more )?water\b(?!.*\b(in|at)\b)/.test(t)) { st.waterRemind = true; save(); return R(`Water reminders on${k.t}. I'll pop up every 2 hours between 9 AM and 9 PM while the app is open.`, `Water reminders are on${k.t}. Every two hours during the day.`); }
     if (/\b(turn off|disable|stop)\b.*\bwater reminders?\b|\bwater reminders? off\b/.test(t)) { st.waterRemind = false; save(); return R(`Water reminders off${k.t}.`); }
-    const add = t.match(new RegExp('\\b(?:drank|drink|had|add|log|finished|chugged|downed)\\s+(?:another\\s+)?' + NUMRE + '?\\s*(glass(?:es)?|cups?|bottles?|ounces?|oz|liters?|litres?)?(?:\\s+of)?\\s*(?:water)?'));
-    if (add && (/\bwater\b/.test(t) || add[2]) && !/\bhow much\b/.test(t)) {
-      let n = num((add[1] || 'one').replace(/ of$/, '')) || 1;
-      const u = add[2] || 'glass';
+    const verb = /\b(drank|drink|drinking|had|have had|add|log|logged|finished|chugged|downed|sipped|put down|record|count|track|mark|another|one more)\b/.test(t);
+    const unitM = t.match(new RegExp('(?:\\b' + NUMRE + '\\s+)?(?:(?:more|full|big|small|whole|large)\\s+)?(glass(?:es)?|cups?|bottles?|ounces?|oz|liters?|litres?|gallons?)\\b'));
+    const question = /\b(how much|how many|did i|have i)\b/.test(t) && !/\b(log|add)\b/.test(t);
+    if (verb && (/\bwater\b/.test(t) || unitM) && !question && !/\b(coffee|tea|soda|beer|wine|juice|milk)\b/.test(t)) {
+      let n = unitM && unitM[1] ? num(unitM[1].replace(/ of$/, '')) || 1 : 1;
+      const u = (unitM && unitM[2]) || 'glass';
       if (/bottle/.test(u)) n *= 2; else if (/ounce|oz/.test(u)) n = n / 8; else if (/lit/.test(u)) n *= 4;
       n = Math.round(n * 2) / 2;
       st.water[day] = (st.water[day] || 0) + n;
@@ -251,7 +267,7 @@ const Life = (() => {
       save();
       const have = st.water[day], left = st.waterGoal - have;
       const cheer = left <= 0 ? pick('wd', ['Goal hit — nice work.', 'That’s your goal for today. Well done.']) : pick('wl', [`${left} more to go.`, `${left} to hit your goal.`]);
-      return R(`Logged${k.t}. 💧 <b>${have}</b> of ${st.waterGoal} glasses today. ${cheer}`, `Logged${k.t}. That's ${have} glasses today. ${cheer}`);
+      return R(`Logged${k.t}. 💧 <b>${have}</b> of ${st.waterGoal} glasses today. ${cheer}`, `Logged${k.t}. That's ${have} glass${have === 1 ? '' : 'es'} today. ${cheer}`);
     }
     const have = st.water[day] || 0;
     if (/\b(yesterday)\b/.test(t)) { const y = st.water[dayKey(k.now - 864e5, k.tz)] || 0; return R(`Yesterday you had <b>${y}</b> glass${y === 1 ? '' : 'es'} of water${k.t}.`); }
@@ -272,11 +288,21 @@ const Life = (() => {
     while (h.days.includes(dayKey(d, k.tz))) { n++; d -= 864e5; }
     return n;
   }
+  // "of me working out today" -> "workout", "to read 10 pages every day" -> "read 10 pages"
+  function habitName(raw) {
+    let n = ' ' + raw.toLowerCase() + ' ';
+    for (let i = 0; i < 2; i++) n = n.replace(/ (?:of|to|for|called|named|that|where|me|my|i|im|i am|go|going|start|starting|begin|beginning|doing|do|a|an|the) /g, ' ');
+    for (let i = 0; i < 2; i++) n = n.replace(/ (?:today|tonight|every ?day|everyday|daily|each day|every morning|every night|please|as a habit|habit|now|from now on|again) /g, ' ');
+    n = n.trim().replace(/\s+/g, ' ');
+    const map = [[/^(work(ing)? ?out|worked out|exercis\w*|gym|the gym|lifting|lift)$/, 'workout'], [/^(read(ing)?)$/, 'read'], [/^(meditat\w*)$/, 'meditate'], [/^(journal\w*)$/, 'journal'], [/^(walk(ing)?)$/, 'walk'], [/^(run(ning)?)$/, 'run'], [/^(stretch\w*)$/, 'stretch'], [/^(pray\w*)$/, 'pray'], [/^(study\w*)$/, 'study'], [/^(drink(ing)? water|water)$/, 'drink water']];
+    for (const [re, to] of map) if (re.test(n)) return to;
+    return n.replace(/^working out\b/, 'workout');
+  }
   function habitA(k, t) {
     const day = dayKey(k.now, k.tz);
-    const addM = t.match(/\b(?:add|new|start|track|create)\s+(?:a\s+)?(?:new\s+)?habit(?:\s+(?:called|named|of|to|for))?\s+(.+)$/) || t.match(/\b(?:track|start tracking)\s+(?:my\s+)?(.+?)(?:\s+as a habit|\s+habit)?$/);
+    const addM = t.match(/\b(?:add|new|start|track|create|make|set up|give me)\s+(?:a\s+|an\s+|the\s+)?(?:new\s+|daily\s+)?habit(?:\s+(?:called|named|of|to|for|where|that))?\s+(.+)$/) || t.match(/\b(?:add|make)\s+(.+?)\s+(?:as\s+)?(?:a\s+)?(?:new\s+|daily\s+)?habit\b/) || t.match(/\b(?:track|start tracking)\s+(?:my\s+)?(.+?)(?:\s+as a habit|\s+habit)?$/);
     if (addM && /\bhabit|track/.test(t)) {
-      const name = addM[1].replace(/^(?:to|my)\s+/, '').replace(/\s+(?:every ?day|daily|please)$/, '').trim();
+      const name = habitName(addM[1]);
       if (!name) return R(`What habit should I track${k.t}?`);
       if (st.habits.some((h) => h.name === name)) return R(`I'm already tracking <b>${esc(name)}</b>${k.t}.`);
       const key = Object.keys(HABIT_WORDS).find((x) => HABIT_WORDS[x].some((w) => name.includes(w))) || null;
@@ -303,6 +329,31 @@ const Life = (() => {
       `${st.habits.length - left.length} of ${st.habits.length} habits done today${k.t}.${left.length ? ' Still to do: ' + left.map((x) => x.name).join(', ') + '.' : ' All done.'}`);
   }
 
+  // A longer message about your day: reflect what you said back, then always end on something positive.
+  function moodLong(k, M, day) {
+    const v = Math.max(1, Math.min(5, Math.round(3 + M.score * 0.8)));
+    st.moods[day] = { v, w: M.hits.slice(0, 3).join(', '), at: k.now };
+    const ks = Object.keys(st.moods).sort(); while (ks.length > 90) delete st.moods[ks.shift()];
+    save();
+    const TIP = {
+      trading: v >= 4 ? 'Stack another good session the same way — same rules, same patience.' : "One rough session doesn't define you. Your rules are still good, and tomorrow is a fresh chart.",
+      work: v >= 4 ? 'Sounds like work went your way. Enjoy that.' : 'Work was a lot — you got through it, and that counts.',
+      sleep: v >= 4 ? 'Good rest makes everything easier.' : 'An early night tonight will do wonders. Ask me what time to go to bed.',
+      body: v >= 4 ? 'Your body will thank you for that.' : 'Take it easy on yourself — rest is part of getting stronger.',
+      people: v >= 4 ? 'Good people make good days.' : 'People stuff is heavy. Talking to someone you trust helps.',
+      money: v >= 4 ? 'Money moving the right way — nice.' : "Money stress is real, but it's fixable one step at a time. You can track spending with me.",
+    };
+    const tips = M.topics.map((x) => TIP[x]).filter(Boolean).slice(0, 2);
+    let open;
+    if (v >= 4) open = pick('ml-g', [`Love hearing that${k.t}.`, `That's a good day${k.t}.`, `Sounds like things are going your way${k.t}.`]);
+    else if (v === 3) open = pick('ml-o', [`Thanks for telling me${k.t}. Sounds like a mixed day.`, `Got it${k.t} — some ups, some downs.`]);
+    else if (M.words < 7) open = pick('ml-s', [`Thanks for being honest${k.t}.`, `Fair enough${k.t} — not every day is a great one.`]);
+    else open = pick('ml-b', [`Thanks for telling me all that${k.t}. That's a lot to carry.`, `I hear you${k.t}. That sounds like a tough one.`, `Appreciate you sharing that${k.t}.`]);
+    const close = v >= 4 ? pick('ml-gc', ['Keep that energy going.', 'Ride the momentum.', 'More days like this.']) : pick('ml-bc', ["You've handled harder days than this — and tomorrow's a reset.", "You're still standing, and that's the win today.", "Small steps. A glass of water, a short walk, and a good night's sleep go a long way."]);
+    const line = [open, ...tips, close].join(' ');
+    return R(`${line} <span class="dim">(checked in · picked up: ${esc(M.hits.slice(0, 4).join(', '))})</span>`, line);
+  }
+
   // =====================================================================================
   // MOODS / CHECK-IN (always positive)
   // =====================================================================================
@@ -318,8 +369,11 @@ const Life = (() => {
         avg >= 3.5 ? `Mostly good days lately${k.t}.` : `A few rough days lately${k.t}. Sleep, water and a walk help a lot.`);
     }
     if (/^(?:daily )?check ?in$|^let'?s check in$|\bcheck in with me\b/.test(t)) return R(`How are you feeling today${k.t}? Say something like “I feel great”, “I'm okay” or “I'm tired”.`);
-    const w = Object.keys(MOODS).find((m) => new RegExp('\\b' + m + '\\b').test(t));
-    if (!w) return null;
+    // read the whole message: every feeling word counts, "not"/"never" flip the next few words
+    const M = typeof Lex !== 'undefined' ? Lex.mood(t) : null;
+    if (M && M.hits.length && (M.hits.length >= 2 || M.words >= 7)) return moodLong(k, M, day);
+    const w = Object.keys(MOODS).find((m) => new RegExp('\\b' + m + '\\b').test(t) && !new RegExp('\\b(not|never|dont|isnt|wasnt)\\s+(?:\\w+\\s+)?' + m + '\\b').test(t));
+    if (!w) return M && M.hits.length ? moodLong(k, M, day) : null;
     const v = MOODS[w];
     st.moods[day] = { v, w, at: k.now };
     const ks = Object.keys(st.moods).sort(); while (ks.length > 90) delete st.moods[ks.shift()];
@@ -809,7 +863,7 @@ const Life = (() => {
     if (/\b(i )?(spent|paid)\s+\$?\d|\$\d+(\.\d+)? (on|for|at)\b/.test(t) && !/\bremind\b/.test(t)) set('money', 9.5);
     if (/\bhow much (did|have) i (spend|spent)\b|\bmy (spending|expenses)\b|\bmoney tracker\b|\bspending (this|today|last)\b|\bundo (the )?last expense\b/.test(t)) set('money', 9.5);
     // to-do
-    if (/\b(to ?do|todo|todos)\b|\b(on|to|from|off) my list\b|\bmy list\b|\bwhat('?s| is) on (my|the) list\b|\bwhat do i (need|have) to do\b|\b(check|cross|tick) off\b/.test(t) && !/\bremind\b/.test(t)) set('todo', 9.3);
+    if (/(?<!\b(?:going|gonna|want|have|got|need|supposed|trying|about|what|you|it|i|we) )\b(to ?do|todo|todos)\b|\b(on|to|from|off) my list\b|\bmy list\b|\bwhat('?s| is) on (my|the) list\b|\bwhat do i (need|have) to do\b|\b(check|cross|tick) off\b/.test(t) && !/\bremind\b/.test(t)) set('todo', 9.3);
     if (/^\s*(add|put)\s+.+\s+(to|on)\s+(my|the)\s+(list|to ?do)/.test(t)) set('todo', 9.9);
     // countdowns
     if (/\bcount ?downs?\b/.test(t) && !/\btimer\b/.test(t)) set('countdown', 9.3);
@@ -882,5 +936,5 @@ const Life = (() => {
     return null;
   }
 
-  return { score, run, due, greetLine, botTick, botCatchUp, botStatus, tradeDay, state: () => st, reload: () => { st = load(); } };
+  return { score, run, due, greetLine, botTick, botCatchUp, cloudSync, cloudInfo: () => ({ ...cloud }), botStatus, tradeDay, state: () => st, reload: () => { st = load(); } };
 })();

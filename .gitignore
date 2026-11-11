@@ -12,3 +12,6 @@ npm-debug.log*
 *.log
 .DS_Store
 Thumbs.db
+
+# Cloud trader data checkout (lives on the bot-data branch)
+botdata/
