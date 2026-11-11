@@ -45,17 +45,29 @@ There are no exact commands to memorise. JARVIS has a big catalog of phrasings, 
 | Bias | "Give me gold bias", "What's the bias?", "Bullish or bearish?" |
 | Why | "Why is it bearish?", "Explain the bias", "Walk me through it" |
 | Trade check | "Should I sell right now?", "Do I buy here?", "If I sell now will I be good?", "Good time to go long?" |
+| Day / swing plans | "If I were to swing trade right now, what would that look like?", "If I day trade right now, what would that look like?", "If I sell now, where should my stop loss and take profit go if I was swing trading?" |
+| Grade my trade | "I'm in a sell, stop loss 4068, take profit 4048, is this a good trade?", "I sold at 4060, stop 4068, TP 4048" |
+| Should I trade now? | "Should I hop in and trade right now?", "Is it a good time to trade?", "When should I not trade?", "Best time to trade?" |
+| News | "When's the next high-impact news?", "When's news?", "Any news today?", "News tomorrow?", "Red folders this week?", "When is CPI / NFP / FOMC?" |
+| Birthdays | "When's my birthday?", "When's your birthday?" |
 | Big picture | "Are the timeframes aligned?", "What's the 4 hour saying?" |
 | Price & levels | "Where's gold?", "Key levels", "How far is the weekly open?", "How far from yesterday's high?" |
 | The day | "How's the day?", "How's the market?", "Catch me up", "Briefing" |
 | Range | "How much has it moved today?", "Is it stretched?" |
-| Math | "Risk 1% with a 6 dollar stop", "Sell at 4060 stop 4070 target 4030", "What's 4065 minus 4030?" |
+| Math | "Risk 1% with a 6 dollar stop", "What's 4065 minus 4030?" |
 | Account (read-only) | "What's my balance?", "How am I doing?" |
 | Sessions & hours | "When does London open?", "Is the market open?", "When's the weekly close?" |
-| Small talk | "How are you?", "What's up?", "It's Friday, how you doing?", "Thanks", "Tell me a joke", "I got stopped out", "Good night" |
+| Small talk | "How are you?", "What's up?", "It's Friday, how you doing?", "What should I do this weekend?", "Thanks", "Tell me a joke", "I got stopped out", "Good night" |
 | Controls | "Ambient mode", "Exit", "Any callouts?", "Mute", "Unmute", "Open Aegis", "Help" |
 
-Small talk depends on the day and time. On Fridays it reminds you about the weekly close. At the weekend it tells you to enjoy the break. Late at night it notices.
+Small talk depends on the day and time:
+- On Fridays it reminds you about the weekly close.
+- At the weekend it tells you to enjoy the break, and to work out, drink water and get some sleep.
+- Late at night it tells you to get some rest.
+- On your birthday (set in Settings ⚙, default 11-15) it says happy birthday, and counts down the week before.
+- On the 1st of the month: "New month, new things."
+- It knows the big holidays too (New Year, July 4th, Thanksgiving, Christmas).
+- If there's high-impact US news today, the greeting mentions it.
 
 **Trade checks** score your setup on several things:
 - your confirmed bias
@@ -65,7 +77,36 @@ Small talk depends on the day and time. On Fridays it reminds you about the week
 - how much of the day's range is already used
 - the spread and which sessions are open
 
-You get a verdict, the reasons, and a structure-based stop, target and R. It's what *your rules* say, not a guarantee.
+You get a verdict, the reasons, and a stop loss with two take profits. It's what *your rules* say, not a guarantee.
+
+**Day trade vs swing.** Say "day trade" or "swing" and the plan changes:
+- **Day trade:** uses the 1-hour chart. The stop goes just past the nearest level behind you (about 1–2.5× the 1H ATR). Targets sit just in front of the next levels, and JARVIS warns if a target is further than what's left of today's normal range. Be out before the New York afternoon or big news.
+- **Swing:** uses the 4-hour and daily charts. The direction follows the daily trend, the stop is wider (past a daily level or $50 number), the targets are bigger (1.5R and 3R or more), and you'd hold for 2–5 days. Trade smaller so you risk the same dollars.
+- Ask without a style ("should I sell?") and you get the day-trade view.
+
+**Grading your trade.** Tell JARVIS your side, stop and take profit (and entry, if you're already in). It checks:
+- risk:reward
+- whether the bias and the 4H/daily trends are with you
+- whether your stop is too tight, or sitting right on a level where it could get poked
+- which levels are in the way of your target
+- whether the target fits today's range
+- news coming up
+
+**Should I trade right now?** JARVIS says "No, sir" when:
+- it's late in the New York session (after 3 PM ET)
+- high-impact US news is in the next 30 minutes or just came out
+- the market is closed
+
+It says "be careful" for:
+- the first couple of hours after the 6 PM reopen
+- the Asia session
+- the New York afternoon
+- Friday afternoon
+- a wide spread, a full day's range already done, or a neutral bias
+
+The best window for gold is about 3 AM – 11:30 AM ET (London open to New York midday).
+
+**News.** JARVIS reads this week's economic calendar (the public Forex Factory feed) and focuses on US news, since that's what moves gold. The dashboard shows a "NEXT RED NEWS" countdown, and a silent callout pops up 15 minutes before any high-impact US release. On GitHub Pages the calendar refreshes every 2 hours. Next week's calendar appears on Sunday.
 
 **Callouts.** When something happens, JARVIS pops up a silent CALLOUT. Tap it to hear it. Callouts fire for:
 - a bias flip, or a flip that's pending
@@ -73,6 +114,7 @@ You get a verdict, the reasons, and a structure-based stop, target and R. It's w
 - price breaking yesterday's high or low, the weekly open, the Asia range or a $50 level
 - a session opening in 15 minutes, and opening
 - the weekly close being 30 minutes away
+- high-impact US news being 15 minutes away
 - price moving a full average day's range
 
 Missed ones are kept under the 🔔 bell.
@@ -81,6 +123,7 @@ Missed ones are kept under the 🔔 bell.
 
 **Voice settings (⚙):**
 - choose what JARVIS calls you (default "sir")
+- your birthday (month-day, e.g. 11-15)
 - pick a voice and adjust its speed and pitch, with a preview
 - turn hands-free on or off
 - turn the boot animation on or off

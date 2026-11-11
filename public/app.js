@@ -6,7 +6,7 @@
   const PRICE_POLL_MS = 5000;
   const PREFS_KEY = 'jarvis.prefs';
 
-  let prefs = { title: 'sir', boot: true };
+  let prefs = { title: 'sir', boot: true, birthday: '11-15' };
   try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
   const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} };
 
@@ -224,6 +224,25 @@
     }
   }
 
+  // ---------- news (US economic calendar) ----------
+  function newsCard(now, tz) {
+    if (typeof News === 'undefined' || !News.ok()) return '';
+    const e = News.nextHigh(now);
+    if (!e) return `<div class="sess news"><div class="sess-top"><span class="sess-name">NEXT RED NEWS</span><span class="sess-state">USD</span></div><div class="sess-sub">No more high-impact US news this week</div></div>`;
+    const live = e.at <= now;
+    return `<div class="sess news${e.at - now < 30 * 60e3 ? ' soon' : ''}"><div class="sess-top"><span class="sess-name">NEXT RED NEWS</span><span class="sess-state">${live ? '● OUT NOW' : 'USD · HIGH'}</span></div>
+      <div class="sess-count">${live ? 'NOW' : Sessions.countdown(e.at - now)}</div><div class="sess-sub">${esc(e.title)} · ${Sessions.fmtTime(e.at, tz, true)} ET</div></div>`;
+  }
+  function detectNewsCallouts(now) {
+    if (typeof News === 'undefined' || !News.ok()) return;
+    const T = prefs.title ? `, ${prefs.title}` : '';
+    for (const e of News.relevant()) {
+      if (!News.isHigh(e)) continue;
+      const mins = (e.at - now) / 60000;
+      if (mins <= 15 && mins > 14) callout(`news15-${e.title}-${e.at}`, `High-impact news in 15 minutes: ${e.title}.`, `Heads up${T}. ${e.title.replace(/\bm\/m\b/i, 'month over month').replace(/\by\/y\b/i, 'year over year')} is out in 15 minutes. High impact.`);
+    }
+  }
+
   // ---------- clocks ----------
   function tickClocks() {
     const now = new Date(), tz = TZ();
@@ -237,8 +256,9 @@
           <div class="bar"><i style="width:${(st.progress * 100).toFixed(1)}%"></i></div></div>`;
       return `<div class="sess"><div class="sess-top"><span class="sess-name">${esc(s.name.toUpperCase())}</span><span class="sess-state">CLOSED</span></div>
         <div class="sess-count">${Sessions.countdown(st.opensAt - now)}</div><div class="sess-sub">until open · ${Sessions.fmtTime(st.opensAt, tz, true)} ET</div></div>`;
-    }).join('');
+    }).join('') + newsCard(now.getTime(), tz);
     detectTimeCallouts(now.getTime());
+    detectNewsCallouts(now.getTime());
     if (ambientOn) tickAmbient(now);
   }
 
@@ -378,7 +398,8 @@
       gold: () => gold, refresh: (force) => fetchGold(!!force), projects: config.projects || [], sessions: config.sessions,
       openProject, clear: () => { $('cmdOutput').innerHTML = ''; },
       setMuted: (m) => { Voice.setMuted(m); renderMute(); }, stopSpeaking: () => Voice.stopSpeaking(),
-      tz: TZ(), title: prefs.title,
+      tz: TZ(), title: prefs.title, birthday: prefs.birthday,
+      news: typeof News !== 'undefined' ? News : null,
       ambient: (on) => setAmbient(on), isAmbient: () => ambientOn,
       callouts: () => callouts,
     };
@@ -477,6 +498,7 @@
     $('setEnv').value = c ? c.env || 'practice' : 'practice';
     $('setMsg').textContent = '';
     $('setTitle').value = prefs.title;
+    $('setBirthday').value = prefs.birthday || '';
     $('setBoot').checked = prefs.boot !== false;
     $('setHandsFree').checked = !!Voice.prefs.handsFree;
     $('setRate').value = Voice.prefs.rate; $('setPitch').value = Voice.prefs.pitch;
@@ -521,6 +543,7 @@
   });
   $('setVoice').addEventListener('change', (e) => { Voice.setMuted(!e.target.checked); renderMute(); });
   $('setTitle').addEventListener('input', (e) => { prefs.title = e.target.value.trim(); savePrefs(); });
+  $('setBirthday').addEventListener('input', (e) => { prefs.birthday = e.target.value.trim().replace(/\//g, '-'); savePrefs(); });
   $('setBoot').addEventListener('change', (e) => { prefs.boot = e.target.checked; savePrefs(); });
   $('setHandsFree').addEventListener('change', (e) => setHandsFree(e.target.checked, true));
   $('setVoiceSel').addEventListener('change', (e) => { Voice.setPref('voiceURI', e.target.value); });
@@ -554,6 +577,7 @@
     await bootLine('BIAS ENGINE', async () => (gold ? gold.bias.bias.toUpperCase() : 'STANDBY'), fast);
     await bootLine('TIMEFRAMES', async () => (gold ? (gold.mtf.aligned ? 'ALIGNED' : 'TRACKING') : 'STANDBY'), fast);
     await bootLine('SESSIONS', async () => { tickClocks(); return 'TRACKING'; }, fast);
+    await bootLine('NEWS FEED', async () => { const ev = await News.load(); const n = News.relevant().filter((e) => News.isHigh(e) && e.at > Date.now()).length; return ev.length ? `${n} RED THIS WEEK` : 'OFFLINE'; }, fast);
     await bootLine('VOICE', async () => (Voice.canSpeak ? Voice.voiceName().split(' ')[0].toUpperCase() : 'TEXT ONLY'), fast);
     $('bootGo').hidden = false;
     $('bootGo').focus();
@@ -581,7 +605,8 @@
     renderBell();
     await boot();
     setInterval(tickClocks, 1000);
+    setInterval(() => { if (!document.hidden) News.load(); }, 30 * 60e3);
     setInterval(() => { if (!document.hidden) fetchGold(); }, PRICE_POLL_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) { fetchGold(); loadConfig(); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { fetchGold(); loadConfig(); News.load(); } });
   })();
 })();

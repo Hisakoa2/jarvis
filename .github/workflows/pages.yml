@@ -1,9 +1,12 @@
-# Publishes the /public folder to GitHub Pages on every push to main.
+# Publishes the /public folder to GitHub Pages on every push to main,
+# and every 2 hours so the news calendar (data/calendar.json) stays fresh.
 name: Deploy JARVIS to GitHub Pages
 
 on:
   push:
     branches: [main]
+  schedule:
+    - cron: '7 */2 * * *'
   workflow_dispatch:
 
 permissions:
@@ -23,6 +26,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch this week's economic calendar
+        continue-on-error: true
+        run: |
+          mkdir -p public/data
+          curl -fsSL --max-time 20 -A "JARVIS-dashboard" \
+            https://nfs.faireconomy.media/ff_calendar_thisweek.json -o /tmp/cal.json
+          # only publish it if it is a real JSON list
+          python3 -c "import json,sys; d=json.load(open('/tmp/cal.json')); sys.exit(0 if isinstance(d,list) and d else 1)"
+          cp /tmp/cal.json public/data/calendar.json
+          echo "Calendar events: $(python3 -c "import json; print(len(json.load(open('public/data/calendar.json'))))")"
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -87,10 +87,27 @@ function serveStatic(res, urlPath) {
   });
 }
 
+// Economic calendar (Forex Factory's public weekly feed). Cached for 30 minutes —
+// the feed limits how often it can be fetched.
+const CALENDAR_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
+let calendarCache = { at: 0, body: null };
+async function calendar() {
+  if (calendarCache.body && Date.now() - calendarCache.at < 30 * 60e3) return calendarCache.body;
+  try {
+    const r = await fetch(CALENDAR_URL, { headers: { 'User-Agent': 'JARVIS-dashboard' }, signal: AbortSignal.timeout(10000) });
+    const body = r.ok ? await r.json() : null;
+    if (Array.isArray(body)) calendarCache = { at: Date.now(), body };
+  } catch (e) {
+    console.error(`[${new Date().toLocaleTimeString()}] calendar: ${e.message}`);
+  }
+  return calendarCache.body || [];
+}
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://x');
   try {
     if (url.pathname === '/api/status') return sendJson(res, 200, { proxy: HAS_KEY, env: OANDA_ENV });
+    if (url.pathname === '/api/calendar') return sendJson(res, 200, await calendar());
     if (url.pathname.startsWith('/api/oanda/')) {
       if (!HAS_KEY) return sendJson(res, 503, { error: 'No OANDA key in .env' });
       const r = await proxy(url.pathname.slice('/api/oanda/'.length), url.searchParams);
