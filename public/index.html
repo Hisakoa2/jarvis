@@ -15,7 +15,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="hud.css">
 </head>
@@ -159,7 +159,32 @@
 
     <section class="panel paper-panel">
       <div class="panel-head"><span>PAPER TRADING · SIMULATED</span><span class="tag" id="paperTag">$—</span></div>
+      <div class="ticket" id="ticket">
+        <div class="ticket-fields">
+          <label>Size<input id="tkSize" type="text" inputmode="decimal" placeholder="auto" autocomplete="off"></label>
+          <label>Entry<input id="tkEntry" type="text" inputmode="decimal" placeholder="market" autocomplete="off"></label>
+          <label>Stop<input id="tkSL" type="text" inputmode="decimal" placeholder="auto" autocomplete="off"></label>
+          <label>Target<input id="tkTP" type="text" inputmode="decimal" placeholder="auto" autocomplete="off"></label>
+        </div>
+        <div class="ticket-btns">
+          <button type="button" class="tk-btn sell" data-side="sell">SELL</button>
+          <button type="button" class="tk-btn buy" data-side="buy">BUY</button>
+        </div>
+        <div class="dim small ticket-hint">Size in units (1 lot = 100). Leave anything blank and I'll fill it in. An entry away from the price places a pending order.</div>
+      </div>
       <div id="paper" class="paper"></div>
+      <div class="paper-edit" id="paperEdit" hidden>
+        <div class="paper-edit-title" id="peTitle">Edit</div>
+        <div class="ticket-fields">
+          <label>Stop loss<input id="peSL" type="text" inputmode="decimal" placeholder="none" autocomplete="off"></label>
+          <label>Take profit<input id="peTP" type="text" inputmode="decimal" placeholder="none" autocomplete="off"></label>
+        </div>
+        <div class="ticket-btns">
+          <button type="button" class="ghost-btn" id="peCancel">CANCEL</button>
+          <button type="button" class="cmd-go" id="peSave">SAVE</button>
+        </div>
+        <div class="set-msg" id="peMsg"></div>
+      </div>
     </section>
 
     <section class="panel projects-panel">
@@ -168,7 +193,7 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v6 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v7 · NO AI · <span id="lastUpdate">--</span></footer>
 
   <dialog id="settings" class="panel settings">
     <form method="dialog" autocomplete="off">
@@ -189,7 +214,8 @@
         <label>Speed <span id="rateVal" class="val"></span><input type="range" id="setRate" min="0.7" max="1.4" step="0.05"></label>
         <label>Pitch <span id="pitchVal" class="val"></span><input type="range" id="setPitch" min="0.6" max="1.4" step="0.05"></label>
         <div class="set-actions"><button type="button" class="ghost-btn" id="setPreview">▶ PREVIEW VOICE</button></div>
-        <p class="dim small">★ = high-quality voice. iPhone: get better voices in Settings → Accessibility → Spoken Content → Voices → English → download “Daniel (Enhanced)” or “Arthur (Premium)”, then pick it here. Microsoft Edge on PC has very natural “Online (Natural)” voices.</p>
+        <p class="dim small" id="voiceTip">★ = high-quality voice.</p>
+        <p class="dim small"><b>Make JARVIS sound human (iPhone):</b> open the iPhone <b>Settings → Accessibility → Spoken Content → Voices → English</b>, pick a voice and download a version marked <b>Premium</b> (best) or <b>Enhanced</b>. Then come back here, choose it from the list above, and tap Preview. On PC, Microsoft Edge has very natural “Online (Natural)” voices.</p>
       </div>
 
       <div class="set-block">
@@ -214,6 +240,7 @@
         <div class="set-title">PAPER TRADING</div>
         <p class="dim small">Pretend money on this device only — nothing is sent to OANDA.</p>
         <label>Starting balance ($)<input id="setPaperBal" type="text" inputmode="numeric" placeholder="100000" spellcheck="false"></label>
+        <label>Risk per trade when I pick the size (% of balance)<input id="setRisk" type="text" inputmode="decimal" placeholder="1" spellcheck="false"></label>
         <div class="set-actions"><button type="button" class="ghost-btn" id="paperReset">RESET PAPER ACCOUNT</button></div>
         <div class="set-msg" id="paperMsg"></div>
       </div>
@@ -231,6 +258,7 @@
   <script src="news.js"></script>
   <script src="paper.js"></script>
   <script src="weather.js"></script>
+  <script src="reminders.js"></script>
   <script src="voice.js"></script>
   <script src="brain.js"></script>
   <script src="app.js"></script>

@@ -6,7 +6,7 @@
   const PRICE_POLL_MS = 5000;
   const PREFS_KEY = 'jarvis.prefs';
 
-  let prefs = { title: 'sir', boot: true, birthday: '11-15', weatherCity: '' };
+  let prefs = { title: 'sir', boot: true, birthday: '11-15', weatherCity: '', riskPct: 1 };
   try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
   const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} };
 
@@ -265,20 +265,63 @@
         const px = gold ? Paper.closePx(p, bid, ask) : p.entry, v = Paper.pnlAt(p, px);
         let prog = '';
         if (p.sl != null && p.tp != null && gold) { const f = Math.max(0, Math.min(1, (px - p.sl) / (p.tp - p.sl))); prog = `<div class="paper-prog"><i style="left:${(f * 100).toFixed(1)}%"></i><span>SL ${p.sl.toFixed(2)}</span><span>TP ${p.tp.toFixed(2)}</span></div>`; }
-        return `<div class="paper-pos ${p.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${p.side > 0 ? 'BUY' : 'SELL'}</b> ${p.units} @ ${p.entry.toFixed(2)} <span class="paper-pl">${pl(v)}</span>` +
-          `<button type="button" class="ghost-btn paper-close" data-close="${p.id}">CLOSE</button></div>${prog}</div>`;
-      }).join('') : `<div class="dim small paper-empty">No open paper trades. Say “sell now” (I'll pick the stop and TP) or “buy 100 units at 4000, stop 3990, TP 4030”.</div>`) +
-      (ord.length ? ord.map((o) => `<div class="paper-row dim">${o.side > 0 ? 'BUY' : 'SELL'} ${o.type.toUpperCase()} ${o.units} @ ${o.entry.toFixed(2)} <button type="button" class="ghost-btn paper-close" data-cancel="${o.id}">CANCEL</button></div>`).join('') : '') +
+        const lv = `<span class="paper-lv">SL ${p.sl != null ? p.sl.toFixed(2) : '—'} · TP ${p.tp != null ? p.tp.toFixed(2) : '—'}</span>`;
+        return `<div class="paper-pos ${p.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${p.side > 0 ? 'BUY' : 'SELL'}</b> ${p.units} @ ${p.entry.toFixed(2)} <span class="paper-pl">${pl(v)}</span></div>` +
+          `<div class="paper-row">${lv}<span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-be="${p.id}" title="Move stop to break-even">BE</button><button type="button" class="ghost-btn paper-close" data-edit="${p.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-close="${p.id}">CLOSE</button></span></div>${prog}</div>`;
+      }).join('') + (pos.length > 1 ? `<div class="paper-row"><button type="button" class="ghost-btn paper-close danger" data-closeall="1">CLOSE ALL (${pos.length})</button></div>` : '') : `<div class="dim small paper-empty">No open paper trades. Use SELL / BUY above, or say “sell now”, “put a buy order at 3990”.</div>`) +
+      (ord.length ? ord.map((o) => `<div class="paper-pos order ${o.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${o.side > 0 ? 'BUY' : 'SELL'} ${o.type.toUpperCase()}</b> ${o.units} @ ${o.entry.toFixed(2)} <span class="paper-pl dim">PENDING</span></div><div class="paper-row"><span class="paper-lv">SL ${o.sl != null ? o.sl.toFixed(2) : '—'} · TP ${o.tp != null ? o.tp.toFixed(2) : '—'}</span><span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-edit="${o.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-cancel="${o.id}">CANCEL</button></span></div></div>`).join('') : '') +
       (hist.length ? `<div class="paper-hist">${hist.map((h) => `<span title="${new Date(h.closedAt).toLocaleString()}">${h.side > 0 ? 'B' : 'S'} ${h.reason === 'tp' ? 'TP' : h.reason === 'manual' ? '✕' : 'SL'} ${pl(h.pl)}</span>`).join('')}</div>` : '');
   }
+  const findTrade = (id) => Paper.positions().find((p) => p.id === id) || Paper.orders().find((o) => o.id === id);
+  const isPending = (t) => Paper.orders().includes(t);
   $('paper').addEventListener('click', (e) => {
-    const c = e.target.closest('[data-close]'), x = e.target.closest('[data-cancel]');
-    if (c && gold) {
-      const h = Paper.closeOne(+c.dataset.close, gold.price.bid, gold.price.ask);
-      if (h) log('Close paper trade', `Closed ${h.side > 0 ? 'BUY' : 'SELL'} ${h.units} @ ${h.entry.toFixed(2)} → ${h.exit.toFixed(2)} <span class="${h.pl >= 0 ? 'up' : 'down'}">${money2(h.pl)}</span>.`);
-    }
+    const c = e.target.closest('[data-close]'), x = e.target.closest('[data-cancel]'), be = e.target.closest('[data-be]'), ed = e.target.closest('[data-edit]'), all = e.target.closest('[data-closeall]');
+    const closeLog = (h) => h && log('Close paper trade', `Closed ${h.side > 0 ? 'BUY' : 'SELL'} ${h.units} @ ${h.entry.toFixed(2)} → ${h.exit.toFixed(2)} <span class="${h.pl >= 0 ? 'up' : 'down'}">${money2(h.pl)}</span>.`);
+    if (c && gold) closeLog(Paper.closeOne(+c.dataset.close, gold.price.bid, gold.price.ask));
+    if (all && gold) Paper.positions().slice().forEach((p) => closeLog(Paper.closeOne(p.id, gold.price.bid, gold.price.ask)));
     if (x) Paper.cancel(+x.dataset.cancel);
+    if (be && gold) {
+      const p = findTrade(+be.dataset.be);
+      const live = p && (p.side > 0 ? gold.price.bid : gold.price.ask);
+      if (p && (p.side > 0 ? live > p.entry : live < p.entry)) { Paper.modify(p.id, { sl: p.entry }); log('Break-even', `Stop moved to <b>${p.entry.toFixed(2)}</b> — risk-free now.`); }
+      else if (p) log('Break-even', `<span class="warn">Price is not past your entry (${p.entry.toFixed(2)}) yet, so a break-even stop would close the trade straight away.</span>`);
+    }
+    if (ed) openEdit(+ed.dataset.edit);
     renderPaper();
+  });
+  let editId = null;
+  function openEdit(id) {
+    const t = findTrade(id);
+    if (!t) return;
+    editId = id;
+    $('peTitle').textContent = `Edit ${t.side > 0 ? 'BUY' : 'SELL'}${isPending(t) ? ' ' + t.type.toUpperCase() : ''} ${t.units} @ ${t.entry.toFixed(2)}`;
+    $('peSL').value = t.sl != null ? t.sl : ''; $('peTP').value = t.tp != null ? t.tp : ''; $('peMsg').textContent = '';
+    $('paperEdit').hidden = false;
+    $('peSL').focus();
+  }
+  $('peCancel').addEventListener('click', () => { $('paperEdit').hidden = true; editId = null; });
+  $('peSave').addEventListener('click', () => {
+    const t = findTrade(editId);
+    if (!t) { $('paperEdit').hidden = true; return; }
+    const num = (v) => { v = String(v).replace(/[^0-9.]/g, ''); return v ? +v : null; };
+    const sl = num($('peSL').value), tp = num($('peTP').value);
+    const ref = isPending(t) ? t.entry : gold ? (t.side > 0 ? gold.price.bid : gold.price.ask) : t.entry;
+    const what = isPending(t) ? 'the order price' : 'the current price';
+    if (sl != null && (t.side > 0 ? sl >= ref : sl <= ref)) { $('peMsg').innerHTML = `<span class="err">On a ${t.side > 0 ? 'buy' : 'sell'} the stop has to be ${t.side > 0 ? 'below' : 'above'} ${what} (${ref.toFixed(2)}).</span>`; return; }
+    if (tp != null && (t.side > 0 ? tp <= ref : tp >= ref)) { $('peMsg').innerHTML = `<span class="err">On a ${t.side > 0 ? 'buy' : 'sell'} the target has to be ${t.side > 0 ? 'above' : 'below'} ${what} (${ref.toFixed(2)}).</span>`; return; }
+    Paper.modify(t.id, { sl, tp });
+    log('Paper trade updated', `${t.side > 0 ? 'BUY' : 'SELL'} ${t.units} @ ${t.entry.toFixed(2)} → stop <b>${sl != null ? sl.toFixed(2) : 'none'}</b>, target <b>${tp != null ? tp.toFixed(2) : 'none'}</b>.`);
+    $('paperEdit').hidden = true; editId = null;
+  });
+  // Order ticket: builds the same sentence you'd say, so it uses all the same rules
+  $('ticket').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-side]');
+    if (!b) return;
+    const v = (id) => String($(id).value).replace(/[^0-9.]/g, '');
+    const size = v('tkSize'), entry = v('tkEntry'), sl = v('tkSL'), tp = v('tkTP');
+    const cmd = `${b.dataset.side}${size ? ` ${size} units` : ''}${entry ? ` at ${entry}` : ''}${sl ? ` stop loss ${sl}` : ''}${tp ? ` take profit ${tp}` : ''}`;
+    run(cmd);
+    ['tkEntry', 'tkSL', 'tkTP'].forEach((id) => { $(id).value = ''; });
   });
   Paper.onChange(() => renderPaper());
 
@@ -324,10 +367,10 @@
   const callouts = [];
   const fired = new Set();
   let unread = 0;
-  function callout(key, text, say) {
+  function callout(key, text, say, tag = 'CALLOUT') {
     if (fired.has(key)) return;
     fired.add(key);
-    const c = { key, text, say: say || text, at: Date.now() };
+    const c = { key, text, say: say || text, at: Date.now(), tag };
     callouts.unshift(c);
     if (callouts.length > 30) callouts.pop();
     unread++;
@@ -339,12 +382,13 @@
     const t = document.createElement('button');
     t.type = 'button';
     t.className = 'toast';
-    t.innerHTML = `<span class="toast-tag">CALLOUT</span><span class="toast-text">${esc(c.text)}</span><span class="toast-play">▶ TAP TO HEAR</span>`;
+    t.innerHTML = `<span class="toast-tag">${c.tag || 'CALLOUT'}</span><span class="toast-text">${esc(c.text)}</span><span class="toast-play">▶ TAP TO HEAR</span>`;
     t.addEventListener('click', () => { playCallout(c); t.remove(); });
     $('toasts').prepend(t);
     while ($('toasts').children.length > 3) $('toasts').lastChild.remove();
-    setTimeout(() => t.classList.add('out'), 20000);
-    setTimeout(() => t.remove(), 20600);
+    const life = c.tag === 'REMINDER' ? 120000 : 20000;
+    setTimeout(() => t.classList.add('out'), life);
+    setTimeout(() => t.remove(), life + 600);
   }
   function playCallout(c) {
     unread = Math.max(0, unread - 1);
@@ -459,6 +503,8 @@
       tz: TZ(), title: prefs.title, birthday: prefs.birthday,
       news: typeof News !== 'undefined' ? News : null,
       paper: Paper,
+      reminders: typeof Reminders !== 'undefined' ? Reminders : null,
+      riskPct: prefs.riskPct,
       weather: (city) => Weather.get(city || prefs.weatherCity || null),
       ambient: (on) => setAmbient(on), isAmbient: () => ambientOn,
       callouts: () => callouts,
@@ -491,6 +537,14 @@
   });
 
   // ---------- voice: mic button + hands-free ----------
+  // Speech engines give several guesses; use the one that makes the most sense as a command
+  function bestGuess(text, alts) {
+    if (!alts || alts.length < 2 || typeof Brain.score !== 'function') return text;
+    const c = ctx();
+    let best = text, bs = Brain.score(text, c) + 0.3; // small head start for the engine's first choice
+    for (const a of alts) { if (a === text) continue; const s = Brain.score(a, c); if (s > bs) { best = a; bs = s; } }
+    return best;
+  }
   const micBtn = $('micBtn'), vStatus = $('voiceStatus');
   if (!Voice.canListen) micBtn.classList.add('unsupported');
   function status(text) { vStatus.hidden = !text; vStatus.textContent = text || ''; $('ambListen').textContent = text || ''; }
@@ -499,7 +553,7 @@
     Voice.listenOnce({
       onState(on) { micBtn.classList.toggle('listening', on); document.body.classList.toggle('v-listening', on); status(on ? 'LISTENING…' : hfOn ? 'SAY “HEY JARVIS”' : ''); if (on) $('cmdInput').value = ''; },
       onInterim(text) { $('cmdInput').value = text; status('LISTENING… ' + text.toUpperCase()); },
-      onFinal(text) { $('cmdInput').value = ''; run(text, true); },
+      onFinal(text, alts) { $('cmdInput').value = ''; run(bestGuess(text, alts), true); },
       onError(m) { status(''); micBtn.classList.remove('listening'); log('voice', `<span class="err">${esc(m)}</span>`); },
     });
   });
@@ -511,7 +565,7 @@
     if (on) {
       hfOn = Voice.startWake({
         onWake() { Voice.speak(pick(['Yes?', 'Sir?', 'Listening.', 'Go ahead.']).replace('Sir?', prefs.title ? `${cap(prefs.title)}?` : 'Yes?'), { force: false }); },
-        onCommand(text) { status(''); $('cmdInput').value = ''; run(text, true); },
+        onCommand(text, alts) { status(''); $('cmdInput').value = ''; run(bestGuess(text, alts), true); },
         onInterim(text) { status('🎙 ' + text.toUpperCase()); $('cmdInput').value = text; },
         onState(s) {
           document.body.classList.toggle('v-awake', s === 'awake');
@@ -562,6 +616,7 @@
     $('setBirthday').value = prefs.birthday || '';
     $('setCity').value = prefs.weatherCity || '';
     $('setPaperBal').value = Paper.stats().start;
+    $('setRisk').value = prefs.riskPct || 1;
     $('setBoot').checked = prefs.boot !== false;
     $('setHandsFree').checked = !!Voice.prefs.handsFree;
     $('setRate').value = Voice.prefs.rate; $('setPitch').value = Voice.prefs.pitch;
@@ -608,6 +663,7 @@
   $('setTitle').addEventListener('input', (e) => { prefs.title = e.target.value.trim(); savePrefs(); });
   $('setBirthday').addEventListener('input', (e) => { prefs.birthday = e.target.value.trim().replace(/\//g, '-'); savePrefs(); });
   $('setCity').addEventListener('input', (e) => { prefs.weatherCity = e.target.value.trim(); savePrefs(); });
+  $('setRisk').addEventListener('input', (e) => { const v = +String(e.target.value).replace(/[^0-9.]/g, ''); if (v > 0 && v <= 20) { prefs.riskPct = v; savePrefs(); } });
   $('paperReset').addEventListener('click', () => {
     const n = Math.round(+String($('setPaperBal').value).replace(/[^0-9.]/g, ''));
     if (!(n >= 100)) { $('paperMsg').textContent = 'Enter a starting balance (100 or more).'; return; }
@@ -671,6 +727,25 @@
 
   // debugging / testing from the browser console
   window.JARVIS = { callout: (text) => callout('test-' + Date.now(), text), ambient: setAmbient, run };
+
+  // ---------- reminders ----------
+  function remindPop(list) {
+    const T = prefs.title ? `, ${prefs.title}` : '';
+    for (const r of list) {
+      const txt = r.text.charAt(0).toUpperCase() + r.text.slice(1);
+      callout('rem-' + r.id, txt, `Reminder${T}: ${r.text}.`, 'REMINDER');
+      log('reminder', `<span class="warn">⏰ REMINDER</span> <b>${esc(txt)}</b>`);
+    }
+  }
+  setInterval(() => { if (document.body.classList.contains('engaged')) remindPop(Reminders.takeDue(Date.now())); }, 15000);
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (!document.body.classList.contains('engaged')) return;
+    const list = Reminders.takeDue(Date.now());
+    if (hiddenAt && Date.now() - hiddenAt > 10 * 60e3) list.push(...Reminders.takeOnReturn());
+    remindPop(list);
+  });
 
   (async () => {
     renderMute();

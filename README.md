@@ -49,12 +49,14 @@ There are no exact commands to memorise. JARVIS has a big catalog of phrasings, 
 | Grade my trade | "I'm in a sell, stop loss 4068, take profit 4048, is this a good trade?", "I sold at 4060, stop 4068, TP 4048" |
 | Where's my TP? | "My entry is 4009, stop 4018, where should I put my take profit?", "If I sell, where should my TP be?", "Where do I get out?" |
 | How far can it go? | "Will price go up any more than this?", "At what point will price stop going up?", "…stop going down?", "How far can it go?" |
-| Bearish / bullish until when? | "Price is bearish until when?", "Bullish until when?", "How long will it stay bearish?", "When does the downtrend end?" (gives the price that ends it, and the soonest it could change) |
+| Bearish / bullish until when? | "Price is bearish until when?", "Bullish until when?", "How long will it stay bearish?", "When does the downtrend end?" (says where price could run to first, e.g. "bearish down toward ~3,990, then 3,980", then the price that would end the bias and the soonest it could change) |
 | Safe until? | "Buying is safe until what?", "Selling is safe until what?", "What would invalidate the sell?" |
+| Pending orders | "Put a sell order at 4050", "Put a buy order at 3950", "I want a buy order at 3940", "Cancel my orders" |
+| Reminders | "Remind me in an hour to do the dishes", "Remind me at 5 PM to call mom", "Remind me tomorrow to trade London", "Next time I open the app, remind me to check the news", "What are my reminders?", "Delete reminder 2", "Clear my reminders" |
 | Paper trading | "Sell now", "Buy now", "Sell 50 units at 4009, stop loss 4018, take profit 3980", "Buy 2 lots", "How's my paper trade?", "Are we in profit?", "Move my stop to break even", "Set TP to 3985", "Close my trade", "Close all", "Cancel my order", "Set my paper balance to 50k" |
 | Weekly report | "Weekly report", "How did we do this week?", "How did we do last week?", "What's my win rate?" (trades, wins/losses, profit, best session, best/worst trade, one tip) |
 | Weather | "What's the weather?", "Weather tomorrow", "Weather in Miami", "Do I need a jacket?" |
-| Your day | "What should I do today?", "Give me a workout" |
+| Your day | "What should I do today?", "I'm not trading right now, what should I do?", "I'm done trading for the day", "Give me a workout", "Give me a workout plan", "Workout plan at home", "Give me a workout challenge" |
 | Should I trade now? | "Should I hop in and trade right now?", "Is it a good time to trade?", "When should I not trade?", "Best time to trade?" |
 | News | "When's the next high-impact news?", "When's news?", "Any news today?", "News tomorrow?", "Red folders this week?", "When is CPI / NFP / FOMC?" |
 | Birthdays | "When's my birthday?", "When's your birthday?" |
@@ -76,7 +78,7 @@ Small talk depends on the day and time:
 - Special lines (birthday countdown, fun facts, holidays, new month) are said **once a day**, not every time you open the app.
 - If you reopen the app within an hour, it just says "Welcome back, sir", gives the gold price and your paper trade, and skips the full greeting.
 - On the first weekend open, it gives a one-line summary of your paper week.
-- On the 1st of the month: "New month, new things."
+- New month: the first time you open the app in a new month (first week only) it says e.g. "Hey sir, it's December 1st — a new month."
 - It knows the big holidays too (New Year, July 4th, Thanksgiving, Christmas).
 - If there's high-impact US news today, the greeting mentions it.
 
@@ -130,6 +132,8 @@ The best window for gold is about 3 AM – 11:30 AM ET (London open to New York 
 - **Manage it:** "move my stop to break even", "set TP to 3985", "close my trade", "close all", "cancel my order".
 - **Watch it:** the PAPER TRADING panel shows balance, equity, open profit or loss, win rate, and a bar showing where price is between your stop and TP. Ask "how's my paper trade?" anytime.
 - **When it's hit:** a silent pop-up says "We hit TP, sir!" or "Unfortunately, sir, we hit our stop loss… we'll learn from this." If the app was closed, JARVIS checks the 5-minute candles when you open it again and tells you in the greeting. If a stop and a target were both inside one 5-minute candle, it assumes the stop (the safe guess).
+- **Buttons:** the panel has an order ticket (Size, Entry, Stop, Target + SELL / BUY; leave a box blank and JARVIS fills it in, and an entry away from the price makes a pending order). Each trade has **BE** (stop to break-even), **EDIT** (change stop / target) and **CLOSE**; pending orders have EDIT and CANCEL; **CLOSE ALL** shows when you have 2+ trades.
+- **Risk per trade:** when JARVIS picks the size, it risks 1% of the paper balance. Change that in Settings ⚙ → Paper trading.
 - **Starting balance:** set it in Settings ⚙ → Paper trading (e.g. 50,000 or 100,000), or say "set my paper balance to 50k". Resetting clears paper trades and history.
 - Buys fill at the ask and close at the bid, and sells the other way round, just like a real broker.
 
@@ -173,6 +177,9 @@ For the best voice on iPhone: Settings → Accessibility → Spoken Content → 
 
 Notes:
 - Speech-to-text is done by Apple or Google, the same service as keyboard dictation. Everything after that is plain code.
+- **Reminders** pop up as a silent REMINDER card (tap to hear) when their time comes while the app is open. Otherwise they're read out the next time you open the app. "Next time I open the app" reminders also show when you come back to the app after 10+ minutes away.
+- **Better hearing:** JARVIS asks the speech engine for several guesses and uses the one that makes the most sense as a command. It also fixes common mishearings ("cell now" → "sell now", "bearish into one" → "bearish until when", "brake even" → "break even").
+- **More human voice (iPhone):** the browser can only use voices installed on your phone. In iPhone **Settings → Accessibility → Spoken Content → Voices → English**, download a voice marked **Premium** (best) or **Enhanced**. Then in JARVIS Settings ⚙ → Voice, pick it and tap Preview. JARVIS picks Premium voices first automatically.
 - **Stop button:** while JARVIS is talking, the mic button turns into an orange ■ stop button. Tap it to cut it off. Saying "stop" or pressing Esc works too.
 - **Stop being asked for the mic every time (iPhone):** a website can't give itself permanent mic access; you have to set it once. In Safari, open JARVIS, tap the **aA** button in the address bar → **Website Settings** → **Microphone** → **Allow**. If you use JARVIS from the Home Screen icon, go to **Settings → Apps → Safari → Microphone → Allow**.
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.

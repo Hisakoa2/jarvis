@@ -10,9 +10,9 @@
   --bull: #22ff9a;
   --bear: #ff4d6d;
   --neutral: #ffc94d;
-  --mono: 'Share Tech Mono', ui-monospace, Consolas, 'Courier New', monospace;
-  --disp: 'Orbitron', 'Share Tech Mono', ui-monospace, Consolas, monospace;
-  --glow: 0 0 6px rgba(0, 229, 255, 0.55), 0 0 18px rgba(0, 229, 255, 0.18);
+  --mono: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --disp: 'Rajdhani', 'Inter', system-ui, -apple-system, sans-serif;
+  --glow: 0 0 10px rgba(0, 229, 255, 0.22);
 }
 
 * { box-sizing: border-box; }
@@ -22,18 +22,22 @@ body {
   min-height: 100vh;
   background:
     radial-gradient(ellipse at 50% -10%, rgba(0, 229, 255, 0.12), transparent 60%),
-    linear-gradient(rgba(0, 229, 255, 0.035) 1px, transparent 1px) 0 0 / 40px 40px,
-    linear-gradient(90deg, rgba(0, 229, 255, 0.035) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(rgba(0, 229, 255, 0.018) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(0, 229, 255, 0.018) 1px, transparent 1px) 0 0 / 48px 48px,
     var(--bg);
   background-attachment: fixed;
   color: var(--text);
   font-family: var(--mono);
   font-size: 15px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
+  line-height: 1.5;
+  font-feature-settings: 'tnum' 1, 'cv11' 1; /* even-width numbers */
+  -webkit-font-smoothing: antialiased;
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   -webkit-text-size-adjust: 100%;
 }
-.scanlines {
+.scanlines { display: none; }
+.scanlines-off {
   pointer-events: none; position: fixed; inset: 0; overflow: hidden; z-index: 50;
   background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
   opacity: 0.35;
@@ -191,7 +195,26 @@ a { color: inherit; }
 .paper-pos.sell { border-left: 3px solid var(--bear); }
 .paper-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
 .paper-pl { margin-left: auto; font-family: var(--disp); }
-.paper-close { padding: 4px 10px; font-size: 11px; flex: none; }
+.paper-close { padding: 6px 10px; font-size: 12px; flex: none; }
+.paper-close.danger { border-color: rgba(255, 77, 109, 0.5); color: var(--bear); }
+.paper-acts { margin-left: auto; display: flex; gap: 6px; }
+.paper-lv { font-size: 12px; color: var(--dim); }
+.paper-pos.order { border-style: dashed; }
+.ticket { margin-bottom: 12px; }
+.ticket-fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.paper-edit .ticket-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ticket-fields label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; letter-spacing: 0.08em; color: var(--dim); text-transform: uppercase; min-width: 0; }
+.ticket-fields input { width: 100%; min-width: 0; font: inherit; font-size: 16px; color: var(--text); background: rgba(0, 0, 0, 0.35); border: 1px solid var(--cyan-faint); border-radius: 8px; padding: 8px 10px; }
+.ticket-fields input:focus { outline: none; border-color: var(--cyan-dim); }
+.ticket-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.tk-btn { font-family: var(--disp); font-weight: 700; font-size: 16px; letter-spacing: 0.12em; padding: 11px; border-radius: 8px; cursor: pointer; border: 1px solid; background: transparent; }
+.tk-btn.sell { color: var(--bear); border-color: rgba(255, 77, 109, 0.6); background: rgba(255, 77, 109, 0.08); }
+.tk-btn.buy { color: var(--bull); border-color: rgba(34, 255, 154, 0.6); background: rgba(34, 255, 154, 0.08); }
+.tk-btn:active { transform: scale(0.98); }
+.ticket-hint { margin-top: 6px; }
+.paper-edit { border: 1px solid var(--cyan-dim); border-radius: 10px; padding: 10px; margin-top: 8px; background: rgba(0, 229, 255, 0.04); }
+.paper-edit-title { font-family: var(--disp); font-weight: 600; letter-spacing: 0.08em; margin-bottom: 8px; color: var(--cyan); }
+@media (max-width: 760px) { .ticket-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .paper-prog { position: relative; height: 18px; margin-top: 6px; background: linear-gradient(90deg, rgba(255, 77, 109, 0.25), rgba(34, 255, 154, 0.25)); display: flex; justify-content: space-between; align-items: center; padding: 0 6px; font-size: 10px; color: var(--dim); }
 .paper-prog i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--cyan); box-shadow: var(--glow); }
 .paper-hist { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--dim); margin-top: 6px; }

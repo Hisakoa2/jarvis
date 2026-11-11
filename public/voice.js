@@ -11,7 +11,7 @@ const Voice = (() => {
   const synth = window.speechSynthesis || null;
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-  let prefs = { muted: false, voiceURI: null, rate: 1.0, pitch: 0.95, handsFree: false };
+  let prefs = { muted: false, voiceURI: null, rate: 1.0, pitch: 1.0, handsFree: false };
   try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREF_KEY) || '{}') }; } catch {}
   try { if (localStorage.getItem('jarvis.muted') === '1') prefs.muted = true; } catch {}
   const save = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch {} };
@@ -23,7 +23,10 @@ const Voice = (() => {
     let s = 0;
     if (!v.lang.toLowerCase().startsWith('en')) return -100;
     if (v.lang === 'en-GB') s += 30;
-    if (GOOD.some((r) => r.test(v.name))) s += 40;
+    if (/premium/i.test(v.name)) s += 60; // Apple's best on-device voices
+    else if (/natural|neural|online/i.test(v.name)) s += 55; // Edge's natural voices
+    else if (/enhanced/i.test(v.name)) s += 45;
+    if (/^(samantha|fred|albert|bad news|junior|kathy|ralph|trinoids|whisper|zarvox)$/i.test(v.name.split(' ')[0]) && !/enhanced|premium/i.test(v.name)) s -= 15;
     if (MALE.test(v.name)) s += 20;
     if (/novelty|bad news|bells|bubbles|boing|cellos|hysterical|organ|trinoids|whisper|zarvox|albert|jester|superstar|wobble|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley/i.test(v.name)) s -= 80;
     if (v.localService === false) s += 5;
@@ -91,7 +94,7 @@ const Voice = (() => {
     r.lang = 'en-US';
     r.interimResults = true;
     r.continuous = mode === 'wake';
-    r.maxAlternatives = 1;
+    r.maxAlternatives = 4; // several guesses: the app picks the one that makes the most sense
     return r;
   }
 
@@ -105,12 +108,12 @@ const Voice = (() => {
     stopRec();
     onceHandlers = h;
     rec = makeRec('once'); recMode = 'once';
-    let finalText = '';
+    let finalText = '', finalAlts = [];
     rec.onstart = () => { h.onState(true); emit('listening'); };
     rec.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
+        if (e.results[i].isFinal) { finalText += e.results[i][0].transcript; finalAlts.push(Array.from(e.results[i]).map((a) => a.transcript)); } else interim += e.results[i][0].transcript;
       }
       h.onInterim((finalText + interim).trim());
     };
@@ -118,7 +121,8 @@ const Voice = (() => {
     rec.onend = () => {
       rec = null; recMode = null;
       h.onState(false); emit('idle');
-      if (finalText.trim()) h.onFinal(finalText.trim());
+      // one spoken chunk → offer every guess; several chunks → just the joined best text
+      if (finalText.trim()) h.onFinal(finalText.trim(), finalAlts.length === 1 ? finalAlts[0].map((x) => x.trim()).filter(Boolean) : null);
       setTimeout(resumeWake, 300);
     };
     try { rec.start(); } catch (err) { h.onError(`Couldn’t start the microphone: ${err.message}`); }
@@ -154,11 +158,12 @@ const Voice = (() => {
           if (awaitingCommand || WAKE_RE.test(text)) h.onInterim(text);
           continue;
         }
-        if (awaitingCommand) { endAwait(); if (text) h.onCommand(text); continue; }
+        const alts = Array.from(res).map((a) => a.transcript.trim()).filter(Boolean);
+        if (awaitingCommand) { endAwait(); if (text) h.onCommand(text, alts); continue; }
         const m = text.match(WAKE_RE);
         if (!m) continue;
         const after = text.slice(m.index + m[0].length).replace(/^[\s,.!?]+/, '').trim();
-        if (after.split(' ').length >= 2 || (after && !/^(please|um|uh)$/i.test(after))) h.onCommand(text);
+        if (after.split(' ').length >= 2 || (after && !/^(please|um|uh)$/i.test(after))) h.onCommand(text, alts);
         else { // just "Hey JARVIS" → wait for the command
           awaitingCommand = true;
           h.onWake();

@@ -23,12 +23,28 @@ const Weather = (() => {
       navigator.geolocation.getCurrentPosition((p) => res({ lat: p.coords.latitude, lon: p.coords.longitude, name: 'your area' }), () => rej(new Error('geo-denied')), { timeout: 10000, maximumAge: 3600e3 });
     });
   }
+  const STATES = { al: 'alabama', ak: 'alaska', az: 'arizona', ar: 'arkansas', ca: 'california', co: 'colorado', ct: 'connecticut', de: 'delaware', fl: 'florida', ga: 'georgia', hi: 'hawaii', id: 'idaho', il: 'illinois', in: 'indiana', ia: 'iowa', ks: 'kansas', ky: 'kentucky', la: 'louisiana', me: 'maine', md: 'maryland', ma: 'massachusetts', mi: 'michigan', mn: 'minnesota', ms: 'mississippi', mo: 'missouri', mt: 'montana', ne: 'nebraska', nv: 'nevada', nh: 'new hampshire', nj: 'new jersey', nm: 'new mexico', ny: 'new york', nc: 'north carolina', nd: 'north dakota', oh: 'ohio', ok: 'oklahoma', or: 'oregon', pa: 'pennsylvania', ri: 'rhode island', sc: 'south carolina', sd: 'south dakota', tn: 'tennessee', tx: 'texas', ut: 'utah', vt: 'vermont', va: 'virginia', wa: 'washington', wv: 'west virginia', wi: 'wisconsin', wy: 'wyoming', dc: 'district of columbia' };
+  // "Avondale Estates, GA" / "Avondale Estates Georgia" / "Atlanta": the place name is searched,
+  // and a state or country after it picks the right match.
   async function place(city) {
     if (city) {
-      const g = await json(`https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=${encodeURIComponent(city)}`);
-      const r = g.results && g.results[0];
-      if (!r) throw new Error('city-not-found');
-      return { lat: r.latitude, lon: r.longitude, name: r.name };
+      const words = city.replace(/[,]+/g, ' ').replace(/\s+/g, ' ').trim().split(' ');
+      for (let cut = 0; cut <= Math.min(2, words.length - 1); cut++) {
+        const name = words.slice(0, words.length - cut).join(' ');
+        const tail = words.slice(words.length - cut).join(' ').toLowerCase().replace(/\.$/, '');
+        const g = await json(`https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&format=json&name=${encodeURIComponent(name)}`);
+        let rs = g.results || [];
+        if (!rs.length) continue;
+        if (tail) {
+          const st = STATES[tail] || tail;
+          const f = rs.filter((r) => [r.admin1, r.country, r.country_code].some((x) => x && x.toLowerCase() === st) || (tail.length === 2 && (r.country_code || '').toLowerCase() === tail && !STATES[tail]));
+          if (!f.length) continue;
+          rs = f;
+        }
+        const r = rs[0];
+        return { lat: r.latitude, lon: r.longitude, name: r.name + (cut && r.admin1 ? `, ${r.admin1}` : '') };
+      }
+      throw new Error('city-not-found');
     }
     return here();
   }

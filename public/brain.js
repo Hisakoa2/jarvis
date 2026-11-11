@@ -89,9 +89,16 @@ const Brain = (() => {
     // keep "short term" / "long term" / "how long" from reading as sell / buy
     [/\bshort[ -]term\b/g, 'shortterm'], [/\blong[ -]term\b/g, 'longterm'], [/\bhow long\b/g, 'how much time'],
     [/\bstop[ -]?loss\b/g, 'stop loss'], [/\btake[ -]?profit\b/g, 'take profit'], [/\bt\.?p\.?\b/g, 'tp'], [/\bs\.?l\.?\b/g, 'sl'],
+    // common speech-to-text mishearings
+    [/\b(bearish|bullish|bear|bull)\s+(?:into|in to|unto|until|till|til|and tell|intel)\s+(?:one|when|win|wen|what)\b/g, '$1 until when'], [/\buntil one\b/g, 'until when'],
+    [/^(?:cell|sale|sail)\b/, 'sell'], [/\b(?:cell|sale|sail)\s+(?=now\b|order\b|limit\b|at\b|it\b|\d)/g, 'sell '],
+    [/^by\s+(?=now\b|order\b|limit\b|at\b|\d)/, 'buy '], [/^bye\s+(?=order\b|limit\b|at\b|\d)/, 'buy '], [/\b(a|an) (?:by|bye) (?=order\b|limit\b|at\b)/g, 'a buy '], [/\b(put|place|set) a (?:cell|sale|sail)\b/g, '$1 a sell'],
+    [/\b(?:tea pee|teepee|t p)\b/g, 'tp'], [/\b(?:es el|s l)\b/g, 'sl'], [/\bbrake[ -]?even\b|\bbreak[ -]?event\b/g, 'break even'],
+    [/\bstop (?:lost|laws|lass)\b/g, 'stop loss'], [/\btake (?:prophet|profits)\b/g, 'take profit'], [/\bpaper (?:trait|trey|tray)\b/g, 'paper trade'],
+    [/\bwhether\b/g, 'weather'], [/\bremind (?:be|mi)\b/g, 'remind me'], [/\bwork out\b/g, 'workout'],
   ];
   // Speech recognisers often mishear "Jarvis"
-  const WAKE = /\b(hey|hi|ok|okay|yo)?\s*(jarvis|jervis|javis|jarvas|jarves|travis|jarvi)\b/g;
+  const WAKE = /\b(hey|hi|ok|okay|yo)?\s*(jarvis|jervis|javis|jarvas|jarves|jarvus|jarvez|charvis|jar vis|travis|jarvi)\b/g;
 
   function clean(s) {
     let t = String(s).toLowerCase().replace(/[’‘`]/g, "'").replace(/(\d),(?=\d{3}\b)/g, '$1');
@@ -102,7 +109,7 @@ const Brain = (() => {
 
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
-  const STOP = new Set('the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal'.split(' '));
+  const STOP = new Set('the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
 
   function lev(a, b) {
     if (a === b) return 0;
@@ -184,6 +191,8 @@ const Brain = (() => {
       birthday: ctx.birthday || '',
       paper: ctx.paper || (typeof Paper !== 'undefined' ? Paper : null),
       news: ctx.news || (typeof News !== 'undefined' ? News : null),
+      reminders: ctx.reminders || (typeof Reminders !== 'undefined' ? Reminders : null),
+      riskPct: +ctx.riskPct > 0 ? +ctx.riskPct : 1,
       t: T ? `, ${T}` : '',            // ", sir"
       Tc: T ? T[0].toUpperCase() + T.slice(1) : '', // "Sir"
       tod: p.h < 5 ? 'night' : p.h < 12 ? 'morning' : p.h < 17 ? 'afternoon' : p.h < 22 ? 'evening' : 'night',
@@ -781,7 +790,7 @@ const Brain = (() => {
       }
       const neutral = flipPoint(k, px, toward, ['Neutral', other]);
       const flip = flipPoint(k, px, toward, [other]);
-      return reply(`<b class="${cls(want)}">${side} is backed by your rules while 1H candles close ${dir > 0 ? 'above' : 'below'} ~${f2(neutral)}.</b>` +
+      return reply(`${lv[0] ? `Room ${dir > 0 ? 'up' : 'down'} to about <b>${f2(lv[0].price)}</b> (${esc(lv[0].name)}, ${f2(Math.abs(lv[0].price - px))} away).<br>` : ''}<b class="${cls(want)}">${side} is backed by your rules while 1H candles close ${dir > 0 ? 'above' : 'below'} ~${f2(neutral)}.</b>` +
         `<ul><li>${dir > 0 ? 'Below' : 'Above'} ${f2(neutral)} → rules go <span class="warn">neutral</span> (${f2(Math.abs(px - neutral))} away)</li>` +
         (flip ? `<li>Closes ${dir > 0 ? 'below' : 'above'} ${f2(flip)} → flips <span class="${cls(other)}">${lc(other)}</span> (${f2(Math.abs(px - flip))} away)</li>` : '') + `</ul>${targetH}${note}` + demoNote(g),
         `${side} is safe by your rules while hourly candles close ${dir > 0 ? 'above' : 'below'} ${sayPrice(neutral)}, sir — that's ${money(Math.round(Math.abs(px - neutral)))} away.${flip ? ` ${dir > 0 ? 'Below' : 'Above'} ${sayPrice(flip)} it flips ${lc(other)}.` : ''}${targetS}`.replace(', sir', k.t) + demoSay(g));
@@ -791,6 +800,13 @@ const Brain = (() => {
     return reply(html + demoNote(g), `${side} isn't backed by your rules right now${k.t}. The bias is ${lc(b.bias)}. It would take hourly closes ${dir > 0 ? 'above' : 'below'} ${turn ? sayPrice(turn) : 'the rule levels'} to turn ${lc(want)}.` + demoSay(g));
   }
 
+  // Where a move could run to: next level(s) in that direction, plus the average-day edge
+  function moveTarget(k, dir, px) {
+    const lv = levelsToward(k, dir, px, 10, 2), edge = adrEdge(k, dir);
+    const t1 = lv[0] || (edge && edge.room > 0 ? { name: 'average day range', price: edge.edge } : null);
+    if (!t1) return null;
+    return { t1, t2: lv[1] || null, edge: edge && edge.room > 0 ? edge.edge : null };
+  }
   // "Bearish until when?" / "Bullish until when?": the price that ends the bias + the soonest it could change
   function biasUntilA(k, dir) {
     const g = k.g, b = g.bias, px = g.price.bid;
@@ -812,10 +828,13 @@ const Brain = (() => {
     }
     const neutral = flipPoint(k, px, -dir, ['Neutral', other]);
     const flip = flipPoint(k, px, -dir, [other]);
+    const T = moveTarget(k, dir, px);
+    const tH = T ? `<b class="${cls(want)}">Price looks ${lc(want)} ${dir > 0 ? 'up' : 'down'} toward ~${f2(T.t1.price)}</b> (${esc(T.t1.name)}, ${f2(Math.abs(T.t1.price - px))} away)${T.t2 ? `, then ${f2(T.t2.price)}` : ''}.${T.edge ? ` An average day would ${dir > 0 ? 'top' : 'bottom'} out near ${f2(T.edge)}.` : ''}<br>` : '';
+    const tS = T ? `Gold looks ${lc(want)} ${dir > 0 ? 'up' : 'down'} toward about ${sayPrice(T.t1.price)}${k.t}, that's the ${T.t1.name}. ` : '';
     const warn = biasAt(k, px) !== want ? `<br><span class="warn">Heads up: price is already on the wrong side of your rules — if this hour closes here, the change starts building.</span>` : '';
-    return reply(`<b class="${cls(want)}">Price stays ${lc(want)} while 1H candles close ${dir > 0 ? 'above' : 'below'} ~${f2(neutral)}</b> (${f2(Math.abs(px - neutral))} away).` +
+    return reply(`${tH}<b class="${cls(want)}">${T ? 'It stays' : 'Price stays'} ${lc(want)} while 1H candles close ${dir > 0 ? 'above' : 'below'} ~${f2(neutral)}</b> (${f2(Math.abs(px - neutral))} away).` +
       `<ul><li>${dir > 0 ? 'Below' : 'Above'} ${f2(neutral)} → <span class="warn">neutral</span></li>` + (flip ? `<li>${dir > 0 ? 'Below' : 'Above'} ${f2(flip)} → flips <span class="${cls(other)}">${lc(other)}</span> (${f2(Math.abs(px - flip))} away)</li>` : '') + `</ul>${warn}${time}` + demoNote(g),
-      `Gold stays ${lc(want)} while hourly candles close ${dir > 0 ? 'above' : 'below'} ${sayPrice(neutral)}${k.t}, that's ${money(Math.round(Math.abs(px - neutral)))} away.${flip ? ` ${dir > 0 ? 'Below' : 'Above'} ${sayPrice(flip)} it flips ${lc(other)}.` : ''}` + timeS + demoSay(g));
+      `${tS}${T ? 'It stays' : 'Gold stays'} ${lc(want)} while hourly candles close ${dir > 0 ? 'above' : 'below'} ${sayPrice(neutral)}${T ? '' : k.t}, that's ${money(Math.round(Math.abs(px - neutral)))} away.${flip ? ` ${dir > 0 ? 'Below' : 'Above'} ${sayPrice(flip)} it flips ${lc(other)}.` : ''}` + timeS + demoSay(g));
   }
 
   // Take-profit ideas for a given entry + stop
@@ -869,7 +888,8 @@ const Brain = (() => {
     if (QUESTION.test(t)) return false;
     if (BOTH_SIDES.test(t)) return false; // "buy or sell?" is a question, not an order
     return /^(?:paper\s+)?(?:(?:go|get)\s+)?(?:sell|buy|short|long)\b/.test(t) ||
-      /^(?:open|place|enter|put on|execute|take|start|make|fire off|send|do)\s+(?:a|an|me a|the|one|another)?\s*(?:paper\s+)?(?:sell|buy|short|long)\b/.test(t) ||
+      /^(?:open|place|enter|put on|put in|put|set up|set|leave|drop|throw|stick|execute|take|start|make|fire off|send|do|i want|give me|get me)\s+(?:in\s+)?(?:a|an|me a|the|one|another|my)?\s*(?:paper\s+)?(?:sell|buy|short|long)\b/.test(t) ||
+      /\b(?:sell|buy) (?:limit |stop )?order\b.*\b(?:at|for|around)\s+\d{3,}/.test(t) ||
       /\bpaper (?:sell|buy|short|long)\b/.test(t);
   }
   function parseUnits(text) {
@@ -925,9 +945,9 @@ const Brain = (() => {
     const riskPct = (text.match(/(\d+(?:\.\d+)?)\s*percent/) || [])[1];
     const riskUsd = (text.match(/risk(?:ing)?\s*(\d+(?:\.\d+)?)\s*(?:dollars|bucks|usd)?/) || [])[1];
     if (!units) {
-      const dollars = riskUsd && !riskPct ? +riskUsd : (S.balance * (riskPct ? +riskPct : 1)) / 100;
+      const dollars = riskUsd && !riskPct ? +riskUsd : (S.balance * (riskPct ? +riskPct : k.riskPct)) / 100;
       units = sl != null ? Math.max(1, Math.floor(dollars / Math.abs(entry - sl))) : 10;
-      sizeNote = sl != null ? ` (risking ${riskPct ? riskPct + '%' : riskUsd ? '$' + riskUsd : '1%'} of the paper account)` : '';
+      sizeNote = sl != null ? ` (risking ${riskPct ? riskPct + '%' : riskUsd ? '$' + riskUsd : k.riskPct + '%'} of the paper account)` : '';
     }
     const res = P.place({ side: dir, units, entry: pending ? entry : null, sl, tp, bid: g.price.bid, ask: g.price.ask, auto: autoBits.length > 0, style: st });
     const pos = res.position || res.order;
@@ -1049,6 +1069,91 @@ const Brain = (() => {
     }
     if (!out.length) return null;
     return { html: ` ${ev.length ? '<b>While you were away:</b> ' : ''}${out.join(' ')}`, say: ` ${says.join(' ')}` };
+  }
+
+  // ---- reminders ---------------------------------------------------------------------
+  function remWhen(k, r, spoken) {
+    if (r.due == null) return 'next time you open the app';
+    const ms = r.due - k.now, tmr = new Intl.DateTimeFormat('en-CA', { timeZone: k.tz }).format(new Date(r.due)) !== new Intl.DateTimeFormat('en-CA', { timeZone: k.tz }).format(new Date(k.now));
+    const clock = fmtT(r.due, k.tz, tmr && ms > 864e5) + (spoken ? '' : '');
+    if (ms < 3 * 3600e3) return spoken ? `in ${words(ms)}` : `in ${words(ms)} (${clock})`;
+    return `${tmr ? (ms < 2 * 864e5 ? 'tomorrow ' : '') : 'today '}at ${clock}`;
+  }
+  function remindAddA(k, raw) {
+    const R = k.reminders;
+    if (!R) return reply(`Reminders aren't available here${k.t}.`);
+    const r = R.add(raw, k.now, k.tz);
+    if (!r) return reply(`What should I remind you about${k.t}? Try “remind me in an hour to check gold” or “next time I open the app, remind me to do the dishes”.`, `What should I remind you about${k.t}?`);
+    const n = R.all().length;
+    return reply(`Got it${k.t}. Reminder set for <b>${remWhen(k, r)}</b>: <b>${esc(cap1(r.text))}</b>.${n > 1 ? ` <span class="dim">(${n} reminders saved — say “my reminders”.)</span>` : ''}`,
+      `Got it${k.t}. I'll remind you ${remWhen(k, r, true)}: ${r.text}.`);
+  }
+  function remindListA(k) {
+    const R = k.reminders, L = R ? R.all() : [];
+    if (!L.length) return reply(`No reminders saved${k.t}. Say “remind me in 30 minutes to …” to add one.`);
+    return reply(`Your reminders${k.t}:<ol>${L.map((r) => `<li><b>${esc(cap1(r.text))}</b> <span class="dim">— ${remWhen(k, r)}</span></li>`).join('')}</ol><span class="dim">Say “delete reminder 2” or “clear my reminders”.</span>`,
+      `You have ${L.length} reminder${L.length > 1 ? 's' : ''}${k.t}: ${L.map((r) => `${r.text}, ${remWhen(k, r, true)}`).join('. ')}.`);
+  }
+  function remindClearA(k, text) {
+    const R = k.reminders;
+    if (!R) return reply(`Reminders aren't available here${k.t}.`);
+    const L = R.all();
+    const num = text.match(/\b(?:reminder|number|no)\s*(\d{1,2})\b|\b(\d{1,2})(?:st|nd|rd|th)? reminder\b/);
+    const ord = { first: 1, second: 2, third: 3, fourth: 4, fifth: 5, last: L.length }[(text.match(/\b(first|second|third|fourth|fifth|last)\b/) || [])[1]];
+    const idx = num ? +(num[1] || num[2]) : ord;
+    if (idx) {
+      const r = L[idx - 1];
+      if (!r) return reply(`There's no reminder number ${idx}${k.t}. You have ${L.length}.`);
+      R.remove(r.text);
+      return reply(`Deleted${k.t}: <b>${esc(cap1(r.text))}</b>.`, `Deleted the reminder to ${r.text}.`);
+    }
+    const kw = text.replace(/\b(clear|delete|remove|cancel|erase|scratch|my|the|all|reminders?|about|for|to|please|jarvis|of|that|this|one)\b/g, ' ').replace(/\s+/g, ' ').trim();
+    if (kw && !/\ball\b/.test(text)) {
+      const n = R.remove(kw);
+      if (n) return reply(`Deleted ${n} reminder${n > 1 ? 's' : ''} about “${esc(kw)}”${k.t}.`);
+    }
+    const n = R.remove(null);
+    return reply(n ? `Cleared ${n} reminder${n > 1 ? 's' : ''}${k.t}.` : `No reminders to clear${k.t}.`);
+  }
+
+  // ---- free time, workout plan, challenges ---------------------------------------------
+  const CHALLENGES = [
+    '100 push-ups today — as many sets as you need.', '5 minutes of plank in total — break it up however you want.', '200 bodyweight squats before the end of the day.',
+    '50 burpees for time. Write the time down and beat it next week.', '10,000 steps before 8 PM.', 'Wall sit: 3 rounds of 1 minute, 1 minute rest between.',
+    'Run one mile as fast as you can. That\'s your number to beat.', 'Drink a gallon of water today.', 'No phone for the first hour after you wake up tomorrow.',
+    '2-minute cold shower. Mind over body.', '30 days: start at 10 push-ups and add 5 every day.', 'Stretch for 10 minutes before bed tonight.',
+    '7 rounds: 10 push-ups, 15 squats, 20 mountain climbers. Rest 1 minute between rounds.', 'Hold a dead hang from a bar for as long as you can, 3 times.',
+  ];
+  function workoutChallengeA(k) {
+    const c = pick('chal', CHALLENGES);
+    return reply(`Challenge for you${k.t}: <b>${c}</b><br><span class="dim">Tell me when it's done. Warm up first and drink water.</span>`, `Here's your challenge${k.t}: ${c}`);
+  }
+  function workoutPlanA(k, text) {
+    const home = /\b(home|no gym|no equipment|bodyweight|body weight)\b/.test(text);
+    const plan = home ? [['Monday', 'Push-ups 5×max, pike push-ups 3×10, dips on a chair 3×12'], ['Tuesday', '20-min run or brisk walk + core (plank 3×60s)'], ['Wednesday', 'Squats 4×20, lunges 3×12 each, glute bridges 3×15'], ['Thursday', 'HIIT 20 min: burpees, mountain climbers, jump squats (40s on / 20s off)'], ['Friday', 'Full body circuit ×4: 15 push-ups, 20 squats, 10 burpees, 30s plank'], ['Saturday', 'Long walk, hike or a sport'], ['Sunday', 'Rest + 15 minutes of stretching']]
+      : [['Monday', 'Push — bench, overhead press, incline DB press, triceps'], ['Tuesday', 'Pull — pull-ups, rows, lat pulldown, biceps'], ['Wednesday', 'Legs — squats, Romanian deadlifts, lunges, calves'], ['Thursday', 'Cardio — 30-min run or HIIT + core'], ['Friday', 'Upper body — bench, rows, shoulders, arms'], ['Saturday', 'Legs light + long walk or a sport'], ['Sunday', 'Rest + stretch / foam roll']];
+    return reply(`Here's a week${home ? ' you can do at home' : ' at the gym'}${k.t}:<ul>${plan.map(([d, w]) => `<li>${d === k.weekday ? '<b>▶ ' : ''}${d}${d === k.weekday ? ' (today)</b>' : ''}: ${w}</li>`).join('')}</ul><span class="dim">Train after the London/New York session so it doesn't clash with your best trading hours. Say “give me a workout” for today's full routine${home ? '' : ', or “workout plan at home” for no equipment'}.</span>`,
+      `Here's your week${k.t}. Today, ${k.weekday}, is ${(plan.find(([d]) => d === k.weekday) || plan[0])[1].split(' — ')[0].split(',')[0]}. The full plan is on screen.`);
+  }
+  function freetimeA(k) {
+    const w = typeof Weather !== 'undefined' && Weather.cached();
+    const temp = w ? Math.round(w.d.current.temperature_2m) : null, wet = w && Weather.wet(w.d.current.weather_code);
+    const late = k.hour >= 22 || k.hour < 5, wo = pick('ft-wo', WORKOUTS);
+    const opts = [];
+    if (late) opts.push('<b>Sleep</b> — best thing you can do for tomorrow\'s session.');
+    else {
+      opts.push(`<b>Train</b> — ${lc(wo.name)}. Say “give me a workout” or “give me a challenge”.`);
+      if (w && !wet && temp >= 50 && temp <= 88) opts.push(`<b>Get outside</b> — it's ${temp}° and ${Weather.word(w.d.current.weather_code)}. Walk, run, or sit in the sun.`);
+      else if (w) opts.push(`<b>Stay in and reset</b> — it's ${temp}° and ${Weather.word(w.d.current.weather_code)} out. Read, stretch, or cook something good.`);
+    }
+    const pool = ['<b>Knock out a chore</b> — dishes, laundry, clean your space. Clear room, clear head.', '<b>Study one setup</b> — backtest it for 30 minutes on old charts.', '<b>Review your trades</b> — say “weekly report”.',
+      '<b>Read 20 pages</b> of something that makes you better.', '<b>Call someone</b> you haven\'t talked to in a while.', '<b>Cook a proper meal</b> and drink some water.', '<b>Plan tomorrow</b> — mark the levels and check the news calendar.', '<b>Rest</b> — no screens for an hour. You earned it.'];
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    opts.push(...pool.slice(0, 5 - opts.length));
+    const R = k.reminders && k.reminders.all();
+    if (R && R.length) opts.unshift(`<b>Your reminders</b> — ${R.slice(0, 3).map((r) => esc(r.text)).join(', ')}.`);
+    const open = pick('ft', [`Good call${k.t} — not trading is a position too.`, `Fair enough${k.t}. Time away from the charts is part of the job.`, `Smart${k.t}. No forced trades.`]);
+    return reply(`${open} Here's what I'd do:<ol>${opts.slice(0, 5).map((o) => `<li>${o}</li>`).join('')}</ol>`, `${open} ${opts.slice(0, 3).map((o) => o.replace(/<[^>]+>/g, '').split(' — ')[0]).join(', ')}. More on screen.`);
   }
 
   // ---- weekly paper report ----------------------------------------------------------
@@ -1328,7 +1433,12 @@ const Brain = (() => {
       add('jborn', age > 0 ? `Also — today is my birthday. ${age} year${age > 1 ? 's' : ''} online.` : `Fun fact: today is the day I first came online.`);
     }
     const mon = MONTHS[k.m - 1];
-    if (k.d === 1) add('month', pick('month', [`New month${k.t} — welcome to ${mon}. New month, new things.`, `It's the 1st of ${mon}${k.t}. Fresh month, clean slate.`, `Welcome to ${mon}${k.t}. New month, new opportunities — let's make it count.`]));
+    const ym = `${k.y}-${k.m}`;
+    if (k.d <= 7 && (once ? seen.month !== ym : k.d === 1)) {
+      seen.month = ym;
+      out.push(k.d === 1 ? pick('month1', [`Hey${k.t}, it's ${mon} 1st — a new month. New month, new things.`, `It's the 1st of ${mon}${k.t}. Fresh month, clean slate.`, `${mon} 1st${k.t} — new month, new opportunities. Let's make it count.`])
+        : pick('month', [`New month${k.t} — welcome to ${mon}. New month, new things.`, `Welcome to ${mon}${k.t}. Fresh month, clean slate.`]));
+    }
     if (k.m === 1 && k.d === 1) add('hol', `Happy New Year${k.t}! 🎆`);
     if (k.m === 12 && k.d === 31) add('hol', `Last day of the year${k.t}. Thin markets — and a good night to celebrate.`);
     if (k.m === 12 && k.d === 25) add('hol', `Merry Christmas${k.t}! 🎄 Markets are mostly closed — enjoy the day.`);
@@ -1578,13 +1688,19 @@ const Brain = (() => {
       if (/\b(close|exit|flatten|cut|kill|get me out|take me out|bank it|secure it)\b/.test(text) && /\b(trade|trades|position|positions|it|all|everything|sells?|buys?|shorts?|longs?|paper|out)\b/.test(text) && !question && P.positions().length) set('paperClose', 9);
       if (/\b(move|set|change|put|adjust|update|trail|raise|lower|tighten|bump)\b/.test(text) && /\b(stop|sl|stop loss|tp|take profit|target)\b/.test(text) && (/\d{3,}/.test(text) || /break ?even|\bbe\b/.test(text)) && !/\b(should|would|where|what|is it|if)\b/.test(text) && (P.busy() || /\b(my|the|our)\b/.test(text))) set('paperModify', 9.2);
       if (any('PAPER') && !isOrder(text)) set('paperStatus', 7.8);
-      if (P.busy() && /\bhow (is|are) (my|the|our|we)\b|are we (in profit|up|down|winning|losing)|how much (are we|am i|we|is it) (up|down|making)|in profit|in the money|how is it going|how we doing|our trade|my position|\bp ?l\b|pnl/.test(text)) set('paperStatus', 8.2);
+      if (P.busy() && /\bhow (is|are) (my|the|our) (trade|trades|position|positions|paper|sell|buy|short|long|account)\b|\bhow are we\b|are we (in profit|up|down|winning|losing)|how much (are we|am i|we|is it) (up|down|making)|in profit|in the money|how is it going|how we doing|our trade|my position|\bp ?l\b|pnl/.test(text)) set('paperStatus', 8.2);
       if (/\b(reset|set|change|start|make|put)\b/.test(text) && /\b(paper|bankroll)\b/.test(text) && (/\d/.test(text) || /\breset\b/.test(text))) set('paperReset', 9.6);
       if (/\bcancel\b/.test(text) && /\b(order|orders|limit|pending)\b/.test(text)) set('paperCancel', 9.6);
     }
     if (/\b(week|weekly|weeks)\b/.test(text) && /\b(report|recap|summary|review|results?|stats|performance|how did (we|i)|how was|how we did|how i did|breakdown|scorecard|journal|p ?l|pnl|profit|made|lose|lost)\b/.test(text) && !any('NEWS')) set('weekly', 8.6);
     if (/\b(trade journal|trading journal|my stats|our stats|win rate|winrate|track record)\b/.test(text)) set('weekly', 8);
-    if (any('WEATHER')) set('weather', 7);
+    if (/\b(remind me|set (?:a|an|me a)?\s*reminder|add (?:a )?reminder|don'?t let me forget|reminder to|reminder for)\b/.test(text)) set('remindAdd', 9.8);
+    if (/\breminders?\b/.test(text) && /\b(my|any|what|show|list|see|check|read|have|got)\b/.test(text) && !/\bremind me\b/.test(text) && !/\b(clear|delete|remove|cancel|erase|scratch)\b/.test(text)) set('remindList', 9.4);
+    if (/\b(clear|delete|remove|cancel|erase|scratch)\b.*\breminders?\b|\breminders?\b.*\b(clear|delete|remove)\b/.test(text)) set('remindClear', 9.6);
+    if (/\b(not|no|stopped|done|finished|off|away from|break from)\s+(?:with\s+)?(?:trading|the charts|charts)\b|\bday off\b|\bnot in the mood to trade\b|\b(?:dont|do not) (?:want|feel like) (?:to )?trad(?:e|ing)\b|\bwhat (?:else )?(?:can|should) i do (?:instead|besides trading|other than trading)\b/.test(text)) set('freetime', 8.4);
+    if (/\b(workout|exercise|fitness|gym|training|push ups?|pushups?|squats?|lifting)\b/.test(text) && /\b(plan|program|split|schedule|weekly|week)\b/.test(text) && !any('SELL', 'BUY')) set('workoutPlan', 8.6);
+    if (/\bchallenge\b/.test(text) && !/\b(trading|prop|funded|ftmo|account)\b/.test(text)) set('workoutChallenge', 8.6);
+    if (any('WEATHER')) set('weather', 8.5);
     if (any('DAYPLAN') && !any('SELL', 'BUY', 'WEEKEND')) set('dayplan', 6.4);
     if (any('WORKOUT') && !any('SELL', 'BUY')) set('workout', /give|suggest|need|want|what|recommend|routine|plan/.test(text) || text.split(' ').length <= 3 ? 6.6 : 4);
     return S;
@@ -1607,6 +1723,10 @@ const Brain = (() => {
     stall: ['how far can it go', 'how much further', 'where is it heading', 'where is price going', 'what is the target for today', 'how far will it drop', 'how far will it run'],
     tpq: ['where do i take profit', 'where should i exit', 'where do i get out', 'what is a good target', 'when should i take profits'],
     biasUntil: ['when will the bias change', 'how long will it stay bearish', 'how long will it stay bullish', 'when does the trend end', 'is the trend over yet', 'when does it flip'],
+    remindList: ['what do i need to do', 'what did i tell you to remember', 'anything i need to remember'],
+    freetime: ['i am taking a break', 'i am off today', 'not feeling the market today', 'i need something to do', 'what else can i do'],
+    workoutChallenge: ['challenge me', 'give me something hard', 'test me'],
+    workoutPlan: ['plan my workouts', 'what should i train this week', 'gym schedule'],
     weekly: ['how did we do this week', 'how was my week', 'give me the weekly report', 'weekly recap', 'how did my trades go', 'what is my win rate', 'show me my stats', 'how have i been trading'],
     paperStatus: ['how is my trade doing', 'am i winning', 'am i losing', 'how much am i up', 'how much am i down', 'is my trade green', 'is my trade red', 'did my trade hit', 'where is my trade at', 'how are we doing on the trade', 'are we making money', 'show my positions', 'what trades do i have', 'how is the position'],
     weather: ['is it nice outside', 'do i need a jacket', 'is it going to rain', 'what is it like outside', 'how is it outside'],
@@ -1718,11 +1838,17 @@ const Brain = (() => {
       case 'paperModify': return needGold(() => paperModifyA(k, fixed));
       case 'paperStatus': return needGold(() => paperStatusA(k));
       case 'weekly': return wrap(weeklyA(k, fixed));
+      case 'remindAdd': return wrap(remindAddA(k, raw));
+      case 'remindList': return wrap(remindListA(k));
+      case 'remindClear': return wrap(remindClearA(k, fixed));
+      case 'freetime': return wrap(freetimeA(k));
+      case 'workoutPlan': return wrap(workoutPlanA(k, fixed));
+      case 'workoutChallenge': return wrap(workoutChallengeA(k));
       case 'paperReset': return wrap(paperResetA(k, fixed));
       case 'paperCancel': return wrap(paperCancelA(k));
       case 'weather': {
         if (!ctx.weather) return wrap(reply(`Weather isn't available here${k.t}.`));
-        const cm = fixed.match(/\b(?:weather|forecast|temperature)\b.*?\b(?:in|for|at)\s+([a-z][a-z .]{1,40})$/);
+        const cm = text.match(/\b(?:weather|forecast|temperature)\b.*?\b(?:in|for|at)\s+([a-z][a-z .]{1,40})$/);
         return ctx.weather(cm ? cm[1].replace(/\b(today|tomorrow|right now|now|please)\b/g, '').trim() : null).then((w) => wrap(weatherA(k, w, fixed)), (e) => wrap(reply(
           /geo-denied|no-geo/.test(e.message) ? `I need a location for the weather${k.t}. Type your city in Settings ⚙ (Weather city), or allow location when your phone asks.` : /city-not-found/.test(e.message) ? `I couldn't find that city${k.t}. Check the spelling in Settings ⚙.` : `I can't reach the weather service right now${k.t}.`)));
       }
@@ -1780,17 +1906,21 @@ const Brain = (() => {
     const seen0 = seenGet();
     const recent = seen0.lastBoot && k.now - seen0.lastBoot < REGREET_MS && k.now >= seen0.lastBoot;
     seen0.lastBoot = k.now; seenSet(seen0);
+    const rems = k.reminders ? k.reminders.takeOnOpen(k.now) : [];
+    const remH = rems.length ? ` <b>Reminder${rems.length > 1 ? 's' : ''}:</b> ${rems.map((r) => esc(cap1(r.text))).join(' · ')}.` : '';
+    const remS = rems.length ? ` You asked me to remind you: ${rems.map((r) => r.text).join(', and ')}.` : '';
     if (recent) {
       const back = pick('back', [`Welcome back${k.t}.`, `Back again${k.t}.`, `Good to have you back${k.t}.`, `Right where you left me${k.t}.`]);
       const sp2 = specialLines(k).join(' ');
       const pg = paperGreeting(k) || { html: '', say: '' };
       const px = g ? ` Gold <b>${f2(g.price.bid)}</b>.` : '';
       const pxs = g ? ` Gold ${sayPrice(g.price.bid)}.` : '';
-      return reply(`${back}${sp2 ? ' ' + sp2 : ''}${px}${pg.html}`, noEmoji(`${back}${sp2 ? ' ' + sp2 : ''}${pxs}${pg.say}`));
+      return reply(`${back}${remH}${sp2 ? ' ' + sp2 : ''}${px}${pg.html}`, noEmoji(`${back}${remS}${sp2 ? ' ' + sp2 : ''}${pxs}${pg.say}`));
     }
     const sp = specialLines(k).join(' ');
-    const intro = pick('boot', [`${greet(k)}. All systems online.`, `${greet(k)}. JARVIS online and ready.`, `Systems online. ${greet(k)}.`]) + (sp ? ' ' + sp : '');
-    if (!g) return reply(intro, noEmoji(intro));
+    const intro0 = pick('boot', [`${greet(k)}. All systems online.`, `${greet(k)}. JARVIS online and ready.`, `Systems online. ${greet(k)}.`]) + (sp ? ' ' + sp : '');
+    const intro = intro0 + remH;
+    if (!g) return reply(intro, noEmoji(intro0 + remS));
     const w = wellnessLine(k);
     if (k.market.state === 'weekend') { const pg = paperGreeting(k) || { html: '', say: '' }; const wk = weeklyTeaser(k); if (wk) { pg.html += ' ' + wk.html; pg.say += ' ' + wk.say; } return reply(`${intro} ${m.html} Gold closed the week at <b>${f2(g.price.bid)}</b>.${pg.html}${w ? ' ' + w : ''}`, noEmoji(`${intro} ${m.say} Gold closed at ${sayPrice(g.price.bid)}.${pg.say}${w ? ' ' + w : ''}`)); }
     const q = quickBias(k);
@@ -1800,5 +1930,19 @@ const Brain = (() => {
     return reply(`${intro}${q.html} ${m ? m.html : sessionLine(k)}${nt.html}` + demoNote(g), noEmoji(`${intro}${q.say} ${m ? m.say : sessionLine(k)}${nt.say}`) + demoSay(g));
   }
 
-  return { interpret, greeting, esc, clean, stripWake, WAKE, paperEventLine };
+  // How well a sentence matches something JARVIS understands (used to pick the best speech guess)
+  function score(raw, ctx) {
+    try {
+      const t = stripWake(clean(raw));
+      if (!t) return 0;
+      const fixed = correct(t, []);
+      const S = scoreIntents(concepts(fixed), fixed, /\d/.test(fixed), context(ctx), ctx);
+      let top = Math.max(0, ...Object.values(S));
+      if (top < 3 && bankMatch(fixed)) top = 3;
+      const tw = t.split(' ');
+      return top - fixed.split(' ').filter((w, i) => w !== tw[i]).length * 0.4;
+    } catch { return 0; }
+  }
+
+  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine };
 })();
