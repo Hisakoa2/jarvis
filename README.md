@@ -31,26 +31,66 @@ Keep Face ID or a passcode on your phone, because an OANDA key can also place tr
 ---
 
 ## Talking to JARVIS
-Tap the **🎙 mic**, speak, and JARVIS answers **out loud and on screen**. You can also type into the bar and press Enter.
+There are no exact commands to memorise. JARVIS has a big catalog of phrasings, so you can just talk. It answers **out loud and on screen**.
 
-| Say or type something like… | You get |
+**Three ways to talk:**
+- **Hands-free:** tap the 🎧 button (or turn it on in Settings). Then say "Hey JARVIS, what's the bias?", or just "Hey JARVIS" and wait for "Yes, sir?".
+- **Mic:** tap 🎙 (or the core at the top left) and speak.
+- **Type:** type into the bar and press Enter.
+
+**Things you can say (any wording works):**
+
+| Topic | Examples |
 |---|---|
-| "What's the bias?", "Tell me the bias", "What's the bias for gold?" | The confirmed bias, how long it has held, and whether a flip is pending |
-| "Why is it bearish?", "Why is it bullish?", "Explain the bias" | Every rule: how far the last close was above or below its level |
-| "Gold price", "Where's gold?" | Live bid price and today's change |
-| "Levels" | Price vs the daily open, the 50 EMA and yesterday's midpoint |
-| "JARVIS", "Briefing", "Status report" | Price, bias and sessions in one go |
-| "When does London open?", "Time until NY open", "Asia open" | Countdown in New York time |
-| "Sessions" | All sessions |
-| "Open Aegis", or just "Aegis" | Opens that project |
-| "Mute" / "Unmute" | Turns spoken replies off or on (also the 🔊 button) |
-| "Help" | Everything it understands |
+| Bias | "Give me gold bias", "What's the bias?", "Bullish or bearish?" |
+| Why | "Why is it bearish?", "Explain the bias", "Walk me through it" |
+| Trade check | "Should I sell right now?", "Do I buy here?", "If I sell now will I be good?", "Good time to go long?" |
+| Big picture | "Are the timeframes aligned?", "What's the 4 hour saying?" |
+| Price & levels | "Where's gold?", "Key levels", "How far is the weekly open?", "How far from yesterday's high?" |
+| The day | "How's the day?", "How's the market?", "Catch me up", "Briefing" |
+| Range | "How much has it moved today?", "Is it stretched?" |
+| Math | "Risk 1% with a 6 dollar stop", "Sell at 4060 stop 4070 target 4030", "What's 4065 minus 4030?" |
+| Account (read-only) | "What's my balance?", "How am I doing?" |
+| Sessions & hours | "When does London open?", "Is the market open?", "When's the weekly close?" |
+| Small talk | "How are you?", "What's up?", "It's Friday, how you doing?", "Thanks", "Tell me a joke", "I got stopped out", "Good night" |
+| Controls | "Ambient mode", "Exit", "Any callouts?", "Mute", "Unmute", "Open Aegis", "Help" |
+
+Small talk depends on the day and time. On Fridays it reminds you about the weekly close. At the weekend it tells you to enjoy the break. Late at night it notices.
+
+**Trade checks** score your setup on several things:
+- your confirmed bias
+- any pending flip
+- the 4H and daily trend
+- room to the next level
+- how much of the day's range is already used
+- the spread and which sessions are open
+
+You get a verdict, the reasons, and a structure-based stop, target and R. It's what *your rules* say, not a guarantee.
+
+**Callouts.** When something happens, JARVIS pops up a silent CALLOUT. Tap it to hear it. Callouts fire for:
+- a bias flip, or a flip that's pending
+- all timeframes lining up
+- price breaking yesterday's high or low, the weekly open, the Asia range or a $50 level
+- a session opening in 15 minutes, and opening
+- the weekly close being 30 minutes away
+- price moving a full average day's range
+
+Missed ones are kept under the 🔔 bell.
+
+**Ambient mode** (the ⛶ button, or say "ambient mode") is a full-screen HUD with a huge price, the bias and the core. It's made for a second monitor or a phone on a stand, and it keeps the screen awake.
+
+**Voice settings (⚙):**
+- choose what JARVIS calls you (default "sir")
+- pick a voice and adjust its speed and pitch, with a preview
+- turn hands-free on or off
+- turn the boot animation on or off
+
+For the best voice on iPhone: Settings → Accessibility → Spoken Content → Voices → English → download **Daniel (Enhanced)** or **Arthur (Premium)**, then pick it in JARVIS. On PC, Microsoft Edge has very natural "Online (Natural)" voices.
 
 Notes:
-- Starting with "Hey JARVIS…" works too.
-- Typos are fixed for you. If it doesn't understand, it suggests the closest commands.
 - Speech-to-text is done by Apple or Google, the same service as keyboard dictation. Everything after that is plain code.
-- **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. The keyboard's own dictation mic always works as a backup.
+- **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
+- Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
 ---
 

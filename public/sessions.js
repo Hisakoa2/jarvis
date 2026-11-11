@@ -63,6 +63,7 @@ const Sessions = (() => {
   }
 
   function countdownWords(ms) {
+    if (ms < 60000) return 'under a minute';
     const t = Math.max(0, Math.round(ms / 60000));
     const d = Math.floor(t / 1440);
     const h = Math.floor((t % 1440) / 60);
@@ -80,5 +81,38 @@ const Sessions = (() => {
     }).format(new Date(ms));
   }
 
-  return { status, countdown, countdownWords, fmtTime, parts };
+  // Most recent window of a session that has already opened (for e.g. the Asia range)
+  function lastWindow(sess, now = Date.now()) {
+    const [oh, om] = hm(sess.open);
+    const [ch, cm] = hm(sess.close);
+    const today = parts(new Date(now), sess.timezone);
+    for (let k = 0; k >= -7; k--) {
+      const day = addDays(today.y, today.m, today.d, k);
+      if (isWeekend(day.wd)) continue;
+      const openAt = zonedToUtc(day.y, day.m, day.d, oh, om, sess.timezone);
+      let closeAt = zonedToUtc(day.y, day.m, day.d, ch, cm, sess.timezone);
+      if (closeAt <= openAt) closeAt += 24 * 3600e3;
+      if (openAt <= now) return { openAt, closeAt, done: closeAt <= now };
+    }
+    return null;
+  }
+
+  // Gold (XAU/USD) trading hours: Sun 6pm – Fri 5pm New York, with a daily 5–6pm break.
+  function goldMarket(now = Date.now()) {
+    const NY = 'America/New_York';
+    const p = parts(new Date(now), NY);
+    const wd = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay();
+    const mins = p.h * 60 + p.mi;
+    const at = (k, h) => { const d = addDays(p.y, p.m, p.d, k); return zonedToUtc(d.y, d.m, d.d, h, 0, NY); };
+    const friday = wd === 5;
+    if (wd === 6 || (wd === 5 && mins >= 1020) || (wd === 0 && mins < 1080)) {
+      const k = wd === 5 ? 2 : wd === 6 ? 1 : 0;
+      return { open: false, state: 'weekend', opensAt: at(k, 18), friday, weekday: wd };
+    }
+    if (mins >= 1020 && mins < 1080) return { open: false, state: 'break', opensAt: at(0, 18), friday, weekday: wd };
+    const dailyClose = mins < 1020 ? at(0, 17) : at(1, 17);
+    return { open: true, state: 'open', closesAt: dailyClose, weeklyClose: friday ? at(0, 17) : null, friday, weekday: wd };
+  }
+
+  return { status, countdown, countdownWords, fmtTime, parts, lastWindow, goldMarket, zonedToUtc };
 })();

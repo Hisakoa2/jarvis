@@ -47,6 +47,7 @@ const CANDLE_PARAMS = ['granularity', 'count', 'price', 'alignmentTimezone', 'da
 async function proxy(kind, query) {
   let url;
   if (kind === 'pricing') url = `${OANDA_HOST}/v3/accounts/${encodeURIComponent(ACCOUNT_ID)}/pricing?instruments=${INSTRUMENT}`;
+  else if (kind === 'summary') url = `${OANDA_HOST}/v3/accounts/${encodeURIComponent(ACCOUNT_ID)}/summary`;
   else if (kind === 'candles') {
     const q = new URLSearchParams();
     for (const k of CANDLE_PARAMS) if (query.has(k)) q.set(k, query.get(k));

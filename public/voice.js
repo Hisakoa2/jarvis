@@ -1,36 +1,43 @@
 // ============================================================================
-//  JARVIS voice. Uses the browser's built-in speech features (no AI):
-//   - Speaking: speechSynthesis, runs on the device.
-//   - Listening: SpeechRecognition. Note: Apple/Google convert your speech to
-//     text on their servers (same as Siri / keyboard dictation).
+//  JARVIS voice. Built-in browser speech (no AI):
+//   - Speaking: speechSynthesis, runs on the device. Pick any installed voice.
+//   - Listening: SpeechRecognition. Apple/Google turn speech into text on their
+//     servers (same as Siri / keyboard dictation).
+//   - Hands-free: listens continuously while the app is open and wakes up when
+//     it hears "Hey JARVIS".
 // ============================================================================
 const Voice = (() => {
-  const MUTE_KEY = 'jarvis.muted';
+  const PREF_KEY = 'jarvis.voice';
   const synth = window.speechSynthesis || null;
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-  let muted = false;
-  try { muted = localStorage.getItem(MUTE_KEY) === '1'; } catch {}
+  let prefs = { muted: false, voiceURI: null, rate: 1.0, pitch: 0.95, handsFree: false };
+  try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREF_KEY) || '{}') }; } catch {}
+  try { if (localStorage.getItem('jarvis.muted') === '1') prefs.muted = true; } catch {}
+  const save = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch {} };
 
-  // Prefer a British male voice — the most "JARVIS" option on each platform
-  const PREFERRED = ['Daniel', 'Arthur', 'Google UK English Male', 'Microsoft Ryan', 'Microsoft George', 'Oliver', 'Malcolm', 'Rishi'];
-  let voice = null;
-  function pickVoice() {
+  // Rank voices so the best-sounding British male voice is the default.
+  const GOOD = [/natural|neural|premium|enhanced|online/i];
+  const MALE = /daniel|arthur|ryan|george|oliver|malcolm|rishi|thomas|james|guy|eric|aaron|alex|fred|david|mark|uk english male|male/i;
+  function rank(v) {
+    let s = 0;
+    if (!v.lang.toLowerCase().startsWith('en')) return -100;
+    if (v.lang === 'en-GB') s += 30;
+    if (GOOD.some((r) => r.test(v.name))) s += 40;
+    if (MALE.test(v.name)) s += 20;
+    if (/novelty|bad news|bells|bubbles|boing|cellos|hysterical|organ|trinoids|whisper|zarvox|albert|jester|superstar|wobble|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley/i.test(v.name)) s -= 80;
+    if (v.localService === false) s += 5;
+    return s;
+  }
+  let voices = [];
+  function loadVoices() {
     if (!synth) return;
-    const all = synth.getVoices();
-    if (!all.length) return;
-    for (const name of PREFERRED) {
-      const v = all.find((x) => x.name.includes(name) && x.lang.startsWith('en'));
-      if (v) { voice = v; return; }
-    }
-    voice = all.find((x) => x.lang === 'en-GB') || all.find((x) => x.lang.startsWith('en')) || all[0];
+    voices = synth.getVoices().filter((v) => v.lang.toLowerCase().startsWith('en')).sort((a, b) => rank(b) - rank(a));
   }
-  if (synth) {
-    pickVoice();
-    synth.addEventListener?.('voiceschanged', pickVoice);
-  }
+  if (synth) { loadVoices(); synth.addEventListener?.('voiceschanged', loadVoices); }
+  const current = () => voices.find((v) => v.voiceURI === prefs.voiceURI) || voices[0] || null;
 
-  // iPhone only allows speech after a tap. Speak a silent word on the first tap to unlock it.
+  // iPhone only allows speech after a tap — speak a silent word on the first tap.
   let unlocked = false;
   function unlock() {
     if (unlocked || !synth) return;
@@ -39,76 +46,154 @@ const Voice = (() => {
     u.volume = 0;
     synth.speak(u);
   }
-  ['touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, { once: false, passive: true }));
+  ['touchend', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlock, { passive: true }));
 
-  function speak(text, onStart, onEnd) {
-    if (!synth || muted || !text) { onEnd && onEnd(); return; }
+  const listeners = new Set();
+  const emit = (state) => listeners.forEach((fn) => fn(state));
+  let speaking = false;
+
+  // Make prices and symbols sound natural
+  function speakable(t) {
+    return String(t).replace(/XAU\s*\/?\s*USD/gi, 'gold').replace(/\bET\b/g, '').replace(/\b1H\b/g, 'one hour').replace(/\b4H\b/g, 'four hour')
+      .replace(/(\d),(\d{3})/g, '$1$2').replace(/\s+/g, ' ').trim();
+  }
+
+  function speak(text, { force = false, onStart, onEnd } = {}) {
+    if (!synth || (!force && prefs.muted) || !text) { onEnd && onEnd(); return; }
     synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    if (voice) u.voice = voice;
-    u.lang = voice ? voice.lang : 'en-GB';
-    u.rate = 1.02;
-    u.pitch = 0.95;
-    u.onstart = () => onStart && onStart();
-    u.onend = u.onerror = () => onEnd && onEnd();
+    const u = new SpeechSynthesisUtterance(speakable(text));
+    const v = current();
+    if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-GB';
+    u.rate = prefs.rate;
+    u.pitch = prefs.pitch;
+    u.onstart = () => { speaking = true; pauseWake(); emit('speaking'); onStart && onStart(); };
+    u.onend = u.onerror = () => { speaking = false; emit('idle'); resumeWake(); onEnd && onEnd(); };
     synth.speak(u);
   }
+  function stopSpeaking() { if (synth) synth.cancel(); speaking = false; emit('idle'); }
 
-  function stopSpeaking() { if (synth) synth.cancel(); }
+  // ---------------------------------------------------------------- listening
+  // One-shot (mic button) and hands-free share one recogniser.
+  let rec = null, recMode = null; // 'once' | 'wake'
+  let onceHandlers = null, wakeHandlers = null;
+  let wakePaused = false, wakeWanted = false, awaitingCommand = false, awaitTimer = null;
+  const WAKE_RE = /\b(?:hey|hi|ok|okay|yo)?\s*(?:jarvis|jervis|javis|jarvas|jarves|travis|jarvi)\b/i;
 
-  function setMuted(m) {
-    muted = !!m;
-    try { localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch {}
-    if (muted) stopSpeaking();
+  const ERRORS = {
+    'not-allowed': 'Microphone access was blocked. Allow the microphone for this site (iPhone: Settings → Safari → Microphone → Allow).',
+    'service-not-allowed': 'Speech recognition is off. iPhone: Settings → General → Keyboard → Enable Dictation (and allow Siri).',
+    'audio-capture': 'No microphone found.',
+    'network': 'Voice needs an internet connection.',
+  };
+
+  function makeRec(mode) {
+    const r = new Rec();
+    r.lang = 'en-US';
+    r.interimResults = true;
+    r.continuous = mode === 'wake';
+    r.maxAlternatives = 1;
+    return r;
   }
 
-  // ---- listening -----------------------------------------------------------
-  let rec = null, listening = false;
-  // handlers: { onInterim(text), onFinal(text), onState(listening), onError(message) }
-  function listen(h) {
+  function stopRec() { if (rec) { try { rec.onend = null; rec.abort(); } catch {} } rec = null; recMode = null; }
+
+  // ---- one-shot: tap the mic, say a command
+  function listenOnce(h) {
     if (!Rec) { h.onError('Voice commands aren’t supported in this browser. Use Safari on iPhone or Chrome/Edge on PC — or the keyboard’s dictation mic.'); return; }
-    if (listening) { rec && rec.stop(); return; }
+    if (recMode === 'once') { stopRec(); h.onState(false); resumeWake(); return; }
     stopSpeaking();
-    rec = new Rec();
-    rec.lang = 'en-US';
-    rec.interimResults = true;
-    rec.continuous = false;
-    rec.maxAlternatives = 1;
+    stopRec();
+    onceHandlers = h;
+    rec = makeRec('once'); recMode = 'once';
     let finalText = '';
-    rec.onstart = () => { listening = true; h.onState(true); };
+    rec.onstart = () => { h.onState(true); emit('listening'); };
     rec.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const r = e.results[i];
-        if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+        if (e.results[i].isFinal) finalText += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
       }
       h.onInterim((finalText + interim).trim());
     };
-    rec.onerror = (e) => {
-      const map = {
-        'not-allowed': 'Microphone access was blocked. Allow the microphone for this site (iPhone: Settings → Safari → Microphone).',
-        'service-not-allowed': 'Speech recognition is turned off. iPhone: Settings → General → Keyboard → Enable Dictation, and Siri must be allowed.',
-        'no-speech': 'I didn’t hear anything. Tap the mic and try again.',
-        'audio-capture': 'No microphone found.',
-        'network': 'Voice needs an internet connection.',
-        'aborted': '',
-      };
-      const m = map[e.error] ?? `Voice error: ${e.error}`;
-      if (m) h.onError(m);
-    };
+    rec.onerror = (e) => { if (ERRORS[e.error]) h.onError(ERRORS[e.error]); else if (e.error === 'no-speech') h.onError('I didn’t hear anything.'); };
     rec.onend = () => {
-      listening = false;
-      h.onState(false);
+      rec = null; recMode = null;
+      h.onState(false); emit('idle');
       if (finalText.trim()) h.onFinal(finalText.trim());
+      setTimeout(resumeWake, 300);
     };
     try { rec.start(); } catch (err) { h.onError(`Couldn’t start the microphone: ${err.message}`); }
   }
 
+  // ---- hands-free: always listening for "Hey JARVIS"
+  // h: { onWake(), onCommand(text), onInterim(text), onState('on'|'off'|'awake'), onError(msg) }
+  function startWake(h) {
+    if (!Rec) { h.onError('Hands-free needs Safari (iPhone) or Chrome/Edge (PC).'); return false; }
+    wakeHandlers = h; wakeWanted = true;
+    runWake();
+    return true;
+  }
+  function stopWake() {
+    wakeWanted = false; awaitingCommand = false; clearTimeout(awaitTimer);
+    if (recMode === 'wake') stopRec();
+    wakeHandlers && wakeHandlers.onState('off');
+  }
+  function pauseWake() { wakePaused = true; if (recMode === 'wake') stopRec(); }
+  function resumeWake() { wakePaused = false; if (wakeWanted && !rec && !speaking) setTimeout(runWake, 250); }
+
+  let failures = 0;
+  function runWake() {
+    if (!wakeWanted || wakePaused || rec || speaking || document.hidden) return;
+    const h = wakeHandlers;
+    rec = makeRec('wake'); recMode = 'wake';
+    const started = Date.now();
+    rec.onstart = () => { h.onState(awaitingCommand ? 'awake' : 'on'); };
+    rec.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const res = e.results[i], text = res[0].transcript.trim();
+        if (!res.isFinal) {
+          if (awaitingCommand || WAKE_RE.test(text)) h.onInterim(text);
+          continue;
+        }
+        if (awaitingCommand) { endAwait(); if (text) h.onCommand(text); continue; }
+        const m = text.match(WAKE_RE);
+        if (!m) continue;
+        const after = text.slice(m.index + m[0].length).replace(/^[\s,.!?]+/, '').trim();
+        if (after.split(' ').length >= 2 || (after && !/^(please|um|uh)$/i.test(after))) h.onCommand(text);
+        else { // just "Hey JARVIS" → wait for the command
+          awaitingCommand = true;
+          h.onWake();
+          h.onState('awake');
+          clearTimeout(awaitTimer);
+          awaitTimer = setTimeout(() => { endAwait(); h.onState('on'); }, 8000);
+        }
+      }
+    };
+    rec.onerror = (e) => {
+      if (ERRORS[e.error]) { h.onError(ERRORS[e.error]); if (e.error === 'not-allowed' || e.error === 'service-not-allowed') stopWake(); }
+    };
+    rec.onend = () => {
+      rec = null; recMode = null;
+      // browsers stop listening every so often — restart, backing off if it keeps failing
+      failures = Date.now() - started < 1500 ? failures + 1 : 0;
+      if (failures > 6) { h.onError('Hands-free keeps stopping — tap the core or the mic to wake it.'); h.onState('paused'); failures = 0; return; }
+      if (wakeWanted && !wakePaused) setTimeout(runWake, failures ? 600 * failures : 150);
+    };
+    try { rec.start(); } catch { rec = null; recMode = null; setTimeout(runWake, 1000); }
+  }
+  function endAwait() { awaitingCommand = false; clearTimeout(awaitTimer); }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { if (recMode === 'wake') stopRec(); } else resumeWake(); });
+
   return {
-    speak, stopSpeaking, listen, setMuted,
-    isMuted: () => muted,
+    speak, stopSpeaking, listenOnce, startWake, stopWake, resumeWake,
+    onState: (fn) => listeners.add(fn),
+    setMuted(m) { prefs.muted = !!m; save(); if (m) stopSpeaking(); },
+    isMuted: () => prefs.muted,
+    get prefs() { return { ...prefs }; },
+    setPref(k, v) { prefs[k] = v; save(); },
+    voices: () => { loadVoices(); return voices; },
+    voiceName: () => (current() ? current().name : 'default'),
     canListen: !!Rec,
     canSpeak: !!synth,
-    voiceName: () => (voice ? voice.name : 'default'),
+    isSpeaking: () => speaking,
   };
 })();

@@ -23,6 +23,18 @@ const BIAS_SETTINGS = {
   confirmCandles: 2,    // closed 1H candles in a row needed before the bias flips. 1 = flip immediately
 };
 
+// ---- Multi-timeframe check (shown next to the bias, used by "should I sell?") ----
+// For each timeframe, on CLOSED candles:
+//   vote 1: close clearly above / below the slow EMA (same ATR buffer idea as above)
+//   vote 2: fast EMA above / below the slow EMA
+// Both bullish = Bullish, both bearish = Bearish, otherwise Mixed.
+const MTF_SETTINGS = {
+  timeframes: ['H1', 'H4', 'D'],
+  fastEma: 20,
+  slowEma: 50,
+  bufferAtr: 0.2,
+};
+
 // ---- The rules --------------------------------------------------------------
 // Each rule names a level. Close clearly above it = bullish vote, clearly below = bearish.
 // To switch a rule off: enabled: false.  To add one: copy a block and change level().
@@ -144,5 +156,33 @@ const BiasEngine = (() => {
     };
   }
 
-  return { evaluate, emaSeries, atrSeries };
+  // One timeframe's trend from its closed candles
+  function trend(candles, tf) {
+    const M = MTF_SETTINGS;
+    const closed = candles.filter((c) => c.complete);
+    if (closed.length < M.slowEma + 2) return { tf, trend: 'Unknown', reason: 'not enough candles' };
+    const closes = closed.map((c) => c.c);
+    const fast = emaSeries(closes, M.fastEma), slow = emaSeries(closes, M.slowEma);
+    const atr = atrSeries(closed, 14);
+    const i = closed.length - 1;
+    const close = closes[i], buf = (atr[i] || 0) * M.bufferAtr;
+    const v1 = close > slow[i] + buf ? 1 : close < slow[i] - buf ? -1 : 0;
+    const v2 = fast[i] > slow[i] ? 1 : fast[i] < slow[i] ? -1 : 0;
+    const t = v1 === 1 && v2 === 1 ? 'Bullish' : v1 === -1 && v2 === -1 ? 'Bearish' : 'Mixed';
+    const reason = `close ${v1 > 0 ? 'above' : v1 < 0 ? 'below' : 'near'} the ${M.slowEma} EMA, ${M.fastEma} EMA ${v2 > 0 ? 'above' : 'below'} the ${M.slowEma}`;
+    return { tf, trend: t, close, emaFast: fast[i], emaSlow: slow[i], atr: atr[i], closeTime: closed[i].t, reason };
+  }
+
+  // byTf: { H1: candles, H4: candles, D: candles }
+  function mtf(byTf, mainBias) {
+    const rows = MTF_SETTINGS.timeframes.filter((tf) => byTf[tf]).map((tf) => trend(byTf[tf], tf));
+    const higher = rows.filter((r) => r.tf !== 'H1');
+    const dirs = [mainBias, ...higher.map((r) => r.trend)];
+    const aligned = mainBias !== 'Neutral' && dirs.every((d) => d === mainBias);
+    const bull = rows.filter((r) => r.trend === 'Bullish').length;
+    const bear = rows.filter((r) => r.trend === 'Bearish').length;
+    return { rows, aligned, alignedDir: aligned ? mainBias : null, bull, bear };
+  }
+
+  return { evaluate, emaSeries, atrSeries, mtf };
 })();
