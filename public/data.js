@@ -249,5 +249,14 @@ const Data = (() => {
     return true;
   }
 
-  return { snapshot, mode, loadCreds, saveCreds, clearCreds, testCreds, detectServer, resetCache: () => { candleCache = null; } };
+  // 5-minute bid/ask candles since a time — used by paper trading to see if a stop or
+  // take profit was hit while the app was closed. Demo mode has none.
+  async function candlesSince(fromMs) {
+    if ((await mode()) === 'demo') return [];
+    const from = new Date(Math.max(fromMs, Date.now() - 16 * 86400e3)).toISOString();
+    const r = await oanda('candles', { granularity: 'M5', from, count: 5000, price: 'BA' });
+    return (r.candles || []).filter((c) => c.bid && c.ask).map((c) => ({ t: Date.parse(c.time), bh: +c.bid.h, bl: +c.bid.l, ah: +c.ask.h, al: +c.ask.l, bc: +c.bid.c, ac: +c.ask.c }));
+  }
+
+  return { candlesSince, snapshot, mode, loadCreds, saveCreds, clearCreds, testCreds, detectServer, resetCache: () => { candleCache = null; } };
 })();

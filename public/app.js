@@ -6,7 +6,7 @@
   const PRICE_POLL_MS = 5000;
   const PREFS_KEY = 'jarvis.prefs';
 
-  let prefs = { title: 'sir', boot: true, birthday: '11-15' };
+  let prefs = { title: 'sir', boot: true, birthday: '11-15', weatherCity: '' };
   try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
   const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} };
 
@@ -112,6 +112,7 @@
         $('demoBanner').hidden = gold.mode !== 'demo';
         $('lastUpdate').textContent = 'UPDATED ' + new Date().toLocaleTimeString('en-US', { timeZone: TZ(), hour12: false }) + ' ET';
         detectDataCallouts(gold);
+        paperTick(gold);
         return gold;
       } catch (e) {
         setLink('err', 'LINK DOWN');
@@ -223,6 +224,63 @@
       $('adrText').textContent = `RANGE ${f2(L.range)} / ADR ${f2(L.adr)} · ${pct}%`;
     }
   }
+
+  // ---------- paper trading ----------
+  const money2 = (n) => `${n < 0 ? '−' : n > 0 ? '+' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  function paperAnnounce(events) {
+    for (const e of events || []) {
+      const l = Brain.paperEventLine(e, prefs.title);
+      if (l.text) callout(`paper-${e.type}-${e.at}-${e.entry}`, l.text, l.say);
+    }
+    if (events && events.length && !document.hidden && document.body.classList.contains('engaged')) {
+      for (const e of events) { const l = Brain.paperEventLine(e, prefs.title); if (l.text) log('Paper trade', esc(l.text)); }
+      Paper.markSeen();
+    }
+  }
+  function paperTick(g) {
+    if (!g || !g.price || !g.price.tradeable) { renderPaper(); return; }
+    paperAnnounce(Paper.tick(g.price.bid, g.price.ask));
+    renderPaper();
+  }
+  // Catch up on what happened while the app was closed (5-minute candles)
+  async function paperCatchUp() {
+    if (!Paper.busy() || Date.now() - Paper.lastCheck() < 90e3) return;
+    try { const ev = Paper.replay(await Data.candlesSince(Paper.lastCheck())); if (document.body.classList.contains('engaged')) paperAnnounce(ev); } catch {}
+    renderPaper();
+  }
+  function renderPaper() {
+    const box = $('paper');
+    if (!box) return;
+    const bid = gold && gold.price.bid, ask = gold && gold.price.ask;
+    const S = Paper.stats(bid, ask);
+    $('paperTag').textContent = '$' + Math.round(S.equity).toLocaleString('en-US');
+    const pos = Paper.positions(), ord = Paper.orders(), hist = Paper.history().slice(0, 6);
+    const pl = (n) => `<span class="${n >= 0 ? 'up' : 'down'}">${money2(n)}</span>`;
+    box.innerHTML =
+      `<div class="paper-stats"><div><span>BALANCE</span><b>$${S.balance.toLocaleString('en-US', { maximumFractionDigits: 2 })}</b></div>` +
+      `<div><span>EQUITY</span><b>$${S.equity.toLocaleString('en-US', { maximumFractionDigits: 2 })}</b></div>` +
+      `<div><span>OPEN P/L</span><b>${pl(S.openPL)}</b></div>` +
+      `<div><span>WIN RATE</span><b>${S.winRate != null ? S.winRate + '%' : '—'}</b><small>${S.wins}W · ${S.losses}L</small></div></div>` +
+      (pos.length ? pos.map((p) => {
+        const px = gold ? Paper.closePx(p, bid, ask) : p.entry, v = Paper.pnlAt(p, px);
+        let prog = '';
+        if (p.sl != null && p.tp != null && gold) { const f = Math.max(0, Math.min(1, (px - p.sl) / (p.tp - p.sl))); prog = `<div class="paper-prog"><i style="left:${(f * 100).toFixed(1)}%"></i><span>SL ${p.sl.toFixed(2)}</span><span>TP ${p.tp.toFixed(2)}</span></div>`; }
+        return `<div class="paper-pos ${p.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${p.side > 0 ? 'BUY' : 'SELL'}</b> ${p.units} @ ${p.entry.toFixed(2)} <span class="paper-pl">${pl(v)}</span>` +
+          `<button type="button" class="ghost-btn paper-close" data-close="${p.id}">CLOSE</button></div>${prog}</div>`;
+      }).join('') : `<div class="dim small paper-empty">No open paper trades. Say “sell now” (I'll pick the stop and TP) or “buy 100 units at 4000, stop 3990, TP 4030”.</div>`) +
+      (ord.length ? ord.map((o) => `<div class="paper-row dim">${o.side > 0 ? 'BUY' : 'SELL'} ${o.type.toUpperCase()} ${o.units} @ ${o.entry.toFixed(2)} <button type="button" class="ghost-btn paper-close" data-cancel="${o.id}">CANCEL</button></div>`).join('') : '') +
+      (hist.length ? `<div class="paper-hist">${hist.map((h) => `<span title="${new Date(h.closedAt).toLocaleString()}">${h.side > 0 ? 'B' : 'S'} ${h.reason === 'tp' ? 'TP' : h.reason === 'manual' ? '✕' : 'SL'} ${pl(h.pl)}</span>`).join('')}</div>` : '');
+  }
+  $('paper').addEventListener('click', (e) => {
+    const c = e.target.closest('[data-close]'), x = e.target.closest('[data-cancel]');
+    if (c && gold) {
+      const h = Paper.closeOne(+c.dataset.close, gold.price.bid, gold.price.ask);
+      if (h) log('Close paper trade', `Closed ${h.side > 0 ? 'BUY' : 'SELL'} ${h.units} @ ${h.entry.toFixed(2)} → ${h.exit.toFixed(2)} <span class="${h.pl >= 0 ? 'up' : 'down'}">${money2(h.pl)}</span>.`);
+    }
+    if (x) Paper.cancel(+x.dataset.cancel);
+    renderPaper();
+  });
+  Paper.onChange(() => renderPaper());
 
   // ---------- news (US economic calendar) ----------
   function newsCard(now, tz) {
@@ -400,6 +458,8 @@
       setMuted: (m) => { Voice.setMuted(m); renderMute(); }, stopSpeaking: () => Voice.stopSpeaking(),
       tz: TZ(), title: prefs.title, birthday: prefs.birthday,
       news: typeof News !== 'undefined' ? News : null,
+      paper: Paper,
+      weather: (city) => Weather.get(city || prefs.weatherCity || null),
       ambient: (on) => setAmbient(on), isAmbient: () => ambientOn,
       callouts: () => callouts,
     };
@@ -499,6 +559,8 @@
     $('setMsg').textContent = '';
     $('setTitle').value = prefs.title;
     $('setBirthday').value = prefs.birthday || '';
+    $('setCity').value = prefs.weatherCity || '';
+    $('setPaperBal').value = Paper.stats().start;
     $('setBoot').checked = prefs.boot !== false;
     $('setHandsFree').checked = !!Voice.prefs.handsFree;
     $('setRate').value = Voice.prefs.rate; $('setPitch').value = Voice.prefs.pitch;
@@ -544,6 +606,14 @@
   $('setVoice').addEventListener('change', (e) => { Voice.setMuted(!e.target.checked); renderMute(); });
   $('setTitle').addEventListener('input', (e) => { prefs.title = e.target.value.trim(); savePrefs(); });
   $('setBirthday').addEventListener('input', (e) => { prefs.birthday = e.target.value.trim().replace(/\//g, '-'); savePrefs(); });
+  $('setCity').addEventListener('input', (e) => { prefs.weatherCity = e.target.value.trim(); savePrefs(); });
+  $('paperReset').addEventListener('click', () => {
+    const n = Math.round(+String($('setPaperBal').value).replace(/[^0-9.]/g, ''));
+    if (!(n >= 100)) { $('paperMsg').textContent = 'Enter a starting balance (100 or more).'; return; }
+    if (!confirm(`Reset the paper account to $${n.toLocaleString()}? Open paper trades and history will be cleared.`)) return;
+    Paper.reset(n); renderPaper();
+    $('paperMsg').textContent = `Paper account reset to $${n.toLocaleString()}.`;
+  });
   $('setBoot').addEventListener('change', (e) => { prefs.boot = e.target.checked; savePrefs(); });
   $('setHandsFree').addEventListener('change', (e) => setHandsFree(e.target.checked, true));
   $('setVoiceSel').addEventListener('change', (e) => { Voice.setPref('voiceURI', e.target.value); });
@@ -577,6 +647,7 @@
     await bootLine('BIAS ENGINE', async () => (gold ? gold.bias.bias.toUpperCase() : 'STANDBY'), fast);
     await bootLine('TIMEFRAMES', async () => (gold ? (gold.mtf.aligned ? 'ALIGNED' : 'TRACKING') : 'STANDBY'), fast);
     await bootLine('SESSIONS', async () => { tickClocks(); return 'TRACKING'; }, fast);
+    await bootLine('PAPER DESK', async () => { await paperCatchUp(); renderPaper(); const n = Paper.positions().length; return n ? `${n} OPEN` : '$' + Math.round(Paper.stats().balance).toLocaleString('en-US'); }, fast);
     await bootLine('NEWS FEED', async () => { const ev = await News.load(); const n = News.relevant().filter((e) => News.isHigh(e) && e.at > Date.now()).length; return ev.length ? `${n} RED THIS WEEK` : 'OFFLINE'; }, fast);
     await bootLine('VOICE', async () => (Voice.canSpeak ? Voice.voiceName().split(' ')[0].toUpperCase() : 'TEXT ONLY'), fast);
     $('bootGo').hidden = false;
@@ -607,6 +678,6 @@
     setInterval(tickClocks, 1000);
     setInterval(() => { if (!document.hidden) News.load(); }, 30 * 60e3);
     setInterval(() => { if (!document.hidden) fetchGold(); }, PRICE_POLL_MS);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden) { fetchGold(); loadConfig(); News.load(); } });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) { fetchGold().then(() => paperCatchUp()); loadConfig(); News.load(); } });
   })();
 })();

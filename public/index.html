@@ -154,13 +154,18 @@
       <div class="adr"><div class="adr-bar"><i id="adrFill"></i></div><div id="adrText" class="dim small">RANGE —</div></div>
     </section>
 
+    <section class="panel paper-panel">
+      <div class="panel-head"><span>PAPER TRADING · SIMULATED</span><span class="tag" id="paperTag">$—</span></div>
+      <div id="paper" class="paper"></div>
+    </section>
+
     <section class="panel projects-panel">
       <div class="panel-head"><span>PROJECTS</span><span class="tag" id="projCount">0</span></div>
       <div id="projects" class="projects"></div>
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v3 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v5 · NO AI · <span id="lastUpdate">--</span></footer>
 
   <dialog id="settings" class="panel settings">
     <form method="dialog" autocomplete="off">
@@ -170,6 +175,7 @@
         <div class="set-title">YOU</div>
         <label>What should JARVIS call you?<input id="setTitle" type="text" placeholder="sir" maxlength="30" spellcheck="false"></label>
         <label>Your birthday (month-day)<input id="setBirthday" type="text" placeholder="11-15" maxlength="5" inputmode="numeric" spellcheck="false"></label>
+        <label>Weather city (leave blank to use your location)<input id="setCity" type="text" placeholder="e.g. Atlanta" maxlength="60" spellcheck="false"></label>
       </div>
 
       <div class="set-block">
@@ -202,6 +208,14 @@
       </div>
 
       <div class="set-block">
+        <div class="set-title">PAPER TRADING</div>
+        <p class="dim small">Pretend money on this device only — nothing is sent to OANDA.</p>
+        <label>Starting balance ($)<input id="setPaperBal" type="text" inputmode="numeric" placeholder="100000" spellcheck="false"></label>
+        <div class="set-actions"><button type="button" class="ghost-btn" id="paperReset">RESET PAPER ACCOUNT</button></div>
+        <div class="set-msg" id="paperMsg"></div>
+      </div>
+
+      <div class="set-block">
         <div class="set-title">DISPLAY</div>
         <label class="row"><input type="checkbox" id="setBoot"> Boot animation on launch</label>
       </div>
@@ -212,6 +226,8 @@
   <script src="bias-rules.js"></script>
   <script src="data.js"></script>
   <script src="news.js"></script>
+  <script src="paper.js"></script>
+  <script src="weather.js"></script>
   <script src="voice.js"></script>
   <script src="brain.js"></script>
   <script src="app.js"></script>

@@ -47,6 +47,12 @@ There are no exact commands to memorise. JARVIS has a big catalog of phrasings, 
 | Trade check | "Should I sell right now?", "Do I buy here?", "If I sell now will I be good?", "Good time to go long?" |
 | Day / swing plans | "If I were to swing trade right now, what would that look like?", "If I day trade right now, what would that look like?", "If I sell now, where should my stop loss and take profit go if I was swing trading?" |
 | Grade my trade | "I'm in a sell, stop loss 4068, take profit 4048, is this a good trade?", "I sold at 4060, stop 4068, TP 4048" |
+| Where's my TP? | "My entry is 4009, stop 4018, where should I put my take profit?", "If I sell, where should my TP be?", "Where do I get out?" |
+| How far can it go? | "Will price go up any more than this?", "At what point will price stop going up?", "…stop going down?", "How far can it go?" |
+| Safe until? | "Buying is safe until what?", "Selling is safe until what?", "What would invalidate the sell?" |
+| Paper trading | "Sell now", "Buy now", "Sell 50 units at 4009, stop loss 4018, take profit 3980", "Buy 2 lots", "How's my paper trade?", "Are we in profit?", "Move my stop to break even", "Set TP to 3985", "Close my trade", "Close all", "Cancel my order", "Set my paper balance to 50k" |
+| Weather | "What's the weather?", "Weather tomorrow", "Weather in Miami", "Do I need a jacket?" |
+| Your day | "What should I do today?", "Give me a workout" |
 | Should I trade now? | "Should I hop in and trade right now?", "Is it a good time to trade?", "When should I not trade?", "Best time to trade?" |
 | News | "When's the next high-impact news?", "When's news?", "Any news today?", "News tomorrow?", "Red folders this week?", "When is CPI / NFP / FOMC?" |
 | Birthdays | "When's my birthday?", "When's your birthday?" |
@@ -84,6 +90,12 @@ You get a verdict, the reasons, and a stop loss with two take profits. It's what
 - **Swing:** uses the 4-hour and daily charts. The direction follows the daily trend, the stop is wider (past a daily level or $50 number), the targets are bigger (1.5R and 3R or more), and you'd hold for 2–5 days. Trade smaller so you risk the same dollars.
 - Ask without a style ("should I sell?") and you get the day-trade view.
 
+**Where price may stop / safe until.**
+- "At what point will price stop going up?" lists the next resistance levels and where an *average day* would top out (today's low + the 14-day average range). Going down works the same way. Nobody can know for sure, so these are the likely spots, not promises.
+- "Buying is safe until what?" gives the price where your own 3 bias rules would turn neutral, and the price where they'd flip the other way. Both are judged on closed 1-hour candles, 2 in a row. If the bias is against you, it tells you what it would take to turn.
+
+**Take-profit ideas.** Give an entry and a stop (or just ask "if I sell, where's my TP?") and JARVIS suggests TP1 and TP2 just in front of the next levels, with the R for each. It also warns you if a level sits closer than 1R.
+
 **Grading your trade.** Tell JARVIS your side, stop and take profit (and entry, if you're already in). It checks:
 - risk:reward
 - whether the bias and the 4H/daily trends are with you
@@ -106,6 +118,28 @@ It says "be careful" for:
 
 The best window for gold is about 3 AM – 11:30 AM ET (London open to New York midday).
 
+**Paper trading (pretend money).** A practice account that lives only on your device. Nothing is ever sent to OANDA.
+- **Start:** say "sell now" or "buy now". JARVIS picks the stop (just past the nearest level) and the take profit, and sizes the trade to risk 1% of the paper account. It also tells you whether your rules back the trade.
+- **Your way:** "sell 50 units at 4009, stop loss 4018, take profit 3980". If 4009 isn't the current price, it becomes an order that fills when price gets there.
+- **Size:** units (1 unit = 1 oz, so a $1 move = $1 per unit), "contracts" (same as units), or "lots" (100 units). "Risk 2%" or "risk 500 dollars" sizes it from your stop.
+- **Manage it:** "move my stop to break even", "set TP to 3985", "close my trade", "close all", "cancel my order".
+- **Watch it:** the PAPER TRADING panel shows balance, equity, open profit or loss, win rate, and a bar showing where price is between your stop and TP. Ask "how's my paper trade?" anytime.
+- **When it's hit:** a silent pop-up says "We hit TP, sir!" or "Unfortunately, sir, we hit our stop loss… we'll learn from this." If the app was closed, JARVIS checks the 5-minute candles when you open it again and tells you in the greeting. If a stop and a target were both inside one 5-minute candle, it assumes the stop (the safe guess).
+- **Starting balance:** set it in Settings ⚙ → Paper trading (e.g. 50,000 or 100,000), or say "set my paper balance to 50k". Resetting clears paper trades and history.
+- Buys fill at the ask and close at the bid, and sells the other way round, just like a real broker.
+
+**Weather.** Type your city in Settings ⚙ (Weather city), or leave it blank and allow location when your phone asks. It uses Open-Meteo, a free weather service with no account needed. Rainy days get an "indoor workout" tip.
+
+**What should I do today?** JARVIS gives you a short plan based on the time and day:
+- whether you're in the trading window, and what the bias says
+- any big news to watch
+- a workout idea
+- journalling, water and sleep
+
+At the weekend it's training, reviewing the week and prepping for Monday. "Give me a workout" gives you a full routine.
+
+**It understands more ways of saying things.** If what you say doesn't match a keyword, JARVIS compares it word by word against a bank of example sentences (allowing for spelling mistakes) and picks the closest one. It's still plain code, no AI.
+
 **News.** JARVIS reads this week's economic calendar (the public Forex Factory feed) and focuses on US news, since that's what moves gold. The dashboard shows a "NEXT RED NEWS" countdown, and a silent callout pops up 15 minutes before any high-impact US release. On GitHub Pages the calendar refreshes every 2 hours. Next week's calendar appears on Sunday.
 
 **Callouts.** When something happens, JARVIS pops up a silent CALLOUT. Tap it to hear it. Callouts fire for:
@@ -124,6 +158,8 @@ Missed ones are kept under the 🔔 bell.
 **Voice settings (⚙):**
 - choose what JARVIS calls you (default "sir")
 - your birthday (month-day, e.g. 11-15)
+- your weather city
+- the paper account's starting balance (and a reset button)
 - pick a voice and adjust its speed and pitch, with a preview
 - turn hands-free on or off
 - turn the boot animation on or off

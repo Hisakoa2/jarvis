@@ -75,6 +75,7 @@ body.engaged .grid > .panel:nth-child(7) { animation-delay: 0.3s; }
 /* ---------- layout for new panels ---------- */
 .mtf-panel { grid-column: span 4; }
 .levels-panel { grid-column: span 8; }
+.paper-panel { grid-column: 1 / -1; }
 @media (max-width: 1280px) { .mtf-panel { grid-column: span 5; } .levels-panel { grid-column: span 7; } }
 
 /* ---------- multi-timeframe ---------- */

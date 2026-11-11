@@ -181,6 +181,22 @@ a { color: inherit; }
 .sess.news.soon .sess-count { color: var(--bear); text-shadow: 0 0 8px var(--bear); }
 .plan { margin-top: 8px; padding: 8px 10px; border: 1px solid var(--cyan-faint); background: rgba(0, 0, 0, 0.22); }
 .plan ul { margin: 4px 0 6px; }
+.paper-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 12px; }
+.paper-stats div { border: 1px solid var(--cyan-faint); background: rgba(0, 0, 0, 0.22); padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.paper-stats span { font-size: 10px; letter-spacing: 0.2em; color: var(--dim); }
+.paper-stats b { font-family: var(--disp); font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paper-stats small { font-size: 11px; color: var(--dim); }
+.paper-pos { border: 1px solid var(--cyan-faint); padding: 8px 10px; margin-bottom: 8px; background: rgba(0, 0, 0, 0.22); }
+.paper-pos.buy { border-left: 3px solid var(--bull); }
+.paper-pos.sell { border-left: 3px solid var(--bear); }
+.paper-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.paper-pl { margin-left: auto; font-family: var(--disp); }
+.paper-close { padding: 4px 10px; font-size: 11px; flex: none; }
+.paper-prog { position: relative; height: 18px; margin-top: 6px; background: linear-gradient(90deg, rgba(255, 77, 109, 0.25), rgba(34, 255, 154, 0.25)); display: flex; justify-content: space-between; align-items: center; padding: 0 6px; font-size: 10px; color: var(--dim); }
+.paper-prog i { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--cyan); box-shadow: var(--glow); }
+.paper-hist { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--dim); margin-top: 6px; }
+.paper-empty { padding: 6px 0; }
+@media (max-width: 760px) { .paper-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .bar { height: 3px; background: var(--cyan-faint); margin-top: 8px; }
 .bar > i { display: block; height: 100%; background: var(--bull); box-shadow: 0 0 6px var(--bull); }
 
