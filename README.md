@@ -49,8 +49,10 @@ There are no exact commands to memorise. JARVIS has a big catalog of phrasings, 
 | Grade my trade | "I'm in a sell, stop loss 4068, take profit 4048, is this a good trade?", "I sold at 4060, stop 4068, TP 4048" |
 | Where's my TP? | "My entry is 4009, stop 4018, where should I put my take profit?", "If I sell, where should my TP be?", "Where do I get out?" |
 | How far can it go? | "Will price go up any more than this?", "At what point will price stop going up?", "…stop going down?", "How far can it go?" |
+| Bearish / bullish until when? | "Price is bearish until when?", "Bullish until when?", "How long will it stay bearish?", "When does the downtrend end?" (gives the price that ends it, and the soonest it could change) |
 | Safe until? | "Buying is safe until what?", "Selling is safe until what?", "What would invalidate the sell?" |
 | Paper trading | "Sell now", "Buy now", "Sell 50 units at 4009, stop loss 4018, take profit 3980", "Buy 2 lots", "How's my paper trade?", "Are we in profit?", "Move my stop to break even", "Set TP to 3985", "Close my trade", "Close all", "Cancel my order", "Set my paper balance to 50k" |
+| Weekly report | "Weekly report", "How did we do this week?", "How did we do last week?", "What's my win rate?" (trades, wins/losses, profit, best session, best/worst trade, one tip) |
 | Weather | "What's the weather?", "Weather tomorrow", "Weather in Miami", "Do I need a jacket?" |
 | Your day | "What should I do today?", "Give me a workout" |
 | Should I trade now? | "Should I hop in and trade right now?", "Is it a good time to trade?", "When should I not trade?", "Best time to trade?" |
@@ -71,6 +73,9 @@ Small talk depends on the day and time:
 - At the weekend it tells you to enjoy the break, and to work out, drink water and get some sleep.
 - Late at night it tells you to get some rest.
 - On your birthday (set in Settings ⚙, default 11-15) it says happy birthday, and counts down the week before.
+- Special lines (birthday countdown, fun facts, holidays, new month) are said **once a day**, not every time you open the app.
+- If you reopen the app within an hour, it just says "Welcome back, sir", gives the gold price and your paper trade, and skips the full greeting.
+- On the first weekend open, it gives a one-line summary of your paper week.
 - On the 1st of the month: "New month, new things."
 - It knows the big holidays too (New Year, July 4th, Thanksgiving, Christmas).
 - If there's high-impact US news today, the greeting mentions it.
@@ -168,6 +173,8 @@ For the best voice on iPhone: Settings → Accessibility → Spoken Content → 
 
 Notes:
 - Speech-to-text is done by Apple or Google, the same service as keyboard dictation. Everything after that is plain code.
+- **Stop button:** while JARVIS is talking, the mic button turns into an orange ■ stop button. Tap it to cut it off. Saying "stop" or pressing Esc works too.
+- **Stop being asked for the mic every time (iPhone):** a website can't give itself permanent mic access; you have to set it once. In Safari, open JARVIS, tap the **aA** button in the address bar → **Website Settings** → **Microphone** → **Allow**. If you use JARVIS from the Home Screen icon, go to **Settings → Apps → Safari → Microphone → Allow**.
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 

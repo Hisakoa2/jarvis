@@ -80,7 +80,7 @@ const Voice = (() => {
   const WAKE_RE = /\b(?:hey|hi|ok|okay|yo)?\s*(?:jarvis|jervis|javis|jarvas|jarves|travis|jarvi)\b/i;
 
   const ERRORS = {
-    'not-allowed': 'Microphone access was blocked. Allow the microphone for this site (iPhone: Settings → Safari → Microphone → Allow).',
+    'not-allowed': 'Microphone access was blocked. To stop being asked every time on iPhone: in Safari tap the “aA” button → Website Settings → Microphone → Allow. Home Screen app: Settings → Apps → Safari → Microphone → Allow.',
     'service-not-allowed': 'Speech recognition is off. iPhone: Settings → General → Keyboard → Enable Dictation (and allow Siri).',
     'audio-capture': 'No microphone found.',
     'network': 'Voice needs an internet connection.',

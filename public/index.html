@@ -102,6 +102,9 @@
         <button type="button" class="mic-btn" id="micBtn" aria-label="Speak" title="Speak">
           <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>
         </button>
+        <button type="button" class="mic-btn stop-btn" id="stopBtn" aria-label="Stop talking" title="Stop talking">
+          <svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
+        </button>
         <button type="submit" class="cmd-go">EXEC</button>
       </form>
       <div class="voice-status" id="voiceStatus" hidden></div>
@@ -165,7 +168,7 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v5 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v6 · NO AI · <span id="lastUpdate">--</span></footer>
 
   <dialog id="settings" class="panel settings">
     <form method="dialog" autocomplete="off">

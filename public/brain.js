@@ -102,7 +102,7 @@ const Brain = (() => {
 
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
-  const STOP = new Set('the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten'.split(' '));
+  const STOP = new Set('the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal'.split(' '));
 
   function lev(a, b) {
     if (a === b) return 0;
@@ -791,6 +791,33 @@ const Brain = (() => {
     return reply(html + demoNote(g), `${side} isn't backed by your rules right now${k.t}. The bias is ${lc(b.bias)}. It would take hourly closes ${dir > 0 ? 'above' : 'below'} ${turn ? sayPrice(turn) : 'the rule levels'} to turn ${lc(want)}.` + demoSay(g));
   }
 
+  // "Bearish until when?" / "Bullish until when?": the price that ends the bias + the soonest it could change
+  function biasUntilA(k, dir) {
+    const g = k.g, b = g.bias, px = g.price.bid;
+    if (!dir) dir = b.bias === 'Bullish' ? 1 : b.bias === 'Bearish' ? -1 : 0;
+    const want = dir > 0 ? 'Bullish' : 'Bearish', other = dir > 0 ? 'Bearish' : 'Bullish';
+    const mins = (60 - k.mi) + 60; // two closed 1H candles needed
+    const soon = mins >= 60 ? `${Math.floor(mins / 60)} hr ${mins % 60} min` : `${mins} min`;
+    const time = `<br><span class="dim">There's no clock on it — the bias lasts until price does that. Because it needs 2 hourly closes in a row, the soonest it could change is in about <b>${soon}</b>. Not a guarantee — your call.</span>`;
+    const timeS = ` There's no set time, it lasts until price does that. The soonest it could change is in about ${soon.replace('hr', 'hour').replace('min', 'minutes')}.`;
+    if (!dir) {
+      const up = flipPoint(k, px, 1, ['Bullish']), dn = flipPoint(k, px, -1, ['Bearish']);
+      return reply(`Bias is <b class="warn">neutral</b> right now${k.t} — neither bullish nor bearish.<ul><li>Turns <span class="up">bullish</span> on 1H closes above <b>${up ? f2(up) : '—'}</b></li><li>Turns <span class="down">bearish</span> on 1H closes below <b>${dn ? f2(dn) : '—'}</b></li></ul>${time}` + demoNote(g),
+        `The bias is neutral right now${k.t}.${up ? ` It turns bullish on hourly closes above ${sayPrice(up)}` : ''}${dn ? `, and bearish below ${sayPrice(dn)}` : ''}.` + timeS + demoSay(g));
+    }
+    if (b.bias !== want) {
+      const turn = flipPoint(k, px, dir, [want]);
+      return reply(`It isn't ${lc(want)} right now${k.t} — the bias is <b class="${cls(b.bias)}">${lc(b.bias)}</b>. It would turn ${lc(want)} on 1H closes ${dir > 0 ? 'above' : 'below'} <b>${turn ? f2(turn) : '—'}</b>${turn ? ` (${f2(Math.abs(turn - px))} away)` : ''}, two in a row.${time}` + demoNote(g),
+        `It isn't ${lc(want)} right now${k.t}, the bias is ${lc(b.bias)}. It would take hourly closes ${dir > 0 ? 'above' : 'below'} ${turn ? sayPrice(turn) : 'the rule levels'} to turn ${lc(want)}.` + timeS + demoSay(g));
+    }
+    const neutral = flipPoint(k, px, -dir, ['Neutral', other]);
+    const flip = flipPoint(k, px, -dir, [other]);
+    const warn = biasAt(k, px) !== want ? `<br><span class="warn">Heads up: price is already on the wrong side of your rules — if this hour closes here, the change starts building.</span>` : '';
+    return reply(`<b class="${cls(want)}">Price stays ${lc(want)} while 1H candles close ${dir > 0 ? 'above' : 'below'} ~${f2(neutral)}</b> (${f2(Math.abs(px - neutral))} away).` +
+      `<ul><li>${dir > 0 ? 'Below' : 'Above'} ${f2(neutral)} → <span class="warn">neutral</span></li>` + (flip ? `<li>${dir > 0 ? 'Below' : 'Above'} ${f2(flip)} → flips <span class="${cls(other)}">${lc(other)}</span> (${f2(Math.abs(px - flip))} away)</li>` : '') + `</ul>${warn}${time}` + demoNote(g),
+      `Gold stays ${lc(want)} while hourly candles close ${dir > 0 ? 'above' : 'below'} ${sayPrice(neutral)}${k.t}, that's ${money(Math.round(Math.abs(px - neutral)))} away.${flip ? ` ${dir > 0 ? 'Below' : 'Above'} ${sayPrice(flip)} it flips ${lc(other)}.` : ''}` + timeS + demoSay(g));
+  }
+
   // Take-profit ideas for a given entry + stop
   function suggestTargets(k, dir, entry, stop, style) {
     const g = k.g, swing = style === 'swing';
@@ -836,9 +863,11 @@ const Brain = (() => {
   // ---- paper trading ------------------------------------------------------------
   const QUESTION = /\b(should|would|could|can i|is it|is this|do i|good|safe|what|where|when|why|if|think|until|how)\b/;
   const FILLER = /^(?:(?:okay|ok|alright|all right|yes|yeah|yep|cool|then|so|and|now|please|go ahead and|go ahead|lets|let us|i want to|want to|can you|jarvis)\s+)+/;
+  const BOTH_SIDES = /\b(buy|buying|long|longs)\b.*\b(or|and|vs|versus)\b.*\b(sell|selling|short|shorts)\b|\b(sell|selling|short|shorts)\b.*\b(or|and|vs|versus)\b.*\b(buy|buying|long|longs)\b/;
   function isOrder(text) {
     const t = text.replace(FILLER, '');
     if (QUESTION.test(t)) return false;
+    if (BOTH_SIDES.test(t)) return false; // "buy or sell?" is a question, not an order
     return /^(?:paper\s+)?(?:(?:go|get)\s+)?(?:sell|buy|short|long)\b/.test(t) ||
       /^(?:open|place|enter|put on|execute|take|start|make|fire off|send|do)\s+(?:a|an|me a|the|one|another)?\s*(?:paper\s+)?(?:sell|buy|short|long)\b/.test(t) ||
       /\bpaper (?:sell|buy|short|long)\b/.test(t);
@@ -943,7 +972,7 @@ const Brain = (() => {
   function paperModifyA(k, text) {
     const P = k.paper;
     const pos = pickPositions(k, text), ords = P.orders();
-    const p = /order/.test(text) ? ords[ords.length - 1] || pos[pos.length - 1] : pos[pos.length - 1] || ords[ords.length - 1];
+    const p = /\border\b/.test(text) ? ords[ords.length - 1] || pos[pos.length - 1] : pos[pos.length - 1] || ords[ords.length - 1];
     if (!p) return reply(`There's no open paper trade to adjust${k.t}. Say “sell now” or “buy at 4000, stop 3990” to open one.`);
     const t = parseTrade(text);
     const be = /\bbreak ?even\b|\bbe\b/.test(text);
@@ -956,9 +985,10 @@ const Brain = (() => {
       if (n && /\b(stop|sl)\b/.test(text)) ch.sl = +n; else if (n) ch.tp = +n;
     }
     const side = p.side > 0 ? 'buy' : 'sell';
-    const live = p.side > 0 ? k.g.price.bid : k.g.price.ask;
-    if ('sl' in ch && (p.side > 0 ? ch.sl >= live : ch.sl <= live)) return reply(`<span class="warn">That stop (${f2(ch.sl)}) is already past the current price (${f2(live)}) — it would close the ${side} instantly.</span> Say “close my trade” if that's what you want.`, `That stop is already past the price${k.t}. Say close my trade if you want out.`);
-    if ('tp' in ch && (p.side > 0 ? ch.tp <= live : ch.tp >= live)) return reply(`<span class="warn">That take profit (${f2(ch.tp)}) is already past the current price (${f2(live)}).</span> Say “close my trade” to bank it now.`, `That take profit is already past the price${k.t}. Say close my trade to bank it.`);
+    const pending = ords.includes(p);
+    const live = pending ? p.entry : p.side > 0 ? k.g.price.bid : k.g.price.ask; // pending order: check against its entry
+    if ('sl' in ch && (p.side > 0 ? ch.sl >= live : ch.sl <= live)) return reply(`<span class="warn">That stop (${f2(ch.sl)}) is already past the ${pending ? "order price" : "current price"} (${f2(live)}) — it would close the ${side} instantly.</span> Say “close my trade” if that's what you want.`, `That stop is already past the price${k.t}. Say close my trade if you want out.`);
+    if ('tp' in ch && (p.side > 0 ? ch.tp <= live : ch.tp >= live)) return reply(`<span class="warn">That take profit (${f2(ch.tp)}) is already past the ${pending ? "order price" : "current price"} (${f2(live)}).</span> Say “close my trade” to bank it now.`, `That take profit is already past the price${k.t}. Say close my trade to bank it.`);
     P.modify(p.id, ch);
     const parts = [];
     if ('sl' in ch) parts.push(`stop → <b>${f2(ch.sl)}</b>${be ? ' (break-even)' : ''}`);
@@ -1019,6 +1049,71 @@ const Brain = (() => {
     }
     if (!out.length) return null;
     return { html: ` ${ev.length ? '<b>While you were away:</b> ' : ''}${out.join(' ')}`, say: ` ${says.join(' ')}` };
+  }
+
+  // ---- weekly paper report ----------------------------------------------------------
+  // Week = Sunday 00:00 New York time (gold reopens Sunday evening).
+  function weekStart(ts) {
+    const p = Sessions.parts(new Date(ts), 'America/New_York');
+    const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(new Date(ts)));
+    return ts - ((dow * 24 + p.h) * 60 + p.mi) * 60000 - (new Date(ts).getSeconds() * 1000 + new Date(ts).getMilliseconds());
+  }
+  function sessionOf(ts) {
+    const h = Sessions.parts(new Date(ts), 'America/New_York').h;
+    return h >= 8 && h < 17 ? 'New York' : h >= 3 && h < 8 ? 'London' : 'Asia';
+  }
+  function weekStats(k, last) {
+    const ws = weekStart(k.now), from = last ? ws - 7 * 864e5 : ws, to = last ? ws : Infinity;
+    const list = k.paper.history().filter((h) => h.closedAt >= from && h.closedAt < to);
+    const net = Math.round(list.reduce((a, h) => a + h.pl, 0) * 100) / 100;
+    const wins = list.filter((h) => h.pl > 0), losses = list.filter((h) => h.pl < 0);
+    const by = {};
+    for (const h of list) { const s = sessionOf(h.openedAt || h.closedAt); by[s] = by[s] || { n: 0, w: 0, pl: 0 }; by[s].n++; if (h.pl > 0) by[s].w++; by[s].pl += h.pl; }
+    const best = list.reduce((a, h) => (!a || h.pl > a.pl ? h : a), null), worst = list.reduce((a, h) => (!a || h.pl < a.pl ? h : a), null);
+    const tps = list.filter((h) => h.reason === 'tp').length, sls = list.filter((h) => /^stop/.test(h.reason)).length;
+    return { list, net, wins: wins.length, losses: losses.length, by, best, worst, tps, sls, from };
+  }
+  function weeklyA(k, text) {
+    if (!k.paper) return reply(`Paper trading isn't available${k.t}.`);
+    const last = /\b(last|previous|past) week\b/.test(text);
+    const W = weekStats(k, last), when = last ? 'last week' : 'this week';
+    const open = k.g && k.paper.positions().length ? k.paper.stats(k.g.price.bid, k.g.price.ask).openPL : null;
+    if (!W.list.length) {
+      const o = open != null ? ` You do have an open trade, currently ${usd(open)}.` : '';
+      return reply(`No paper trades closed ${when}${k.t}.${o} Say “sell now” or “buy now” to start one.`, `No paper trades closed ${when}${k.t}.${o ? ` You have an open trade, ${open >= 0 ? 'up' : 'down'} ${money(Math.round(Math.abs(open)))}.` : ''}`);
+    }
+    const n = W.list.length, wr = Math.round((W.wins / n) * 100);
+    const lines = [];
+    lines.push(`<b>Paper report — ${when}</b>`);
+    lines.push(`Trades: <b>${n}</b> · Wins <b>${W.wins}</b> · Losses <b>${W.losses}</b> · Win rate <b>${wr}%</b>`);
+    lines.push(`Net result: <b class="${W.net >= 0 ? 'up' : 'down'}">${usd(W.net)}</b>${W.tps + W.sls ? ` (${W.tps} hit take profit, ${W.sls} hit stop loss)` : ''}`);
+    const sess = Object.entries(W.by).sort((a, b) => b[1].pl - a[1].pl);
+    lines.push('By session: ' + sess.map(([s, v]) => `${s} ${v.n} trade${v.n > 1 ? 's' : ''}, ${usd(Math.round(v.pl * 100) / 100)}`).join(' · '));
+    if (W.best && W.best.pl > 0) lines.push(`Best trade: ${W.best.side > 0 ? 'buy' : 'sell'} from ${f2(W.best.entry)}, ${usd(W.best.pl)}`);
+    if (W.worst && W.worst.pl < 0) lines.push(`Worst trade: ${W.worst.side > 0 ? 'buy' : 'sell'} from ${f2(W.worst.entry)}, ${usd(W.worst.pl)}`);
+    if (open != null) lines.push(`Still open: ${usd(open)}`);
+    // one plain coaching note
+    let tip = '';
+    const worstS = sess[sess.length - 1];
+    if (sess.length > 1 && worstS[1].pl < 0 && worstS[1].n >= 2) tip = `Most of the damage came in the ${worstS[0]} session — maybe sit that one out next week.`;
+    else if (wr >= 60 && W.net > 0) tip = `Solid week${k.t}. Keep doing what you're doing.`;
+    else if (W.net > 0) tip = `Green week, even with more misses than wins — your winners are paying for your losers. That's good risk management.`;
+    else if (W.losses > W.wins) tip = `Rough week${k.t}. We'll learn from it — fewer, cleaner trades with the bias next week.`;
+    else tip = `Close to flat${k.t}. Patience — the good setups will come.`;
+    lines.push(tip);
+    const say = `${when[0].toUpperCase() + when.slice(1)} we took ${n} paper trade${n > 1 ? 's' : ''}: ${W.wins} win${W.wins === 1 ? '' : 's'} and ${W.losses} loss${W.losses === 1 ? '' : 'es'}, ${W.net >= 0 ? 'up' : 'down'} ${money(Math.round(Math.abs(W.net)))}. ${sess.length ? `Best session was ${sess[0][0]}.` : ''} ${tip}`;
+    return reply(lines.join('<br>'), say);
+  }
+  // Short line on the first weekend open: once per week
+  function weeklyTeaser(k) {
+    if (!k.paper) return null;
+    const W = weekStats(k, false);
+    if (!W.list.length) return null;
+    const seen = seenGet();
+    if (seen.weekly === W.from) return null;
+    seen.weekly = W.from; seenSet(seen);
+    const t = `This week: ${W.list.length} paper trade${W.list.length > 1 ? 's' : ''}, ${W.wins} win${W.wins === 1 ? '' : 's'}, ${usd(W.net)}. Say “weekly report” for the full breakdown.`;
+    return { html: t, say: `This week we were ${W.net >= 0 ? 'up' : 'down'} ${money(Math.round(Math.abs(W.net)))} on paper. Ask for the weekly report for the full breakdown.` };
   }
 
   // ---- weather, day plans, workouts -----------------------------------------------
@@ -1213,27 +1308,35 @@ const Brain = (() => {
   }
   function thanksgivingDay(y) { const wd = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - wd + 7) % 7) + 21; }
   // Lines for today's date: birthdays, new month, holidays. Returns [] on a normal day.
-  function specialLines(k, { soon = true } = {}) {
+  // Remembers what JARVIS already said (so the greeting doesn't repeat itself)
+  const SEEN_KEY = 'jarvis.seen';
+  function seenGet() { try { return JSON.parse(localStorage.getItem(SEEN_KEY)) || {}; } catch { return {}; } }
+  function seenSet(v) { try { localStorage.setItem(SEEN_KEY, JSON.stringify(v)); } catch {} }
+  function specialLines(k, { soon = true, once = true } = {}) {
     const out = [];
+    const seen = seenGet(), day = `${k.y}-${k.m}-${k.d}`;
+    seen.lines = seen.lines || {};
+    const add = (id, line) => { if (once && seen.lines[id] === day) return; seen.lines[id] = day; out.push(line); };
     const b = birthdayOf(k);
     if (b) {
       const n = daysUntil(k, b);
-      if (n === 0) out.push(pick('bday', [`Happy birthday${k.t}! 🎂 Another year stronger — take it easy on yourself today.`, `Happy birthday${k.t}! 🎉 Hope today's a great one, on and off the charts.`, `Happy birthday${k.t}! 🎂 No revenge trades today — it's your day.`]));
-      else if (soon && n <= 7) out.push(`By the way${k.t}, your birthday is ${n === 1 ? 'tomorrow' : `in ${n} days`}. 🎂`);
+      if (n === 0) add('bday', pick('bday', [`Happy birthday${k.t}! 🎂 Another year stronger — take it easy on yourself today.`, `Happy birthday${k.t}! 🎉 Hope today's a great one, on and off the charts.`, `Happy birthday${k.t}! 🎂 No revenge trades today — it's your day.`]));
+      else if (soon && n <= 7) add('bdaysoon', `By the way${k.t}, your birthday is ${n === 1 ? 'tomorrow' : `in ${n} days`}. 🎂`);
     }
     if (k.m === JARVIS_BORN.m && k.d === JARVIS_BORN.d) {
       const age = k.y - JARVIS_BORN.y;
-      out.push(age > 0 ? `Also — today is my birthday. ${age} year${age > 1 ? 's' : ''} online.` : `Fun fact: today is the day I first came online.`);
+      add('jborn', age > 0 ? `Also — today is my birthday. ${age} year${age > 1 ? 's' : ''} online.` : `Fun fact: today is the day I first came online.`);
     }
     const mon = MONTHS[k.m - 1];
-    if (k.d === 1) out.push(pick('month', [`New month${k.t} — welcome to ${mon}. New month, new things.`, `It's the 1st of ${mon}${k.t}. Fresh month, clean slate.`, `Welcome to ${mon}${k.t}. New month, new opportunities — let's make it count.`]));
-    if (k.m === 1 && k.d === 1) out.push(`Happy New Year${k.t}! 🎆`);
-    if (k.m === 12 && k.d === 31) out.push(`Last day of the year${k.t}. Thin markets — and a good night to celebrate.`);
-    if (k.m === 12 && k.d === 25) out.push(`Merry Christmas${k.t}! 🎄 Markets are mostly closed — enjoy the day.`);
-    if (k.m === 12 && k.d === 24) out.push(`Christmas Eve${k.t} — markets close early and it's thin. Easy does it.`);
-    if (k.m === 7 && k.d === 4) out.push(`Happy Fourth of July${k.t}! 🎆 US markets are closed, so gold will be quiet.`);
-    if (k.m === 11 && k.d === thanksgivingDay(k.y)) out.push(`Happy Thanksgiving${k.t}! 🦃 US markets are closed — thin, choppy gold. Enjoy the food.`);
-    if (k.m === 11 && k.d === thanksgivingDay(k.y) + 1) out.push(`Black Friday${k.t} — short US session and thin liquidity.`);
+    if (k.d === 1) add('month', pick('month', [`New month${k.t} — welcome to ${mon}. New month, new things.`, `It's the 1st of ${mon}${k.t}. Fresh month, clean slate.`, `Welcome to ${mon}${k.t}. New month, new opportunities — let's make it count.`]));
+    if (k.m === 1 && k.d === 1) add('hol', `Happy New Year${k.t}! 🎆`);
+    if (k.m === 12 && k.d === 31) add('hol', `Last day of the year${k.t}. Thin markets — and a good night to celebrate.`);
+    if (k.m === 12 && k.d === 25) add('hol', `Merry Christmas${k.t}! 🎄 Markets are mostly closed — enjoy the day.`);
+    if (k.m === 12 && k.d === 24) add('hol', `Christmas Eve${k.t} — markets close early and it's thin. Easy does it.`);
+    if (k.m === 7 && k.d === 4) add('hol', `Happy Fourth of July${k.t}! 🎆 US markets are closed, so gold will be quiet.`);
+    if (k.m === 11 && k.d === thanksgivingDay(k.y)) add('hol', `Happy Thanksgiving${k.t}! 🦃 US markets are closed — thin, choppy gold. Enjoy the food.`);
+    if (k.m === 11 && k.d === thanksgivingDay(k.y) + 1) add('hol', `Black Friday${k.t} — short US session and thin liquidity.`);
+    if (once) seenSet(seen);
     return out;
   }
   function wellnessLine(k) {
@@ -1405,7 +1508,7 @@ const Brain = (() => {
   }
 
   // ---------------------------------------------------------------- intents
-  const DATA_INTENTS = new Set(['price', 'bias', 'why', 'mtf', 'levels', 'distance', 'range', 'day', 'brief', 'trade', 'account', 'callouts', 'plan', 'review', 'tradenow', 'timing', 'news', 'safe', 'stall', 'tpq', 'weather', 'dayplan']);
+  const DATA_INTENTS = new Set(['biasUntil', 'price', 'bias', 'why', 'mtf', 'levels', 'distance', 'range', 'day', 'brief', 'trade', 'account', 'callouts', 'plan', 'review', 'tradenow', 'timing', 'news', 'safe', 'stall', 'tpq', 'weather', 'dayplan']);
 
   function scoreIntents(c, text, hasNums, k, ctxRaw) {
     const S = {};
@@ -1466,6 +1569,8 @@ const Brain = (() => {
     const P = ctxRaw.paper || (typeof Paper !== 'undefined' ? Paper : null);
     const question = QUESTION.test(text.replace(FILLER, ''));
     if (any('SAFE')) set('safe', 7.5);
+    if (BOTH_SIDES.test(text) && !/\b(close|exit|plan|swing|day trade|until|safe)\b/.test(text)) set('bias', 9.9);
+    if (/\b(bearish|bullish|bear|bull|bias|trend|downtrend|uptrend)\b/.test(text) && (/\b(until|till|til|untill)\b/.test(text) || /\bhow long\b/.test(text) || /\bwhen (will|does|is|would|do)\b.*\b(stop|end|flip|change|turn|switch|over|done)\b/.test(text) || /\b(stay|staying|remain|last|lasting)\b/.test(text)) && !/\b(buy|buying|sell|selling|long|short)\b/.test(text)) set('biasUntil', 8.8);
     if (any('STALL') && !any('PAPER')) set('stall', 7.2);
     if (any('RR') && !tpPx && /\b(where|what|which|how far|should)\b/.test(text) && !stopPx) set('tpq', 7.6);
     if (P) {
@@ -1477,6 +1582,8 @@ const Brain = (() => {
       if (/\b(reset|set|change|start|make|put)\b/.test(text) && /\b(paper|bankroll)\b/.test(text) && (/\d/.test(text) || /\breset\b/.test(text))) set('paperReset', 9.6);
       if (/\bcancel\b/.test(text) && /\b(order|orders|limit|pending)\b/.test(text)) set('paperCancel', 9.6);
     }
+    if (/\b(week|weekly|weeks)\b/.test(text) && /\b(report|recap|summary|review|results?|stats|performance|how did (we|i)|how was|how we did|how i did|breakdown|scorecard|journal|p ?l|pnl|profit|made|lose|lost)\b/.test(text) && !any('NEWS')) set('weekly', 8.6);
+    if (/\b(trade journal|trading journal|my stats|our stats|win rate|winrate|track record)\b/.test(text)) set('weekly', 8);
     if (any('WEATHER')) set('weather', 7);
     if (any('DAYPLAN') && !any('SELL', 'BUY', 'WEEKEND')) set('dayplan', 6.4);
     if (any('WORKOUT') && !any('SELL', 'BUY')) set('workout', /give|suggest|need|want|what|recommend|routine|plan/.test(text) || text.split(' ').length <= 3 ? 6.6 : 4);
@@ -1487,25 +1594,27 @@ const Brain = (() => {
   // When no keyword rule fires strongly, compare the sentence with these examples word by
   // word (with spelling tolerance) and pick the closest intent. Plain string math, no AI.
   const BANK = {
-    price: ['where is gold trading', 'what is the price of gold', 'gold price', 'what are we at', 'where are we trading', 'what is it trading at', 'give me the price'],
-    bias: ['which way is gold leaning', 'what side are we on', 'are we bullish', 'are we bearish', 'what does the bias say', 'what is your read', 'what direction is gold going'],
+    price: ['where is gold trading', 'where is gold at', 'what is gold at', 'gold right now', 'quote me gold', 'how much is gold', 'what is the price of gold', 'gold price', 'what are we at', 'where are we trading', 'what is it trading at', 'give me the price'],
+    bias: ['which way is gold leaning', 'up or down', 'is gold going up or down', 'should i be buying or selling', 'buy or sell', 'long or short', 'is it a buy', 'is it a sell', 'what side should i be on', 'what side are we on', 'are we bullish', 'are we bearish', 'what does the bias say', 'what is your read', 'what direction is gold going'],
     why: ['why is that', 'explain that', 'why do you think so', 'what is that based on', 'how did you get that'],
-    day: ['what is going on with gold', 'how is the market today', 'what happened today', 'how is gold moving', 'give me an update'],
-    levels: ['where are the levels', 'what levels should i watch', 'where is support', 'where is resistance', 'important prices'],
+    day: ['what is going on with gold', 'what is gold doing', 'what is the market doing', 'catch me up', 'fill me in', 'what did i miss', 'run it down for me', 'what is new', 'how is the market today', 'what happened today', 'how is gold moving', 'give me an update'],
+    levels: ['where are the levels', 'where are the key prices', 'what is the high', 'what is the low', 'where did it top', 'where did it bottom', 'what levels should i watch', 'where is support', 'where is resistance', 'important prices'],
     range: ['how much did it move', 'is it moving a lot', 'how volatile is it', 'has it moved much'],
-    tradenow: ['is now a good time', 'should i be trading', 'is it worth trading right now', 'should i get involved', 'should i look for a trade', 'any trades right now', 'is there a trade', 'anything worth taking', 'good conditions to trade'],
+    tradenow: ['is now a good time', 'can i trade', 'should i jump in', 'should i get in', 'is it a good time to get in', 'should i take a trade', 'is the market good right now', 'should i wait', 'should i be trading', 'is it worth trading right now', 'should i get involved', 'should i look for a trade', 'any trades right now', 'is there a trade', 'anything worth taking', 'good conditions to trade'],
     timing: ['what time should i trade', 'what hours are best', 'when is the best time', 'when should i avoid the market'],
-    news: ['is anything coming out', 'any big events', 'what is coming up', 'anything important today', 'any data today', 'when is the next big event'],
+    news: ['is anything coming out', 'is there news', 'any news', 'what news is out', 'is there anything big this week', 'any red folder', 'any big events', 'what is coming up', 'anything important today', 'any data today', 'when is the next big event'],
     safe: ['how long is the sell good for', 'how long is the buy good for', 'when does the trade stop working', 'what price kills the trade', 'what would change your mind'],
     stall: ['how far can it go', 'how much further', 'where is it heading', 'where is price going', 'what is the target for today', 'how far will it drop', 'how far will it run'],
     tpq: ['where do i take profit', 'where should i exit', 'where do i get out', 'what is a good target', 'when should i take profits'],
-    paperStatus: ['how is my trade doing', 'how are we doing on the trade', 'are we making money', 'show my positions', 'what trades do i have', 'how is the position'],
+    biasUntil: ['when will the bias change', 'how long will it stay bearish', 'how long will it stay bullish', 'when does the trend end', 'is the trend over yet', 'when does it flip'],
+    weekly: ['how did we do this week', 'how was my week', 'give me the weekly report', 'weekly recap', 'how did my trades go', 'what is my win rate', 'show me my stats', 'how have i been trading'],
+    paperStatus: ['how is my trade doing', 'am i winning', 'am i losing', 'how much am i up', 'how much am i down', 'is my trade green', 'is my trade red', 'did my trade hit', 'where is my trade at', 'how are we doing on the trade', 'are we making money', 'show my positions', 'what trades do i have', 'how is the position'],
     weather: ['is it nice outside', 'do i need a jacket', 'is it going to rain', 'what is it like outside', 'how is it outside'],
     dayplan: ['what should i get up to', 'what are we doing today', 'give me a plan', 'what is the move today', 'help me plan the day'],
     workout: ['give me something to train', 'what should i train', 'what should i hit at the gym', 'i want to get a sweat in'],
     howareyou: ['how is it going jarvis', 'you doing alright', 'how have things been', 'how is your day going'],
-    hello: ['hey there', 'good to see you', 'i am back', 'what is happening jarvis'],
-    thanks: ['that helps', 'that is great', 'you are awesome', 'good stuff', 'appreciate it'],
+    hello: ['hey there', 'what is good', 'what is up jarvis', 'yo jarvis', 'you up', 'good to see you', 'i am back', 'what is happening jarvis'],
+    thanks: ['that helps', 'thank you so much', 'thanks man', 'nice one', 'perfect', 'got it', 'bet', 'sounds good', 'that is great', 'you are awesome', 'good stuff', 'appreciate it'],
     joke: ['say something funny', 'make me smile', 'tell me something funny'],
     help: ['what can you help with', 'what are you able to do', 'what questions can i ask', 'show me what you can do'],
     birthday: ['how old am i', 'when was i born', 'when is my big day'],
@@ -1596,6 +1705,7 @@ const Brain = (() => {
         return k.news && !k.news.ok() && k.news.load ? k.news.load().then(go, go) : go();
       }
       case 'birthday': return wrap(birthdayA(k, fixed));
+      case 'biasUntil': return needGold(() => biasUntilA(k, /\b(bullish|bull|uptrend)\b/.test(fixed) ? 1 : /\b(bearish|bear|downtrend)\b/.test(fixed) ? -1 : 0));
       case 'safe': return needGold(() => safeA(k, c.has('BUY') || c.has('SELL') ? dirOf() : biasDir(k)));
       case 'stall': return needGold(() => stallA(k, /\b(up|higher|rising|rise|climb|climbing|high|top|tops|ceiling|peak|pump|pumping|rally)\b/.test(fixed) ? 1 : /\b(down|lower|falling|fall|drop|dropping|low|bottom|bottoms|floor|dump|dumping)\b/.test(fixed) ? -1 : biasDir(k) || 1));
       case 'tpq': {
@@ -1607,6 +1717,7 @@ const Brain = (() => {
       case 'paperClose': return needGold(() => paperCloseA(k, fixed));
       case 'paperModify': return needGold(() => paperModifyA(k, fixed));
       case 'paperStatus': return needGold(() => paperStatusA(k));
+      case 'weekly': return wrap(weeklyA(k, fixed));
       case 'paperReset': return wrap(paperResetA(k, fixed));
       case 'paperCancel': return wrap(paperCancelA(k));
       case 'weather': {
@@ -1661,15 +1772,27 @@ const Brain = (() => {
   }
 
   // Spoken greeting used at boot
+  const REGREET_MS = 60 * 60 * 1000; // full greeting at most once an hour
   function greeting(ctx) {
     const k = context(ctx);
     const m = marketLine(k);
     const g = k.g;
+    const seen0 = seenGet();
+    const recent = seen0.lastBoot && k.now - seen0.lastBoot < REGREET_MS && k.now >= seen0.lastBoot;
+    seen0.lastBoot = k.now; seenSet(seen0);
+    if (recent) {
+      const back = pick('back', [`Welcome back${k.t}.`, `Back again${k.t}.`, `Good to have you back${k.t}.`, `Right where you left me${k.t}.`]);
+      const sp2 = specialLines(k).join(' ');
+      const pg = paperGreeting(k) || { html: '', say: '' };
+      const px = g ? ` Gold <b>${f2(g.price.bid)}</b>.` : '';
+      const pxs = g ? ` Gold ${sayPrice(g.price.bid)}.` : '';
+      return reply(`${back}${sp2 ? ' ' + sp2 : ''}${px}${pg.html}`, noEmoji(`${back}${sp2 ? ' ' + sp2 : ''}${pxs}${pg.say}`));
+    }
     const sp = specialLines(k).join(' ');
     const intro = pick('boot', [`${greet(k)}. All systems online.`, `${greet(k)}. JARVIS online and ready.`, `Systems online. ${greet(k)}.`]) + (sp ? ' ' + sp : '');
     if (!g) return reply(intro, noEmoji(intro));
     const w = wellnessLine(k);
-    if (k.market.state === 'weekend') { const pg = paperGreeting(k) || { html: '', say: '' }; return reply(`${intro} ${m.html} Gold closed the week at <b>${f2(g.price.bid)}</b>.${pg.html}${w ? ' ' + w : ''}`, noEmoji(`${intro} ${m.say} Gold closed at ${sayPrice(g.price.bid)}.${pg.say}${w ? ' ' + w : ''}`)); }
+    if (k.market.state === 'weekend') { const pg = paperGreeting(k) || { html: '', say: '' }; const wk = weeklyTeaser(k); if (wk) { pg.html += ' ' + wk.html; pg.say += ' ' + wk.say; } return reply(`${intro} ${m.html} Gold closed the week at <b>${f2(g.price.bid)}</b>.${pg.html}${w ? ' ' + w : ''}`, noEmoji(`${intro} ${m.say} Gold closed at ${sayPrice(g.price.bid)}.${pg.say}${w ? ' ' + w : ''}`)); }
     const q = quickBias(k);
     const nt = newsTodayLine(k) || { html: '', say: '' };
     const pg = paperGreeting(k) || { html: '', say: '' };

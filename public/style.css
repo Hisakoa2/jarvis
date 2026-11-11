@@ -230,6 +230,11 @@ a { color: inherit; }
 .mic-btn { width: 44px; height: 44px; flex: none; border-radius: 50%; }
 .mic-btn.listening { color: var(--bg); background: var(--cyan); box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.6); animation: ring 1.2s ease-out infinite; }
 .mic-btn.unsupported { opacity: 0.4; }
+/* Stop button: replaces the mic while JARVIS is talking */
+.stop-btn { display: none; color: var(--bg); background: var(--amber, #ffb300); border-color: var(--amber, #ffb300); }
+.stop-btn svg { fill: currentColor; stroke: none; }
+body.v-speaking .stop-btn { display: inline-flex; }
+body.v-speaking #micBtn { display: none; }
 @keyframes ring { 0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.6); } 100% { box-shadow: 0 0 0 14px rgba(0, 229, 255, 0); } }
 .voice-status { margin-top: 10px; font-size: 13px; letter-spacing: 0.2em; color: var(--cyan); text-shadow: var(--glow); animation: pulse 1s ease-in-out infinite; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mic-tag { font-size: 12px; }

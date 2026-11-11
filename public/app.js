@@ -494,6 +494,7 @@
   const micBtn = $('micBtn'), vStatus = $('voiceStatus');
   if (!Voice.canListen) micBtn.classList.add('unsupported');
   function status(text) { vStatus.hidden = !text; vStatus.textContent = text || ''; $('ambListen').textContent = text || ''; }
+  $('stopBtn').addEventListener('click', () => Voice.stopSpeaking());
   micBtn.addEventListener('click', () => {
     Voice.listenOnce({
       onState(on) { micBtn.classList.toggle('listening', on); document.body.classList.toggle('v-listening', on); status(on ? 'LISTENING…' : hfOn ? 'SAY “HEY JARVIS”' : ''); if (on) $('cmdInput').value = ''; },
