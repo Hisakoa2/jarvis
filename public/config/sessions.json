@@ -1,0 +1,27 @@
+{
+  "_help": "Trading sessions. 'open' and 'close' are LOCAL time in that session's city ('timezone'). Daylight saving is handled automatically. Countdowns on the dashboard are shown in New York time. 'aliases' are words the command bar accepts.",
+  "displayTimezone": "America/New_York",
+  "sessions": [
+    {
+      "name": "Asia",
+      "timezone": "Asia/Tokyo",
+      "open": "09:00",
+      "close": "18:00",
+      "aliases": ["asia", "asian", "tokyo", "japan"]
+    },
+    {
+      "name": "London",
+      "timezone": "Europe/London",
+      "open": "08:00",
+      "close": "16:30",
+      "aliases": ["london", "uk", "europe", "european", "ldn"]
+    },
+    {
+      "name": "New York",
+      "timezone": "America/New_York",
+      "open": "08:00",
+      "close": "17:00",
+      "aliases": ["new york", "newyork", "ny", "nyc", "us", "america", "american"]
+    }
+  ]
+}

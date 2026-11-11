@@ -1,0 +1,41 @@
+{
+  "_help": "Your project tiles. Add, remove or edit entries below, save the file, then refresh the dashboard (no restart needed). 'name' and 'url' are required. 'description' is the small text on the tile. 'aliases' are extra words the command bar accepts, e.g. 'open shield' for Aegis. Keep the commas between entries!",
+  "projects": [
+    {
+      "name": "Aegis",
+      "url": "http://localhost:3001",
+      "description": "Risk & protection",
+      "aliases": ["shield"]
+    },
+    {
+      "name": "Lodestar",
+      "url": "http://localhost:3002",
+      "description": "Navigation & planning",
+      "aliases": ["star"]
+    },
+    {
+      "name": "Aurum",
+      "url": "http://localhost:3003",
+      "description": "Gold analytics",
+      "aliases": []
+    },
+    {
+      "name": "ATLAS",
+      "url": "http://localhost:3004",
+      "description": "Mapping & overview",
+      "aliases": []
+    },
+    {
+      "name": "OANDA",
+      "url": "https://trade.oanda.com",
+      "description": "Broker platform",
+      "aliases": ["broker"]
+    },
+    {
+      "name": "TradingView",
+      "url": "https://www.tradingview.com/chart/?symbol=OANDA%3AXAUUSD",
+      "description": "XAUUSD chart",
+      "aliases": ["chart", "charts", "tv"]
+    }
+  ]
+}
