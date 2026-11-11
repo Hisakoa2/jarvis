@@ -1,5 +1,5 @@
 // ============================================================================
-//  JARVIS cloud trader — runs on GitHub every ~5 minutes, even when your phone is off.
+//  JARVIS cloud trader — runs on GitHub every 5 minutes (one long run that restarts itself), even when your phone is off.
 //  It loads the SAME files the app uses (bias rules, levels, news, brain.botCheck), so it makes the
 //  same decisions JARVIS would make in the app:
 //    • at most one paper trade per trading day, only when the setup is valid (no forced trades)

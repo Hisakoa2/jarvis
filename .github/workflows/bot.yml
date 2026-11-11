@@ -1,16 +1,20 @@
-# JARVIS cloud trader: runs the same trading rules as the app every ~5 minutes, Sunday → Friday,
+# JARVIS cloud trader: runs the same trading rules as the app every 5 minutes, Sunday → Friday,
 # so JARVIS can take (and manage) its one valid paper trade a day even when your phone is off.
 # It only READS prices from OANDA (key stored as a GitHub secret, never in the code) and writes its
 # paper trades to bot/trades.json on the "bot-data" branch. The app copies them into your paper P&L.
+#
+# GitHub's own timer is unreliable (it can skip or start hours late), so each run stays awake for
+# ~5½ hours checking every 5 minutes, then starts the next run itself. The timer below is only a backup.
 name: JARVIS cloud trader
 
 on:
   schedule:
-    - cron: '*/5 * * * 0-5'
+    - cron: '*/30 * * * 0-5'
   workflow_dispatch:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: jarvis-bot
@@ -19,7 +23,7 @@ concurrency:
 jobs:
   trade:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
@@ -29,19 +33,30 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - name: Run the trading rules
-        id: run
+      - name: Check the market every 5 minutes
         env:
           OANDA_API_KEY: ${{ secrets.OANDA_API_KEY }}
           OANDA_ACCOUNT_ID: ${{ secrets.OANDA_ACCOUNT_ID }}
           OANDA_ENV: ${{ secrets.OANDA_ENV }}
-        run: node tools/bot-runner.js botdata/bot/trades.json
-      - name: Save trades
-        if: steps.run.outputs.changed == '1'
         run: |
-          cd botdata
-          git config user.name "JARVIS cloud trader"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add bot/trades.json
-          git commit -m "JARVIS cloud trader update" || exit 0
-          git push
+          git -C botdata config user.name "JARVIS cloud trader"
+          git -C botdata config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          for i in $(seq 1 64); do
+            rm -f /tmp/out.txt
+            GITHUB_OUTPUT=/tmp/out.txt node tools/bot-runner.js botdata/bot/trades.json || true
+            if grep -q 'changed=1' /tmp/out.txt 2>/dev/null; then
+              (cd botdata && git pull -q --rebase || true; git add bot/trades.json && git commit -q -m "JARVIS cloud trader update" && git push -q) || echo "save failed, will retry"
+            fi
+            # stop on Friday after the 5 PM New York close; the Sunday timer restarts it
+            d=$(TZ=America/New_York date +%u); h=$(TZ=America/New_York date +%H)
+            if [ "$d" = "6" ] || { [ "$d" = "5" ] && [ "$h" -ge 17 ]; }; then exit 0; fi
+            sleep 300
+          done
+      - name: Start the next run
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          d=$(TZ=America/New_York date +%u); h=$(TZ=America/New_York date +%H)
+          if [ "$d" = "6" ] || { [ "$d" = "5" ] && [ "$h" -ge 17 ]; }; then echo "Weekend — the Sunday timer restarts me."; exit 0; fi
+          gh workflow run bot.yml -R ${{ github.repository }} --ref main
