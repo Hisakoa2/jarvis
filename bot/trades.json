@@ -1,0 +1,7 @@
+{
+ "v": 1,
+ "enabled": false,
+ "heartbeat": 0,
+ "check": null,
+ "days": {}
+}
