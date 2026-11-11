@@ -11,7 +11,7 @@ const sb = {
   document: { hidden: true }, window: {},
 };
 vm.createContext(sb);
-for (const f of ['sessions.js', 'bias-rules.js', 'paper.js', 'reminders.js', 'lexicon.js', 'brain.js', 'life.js']) {
+for (const f of ['sessions.js', 'bias-rules.js', 'paper.js', 'reminders.js', 'lexicon.js', 'extras.js', 'brain.js', 'life.js']) {
   vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8') + `\n;globalThis.__x = 1;`, sb, { filename: f });
 }
 // expose the IIFE consts
@@ -34,9 +34,8 @@ const CASES = [
     "{what|which} {way|direction} {will|is} {gold|price|the market} {going|gonna go|going to go} {when the market opens|at the open|on monday|tomorrow|next week}",
     "{bullish or bearish|up or down|buy or sell} {when it opens|at the open|monday|tomorrow|for the open}",
     "{what will|what's|what is} {gold|price} {gonna do|going to do|do} {monday|tomorrow|when the market opens|at the open|next week}",
-    "{should i|do i} {buy|sell} {at the open|monday|when it opens|tomorrow}",
     "{is|will} {gold|price} be {bullish|bearish} {tomorrow|monday|at the open|next week}",
-    "{bias|direction|outlook|forecast} for {tomorrow|monday|the open|next week}"],
+    "{bias|direction|outlook} for {tomorrow|monday|the open|next week}"],
   ['biasUntil',
     "when {will|is|does} {gold|price|it|the market} {stop|quit|finish} being {bullish|bearish}",
     "when {will|is} {gold|price|the market} {gonna be|going to be|be|turn|flip} {bullish|bearish}",
@@ -158,6 +157,51 @@ const CASES = [
   ['help', "{help|what can you do}"],
   ['joke', "tell me a joke"],
   ['why', "why is {gold|price} {bearish|bullish|dropping|going up}"],
+  ['openTrade',
+    "{should i|can i|do i} {hop on a trade|jump in|take a trade|get in} {when the market opens|at the open|tomorrow|monday|when it opens|tonight}",
+    "{should i|do i} {buy|sell} {at the open|monday|when it opens|tomorrow}",
+    "{what's|what is} the {plan|game plan|play} for {the open|tomorrow|monday|tonight}",
+    "{any|will there be} {trades|setups} {at the open|tomorrow|monday|tonight}"],
+  ['life:sleepQ',
+    "{i'm|i am} trying to wake up at {9:30|9 30|6|7 am|six thirty}",
+    "i {need|have|want} to {be up|wake up|get up} {by|at} {7|6:45|8 am} {tomorrow|}"],
+  ['x:define',
+    "{what is|what's|explain|define} {a pip|an order block|a fair value gap|fvg|a liquidity sweep|break of structure|drawdown|leverage|the spread|risk reward|atr|an ema|rsi|fibonacci}",
+    "what does {fomc|cpi|nfp|bos|choch|dxy|ath} {mean|stand for}",
+    "{how does the bias work|what does bias mean|explain the bias}",
+    "{teach me about|tell me about} {order blocks|liquidity|support and resistance|candlesticks|prop firms|the london session}"],
+  ['x:coach',
+    "{i keep|i've been} {revenge trading|overtrading|chasing losses}",
+    "i'm {scared|afraid|nervous} to {take the trade|pull the trigger|enter}",
+    "i {blew my account|failed my challenge|lost my funded account}",
+    "{how do i|how can i} {be more disciplined|stick to my plan|be more consistent|improve my trading}",
+    "{i have fomo|i missed the move|i'm on a losing streak|i keep losing}"],
+  ['x:pnl', "if i {buy|sell} {40|50|100} {contracts|units} and it {goes up|drops|moves} {10|15|20} {dollars|points}", "how much {is|would i make on} {40|60} units {on|with} a {10|25} dollar move"],
+  ['x:goldvalue', "how much is {a gram|10 grams|a kilo|a kilogram} of gold", "{what's|what is} a {gold bar|kilo of gold} worth"],
+  ['x:convert', "{what's|what is|convert} {70|32|100} {fahrenheit|f|degrees f} {in|to} celsius", "how many km is {5|10} miles", "{what is|convert} {5|10} miles {in km|to km}", "{what is|convert} {5|80} {kg in pounds|pounds in kg|feet in meters|oz in grams}"],
+  ['x:worldtime', "what time is it in {london|tokyo|la|los angeles|dubai|sydney|chicago}", "{whats the time|time} in {london|tokyo|hong kong}"],
+  ['x:date', "{what's the date|what is the date|what day is it|what day is today|what's today's date}", "{what day is tomorrow|is it a leap year|what week is it}"],
+  ['x:coin', "{flip a coin|toss a coin|heads or tails}"],
+  ['x:dice', "{roll a die|roll the dice|roll two dice|roll a d20}"],
+  ['x:random', "{pick a number|give me a random number|random number} {between 1 and 100|from 1 to 10|}"],
+  ['x:choose', "should i {eat|get|order} {pizza|tacos|sushi} or {burgers|wings|chinese} {for dinner|tonight|}", "{pick|choose} between {the gym|a walk} or {a run|yoga}"],
+  ['x:fact', "{tell me a fact|fun fact|tell me something interesting|random fact|did you know}"],
+  ['x:riddle', "{tell me a riddle|give me a riddle|riddle me}"],
+  ['x:about', "{what's your name|who made you|are you ai|are you real|how do you work|can you learn|where do you live}"],
+  ['x:well', "{i can't sleep|help me relax|give me a stretch|i have a headache|i can't focus|i need energy|breathing exercise}"],
+  // slang & messy speech
+  ['bias', "{yo|bro|ok so|alright} {which way we going|what side we on|we buying or selling|we long or short} {today|rn|}", "{is gold|is price} {bullish|bearish} {or nah|or not|right now|}", "{what are your thoughts on|how do you feel about|what's your read on} gold {today|right now|}"],
+  ['day', "{bro|yo|ok} {what is gold even doing|what's gold up to|how's gold moving} {rn|right now|today|}", "{how's the market treating us|how's gold been today|what's the market been like today}"],
+  ['reach', "{do you think|you think|will|can} {gold|price|we|it} {hit|reach|get to|touch|see} {4000|4100|3950} {today|this week|tonight|}", "will {it|gold|price} {break|take out} {the high|the low|today's high|today's low}"],
+  ['manage', "should i {close|cut|hold|keep} my {trade|position|sell|buy}", "{should i hold or cut it|should i close it|should i let it run}"],
+  ['tradenow', "should i {sit out|stay out|take the day off|skip trading} today", "{is it a good day to trade|is today a good day to trade|good day to trade}"],
+  ['biasUntil', "{when's|when is} {gold|price|it} {gonna|going to} {turn around|reverse|flip}", "how much longer {is|will} {this|the} {sell off|rally|downtrend|uptrend} {last|go on|continue}"],
+  ['openBias', "{what's|what is} {gold|price} {gonna do|going to do} when {asia|london|new york} opens"],
+  ['life:sleep', "{i just woke up|just got up|i'm up|i woke up}"],
+  ['life:habit', "did i {work out|read|meditate} today"],
+  ['dayplan', "{what's the move|what are we doing} {tonight|today|}"],
+  ['life:water', "{i'm thirsty log a glass|log another glass|add one more glass of water|put down 2 glasses}"],
+  ['weather', "{is it|gonna be} {cold|hot|rainy|nice} {today|tomorrow|tonight|outside}", "{what's|what is} the {weather|forecast} {for tomorrow|tomorrow|this weekend|tonight}"],
 ];
 
 const verbose = process.argv.includes('-v');

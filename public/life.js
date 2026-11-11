@@ -390,7 +390,7 @@ const Life = (() => {
   // SLEEP
   // =====================================================================================
   function parseClock(s) {
-    const m = s.match(/\b(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/) || s.match(/\b(noon|midnight)\b/);
+    const m = s.match(/\b(\d{1,2})(?:[: ](\d{2}))?\s*(a\.?m\.?|p\.?m\.?)?\b/) || s.match(/\b(noon|midnight)\b/);
     if (!m) return null;
     if (m[1] === 'noon') return { h: 12, mi: 0 }; if (m[1] === 'midnight') return { h: 0, mi: 0 };
     let h = +m[1]; const mi = m[2] ? +m[2] : 0, ap = m[3] ? m[3][0] : null;
@@ -400,7 +400,7 @@ const Life = (() => {
   }
   const fmtHM = (h, mi) => { h = ((h % 24) + 24) % 24; return `${h % 12 || 12}:${String(mi).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`; };
   function bedtimeA(k, t) {
-    const m = t.match(/\b(?:wake|get) up\b.*?\b(?:at|by|around)?\s*(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?|noon)/) || t.match(/\b(?:at|by)\s+(\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)/);
+    const m = t.match(/\b(?:wake(?: up)?|woke|get up|be up|be awake|up by|up at|alarm(?: for)?|out of bed)\b.*?\b(?:at|by|around|for)?\s*(\d{1,2}(?:[: ]\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?|noon)/) || t.match(/\b(?:at|by)\s+(\d{1,2}(?:[: ]\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)/);
     let w = m ? parseClock(m[1]) : null;
     if (w && !w.ap && w.h >= 1 && w.h <= 11 && /\bwake|get up\b/.test(t)) { /* assume morning */ }
     if (!w) { const avg = sleepAvg(k); w = avg ? avg.wake : { h: 7, mi: 0 }; }

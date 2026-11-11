@@ -185,6 +185,33 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v10
+
+**Ready for the market being closed.** "Should I hop on a trade when the market opens?", "should I buy when it opens", "what's the plan for Monday" now give the plan for the open: which side your rules favour, whether your idea goes with or against them, where it flips, and a reminder that the first hour is thin.
+
+**More market questions**
+- "Do you think we hit 4000 today?", "will it break the high?", "can gold get to 4100 this week?" — distance, bias direction, how much room an average day leaves, and levels in the way.
+- "Should I close my trade?", "should I hold or cut it?" — your open paper trade's P&L plus where it stays valid.
+- "Should I sit out today?", "is it a good day to trade?", "when's gold gonna turn around?", "what's gold gonna do when London opens?"
+
+**Trading dictionary** — "what is an order block", "explain fair value gaps", "what does FOMC mean", "how does the bias work", "what's a liquidity sweep" and about 50 more terms.
+
+**Trading coach** — "I keep revenge trading", "I'm scared to pull the trigger", "I blew my account", "I'm on a losing streak", "how do I stay disciplined".
+
+**Calculators** — "if I buy 50 contracts and it goes up 12 dollars", "how much is a gram of gold", "70 fahrenheit in celsius", "5 miles in km", "20 percent tip on 45".
+
+**Dates & world clocks** — "what's the date", "what day is tomorrow", "what time is it in London / Tokyo / LA".
+
+**Fun & wellness** — flip a coin, roll dice, random number, "pizza or tacos?", magic 8 ball, rock paper scissors, fun facts, riddles, would-you-rather, "I can't sleep", "help me relax", "I can't focus", stretch break.
+
+**Sleep** — "I'm trying to wake up at 9:30", "I need to be up by 7", "I just woke up".
+
+**When it doesn't know the exact question**, it now answers about the closest topic you mentioned (gold, weather, sleep, water…) instead of "I didn't catch that".
+
+**Clock** — the big clock now shows 12-hour time like your phone (5:44:35 PM), New York time.
+
+The vocabulary test now checks **4,925** sentence combinations: `node tools/vocab-test.js`.
+
 ### New in v9
 
 **JARVIS only trades when it's actually valid.** It does not force a trade to fill the day.

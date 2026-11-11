@@ -364,7 +364,7 @@
   // ---------- clocks ----------
   function tickClocks() {
     const now = new Date(), tz = TZ();
-    $('nyClock').textContent = now.toLocaleTimeString('en-US', { timeZone: tz, hour12: false });
+    $('nyClock').textContent = now.toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
     $('nyDate').textContent = 'NEW YORK · ' + now.toLocaleDateString('en-US', { timeZone: tz, weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
     $('sessions').innerHTML = (config.sessions.sessions || []).map((s) => {
       const st = Sessions.status(s, now.getTime());

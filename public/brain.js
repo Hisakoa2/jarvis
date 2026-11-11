@@ -124,7 +124,7 @@ const Brain = (() => {
     return prev[n];
   }
   function correct(text, extra) {
-    const vocab = new Set([...VOCAB, ...extra, ...(typeof Lex !== 'undefined' ? Lex.vocab : [])]);
+    const vocab = new Set([...VOCAB, ...extra, ...(typeof Lex !== 'undefined' ? Lex.vocab : []), ...(typeof Extra !== 'undefined' ? Extra.vocab : [])]);
     return text.split(' ').map((t) => {
       if (t.length < 4 || vocab.has(t) || STOP.has(t) || /\d/.test(t)) return t;
       let best = t, bestD = t.length >= 7 ? 3 : 2;
@@ -843,7 +843,7 @@ const Brain = (() => {
   }
 
   // "What's the bias for when the market opens?" — the read going into the next session, and what would change it.
-  function openBiasA(k) {
+  function openBiasA(k, opt = {}) {
     const g = k.g, b = g.bias, r = b.raw, m = k.market, px = g.price.bid, mt = mtfLine(g), p = pendingOf(b);
     const dir = b.bias === 'Bullish' ? 1 : b.bias === 'Bearish' ? -1 : 0;
     const closed = !m.open;
@@ -869,10 +869,60 @@ const Brain = (() => {
       lines.push(`Soonest the bias can change: about <b>${fmtT(soonAt, k.tz, true)} ET</b> (2 hourly closes after the open)`);
       lines.push(`If price <b>gaps</b> past those levels at the open, the first hourly candles start building the change`);
     }
-    const plan = dir ? `I'd look for <b class="${cls(b.bias)}">${dir > 0 ? 'buys' : 'sells'}</b> first when it opens, in London and New York hours.` : `No edge from the rules yet — I'd wait for a side to form after the open.`;
+    let plan = dir ? `I'd look for <b class="${cls(b.bias)}">${dir > 0 ? 'buys' : 'sells'}</b> first when it opens, in London and New York hours.` : `No edge from the rules yet — I'd wait for a side to form after the open.`;
+    let tradeH = '', tradeS = '';
+    if (opt.trade) {
+      const asked = opt.dir || 0;
+      const against = asked && dir && asked !== dir, withIt = asked && dir && asked === dir;
+      tradeH = against ? `<b class="warn">A ${asked > 0 ? 'buy' : 'sell'} at the open would go against your rules</b> — they point ${lc(b.bias)}.<br>`
+        : withIt ? `<b class="up">A ${asked > 0 ? 'buy' : 'sell'} lines up with your rules</b> — but wait for a setup, not just the open.<br>`
+        : dir ? `<b>Yes, there can be a trade — on the ${dir > 0 ? 'buy' : 'sell'} side</b>, once a setup forms.<br>` : `<b class="warn">No clear side yet</b> — I'd sit out until one forms.<br>`;
+      tradeS = against ? `A ${asked > 0 ? 'buy' : 'sell'} at the open would go against your rules, they point ${lc(b.bias)}. ` : withIt ? `A ${asked > 0 ? 'buy' : 'sell'} lines up with your rules, but wait for a setup. ` : dir ? `If you trade, look for ${dir > 0 ? 'buys' : 'sells'}. ` : `There's no clear side yet. `;
+      plan += ` <b>Don't jump in right at the open</b> — the first hour is thin with wide spreads. The cleaner windows are London (3 AM) and the New York overlap (8–11 AM ET). Ask me "is now a good time to trade" before you enter.`;
+    }
     return reply(
-      `${head}<br>Going into the open, your rules read <b class="${cls(b.bias)}">${b.bias.toUpperCase()}</b> — ${r.bullish} bullish, ${r.bearish} bearish of ${r.total}, from the last close at ${fmtT(b.lastCloseTime, k.tz, true)} ET (${f2(b.lastClose)}). ${p.html}<br>Higher timeframes: ${mt.html}.<ul>${lines.map((x) => `<li>${x}</li>`).join('')}</ul>${plan}<br><span class="dim">Not a guarantee — your call.</span>` + demoNote(g),
-      `${headS} Going into the open, the bias is ${lc(b.bias)}. ${sayL.length ? cap1(sayL.join(', ')) + '.' : ''} ${dir ? `I'd look for ${dir > 0 ? 'buys' : 'sells'} first.` : `I'd wait for a side to form.`} ${p.say}` + demoSay(g));
+      `${head}<br>${tradeH}Going into the open, your rules read <b class="${cls(b.bias)}">${b.bias.toUpperCase()}</b> — ${r.bullish} bullish, ${r.bearish} bearish of ${r.total}, from the last close at ${fmtT(b.lastCloseTime, k.tz, true)} ET (${f2(b.lastClose)}). ${p.html}<br>Higher timeframes: ${mt.html}.<ul>${lines.map((x) => `<li>${x}</li>`).join('')}</ul>${plan}<br><span class="dim">Not a guarantee — your call.</span>` + demoNote(g),
+      `${headS} ${tradeS}Going into the open, the bias is ${lc(b.bias)}. ${sayL.length ? cap1(sayL.join(', ')) + '.' : ''} ${dir ? `I'd look for ${dir > 0 ? 'buys' : 'sells'} first.` : `I'd wait for a side to form.`} ${p.say}` + demoSay(g));
+  }
+
+  // "Will it hit 4000 today?" / "will it break the high?" — distance, bias, average-day room, levels in the way
+  function reachA(k, text) {
+    const g = k.g, b = g.bias, L = g.levels, px = g.price.bid;
+    let target = null, name = '';
+    const nm = text.match(/\b(\d{3,5}(?:\.\d+)?)\b/);
+    if (nm && +nm[1] > 500) { target = +nm[1]; name = f2(target); }
+    else if (/\b(high|top|highs|hod)\b/.test(text)) { target = g.dayHigh; name = `today's high (${f2(g.dayHigh)})`; }
+    else if (/\b(low|bottom|lows|lod)\b/.test(text)) { target = g.dayLow; name = `today's low (${f2(g.dayLow)})`; }
+    if (target == null) return stallA(k, biasDir(k) || 1);
+    const dist = target - px, dir = dist >= 0 ? 1 : -1, abs = Math.abs(dist);
+    const bd = b.bias === 'Bullish' ? 1 : b.bias === 'Bearish' ? -1 : 0;
+    const room = L.adr ? (dir > 0 ? g.dayLow + L.adr - px : px - (g.dayHigh - L.adr)) : null;
+    const inWay = (L.list || []).filter((l) => (dir > 0 ? l.price > px + 0.3 && l.price < target - 0.3 : l.price < px - 0.3 && l.price > target + 0.3)).slice(0, 3);
+    let verdict, say;
+    if (abs < 0.5) { verdict = `Price is right at ${name} now.`; say = verdict; }
+    else {
+      const withBias = bd === dir, normal = room != null && room >= abs;
+      verdict = `${name} is <b>${f2(abs)} ${dir > 0 ? 'above' : 'below'}</b> price (${f2(px)}).`
+        + (bd ? ` The bias is <b class="${cls(b.bias)}">${lc(b.bias)}</b> — ${withBias ? 'that\'s the bias direction, which helps' : 'that\'s against the bias, so it\'s the harder way'}.` : ' The bias is neutral — no edge either way.')
+        + (room != null ? ` ${normal ? `It's within a normal day's range (about ${f2(Math.max(0, room))} of room left ${dir > 0 ? 'up' : 'down'}).` : `It would take a bigger-than-average day (only about ${f2(Math.max(0, room))} of normal room left ${dir > 0 ? 'up' : 'down'}).`}` : '');
+      const odds = withBias && normal ? 'Possible today' : withBias || normal ? 'It could, but it\'s not the easy path' : 'Unlikely today';
+      verdict = `<b>${odds}${k.t}.</b> ` + verdict;
+      say = `${odds}${k.t}. ${name.replace(/\(.*\)/, '')} is ${money(Math.round(abs))} ${dir > 0 ? 'above' : 'below'} price.${bd ? ` The bias is ${lc(b.bias)}, ${withBias ? 'which is the same direction' : 'which is against it'}.` : ''}`;
+    }
+    const way = inWay.length ? `<br><span class="dim">In the way: ${inWay.map((l) => `${esc(l.name)} ${f2(l.price)}`).join(' · ')}</span>` : '';
+    const closed = !k.market.open ? `<br><span class="dim">Market is closed — it reopens ${fmtT(k.market.opensAt, k.tz, true)} ET.</span>` : '';
+    return reply(verdict + way + closed + `<br><span class="dim">Not a guarantee — your call.</span>` + demoNote(g), say + demoSay(g));
+  }
+  // "Should I close my trade?" — your open paper trade + where it stays valid
+  function manageA(k) {
+    const P = k.paper, g = k.g;
+    const pos = P ? P.positions().filter((p) => !p.bot) : [];
+    if (!pos.length) return reply(`You don't have an open paper trade${k.t}. If you're in a trade on your broker, tell me the side and I'll check it — like "is my sell safe".`, `You don't have an open paper trade${k.t}.`);
+    const p = pos[pos.length - 1], px = P.closePx(p, g.price.bid, g.price.ask), pl = P.pnlAt(p, px);
+    const s = safeA(k, p.side);
+    const head = `Your <b>${p.side > 0 ? 'BUY' : 'SELL'} ${p.units}</b> from ${f2(p.entry)} is <b class="${pl >= 0 ? 'up' : 'down'}">${pl >= 0 ? '+' : '−'}$${f2(Math.abs(pl))}</b>${p.sl ? `, stop ${f2(p.sl)}` : ''}${p.tp ? `, target ${f2(p.tp)}` : ''}.<br>`;
+    const tip = pl > 0 && p.tp && Math.abs(px - p.entry) >= Math.abs(p.tp - p.entry) * 0.6 ? `<br>You're most of the way to target — taking partials or moving the stop to break even are both reasonable. <b>Your call.</b>` : '';
+    return reply(head + s.html + tip, `Your ${p.side > 0 ? 'buy' : 'sell'} is ${pl >= 0 ? 'up' : 'down'} ${money(Math.round(Math.abs(pl)))}. ` + s.say);
   }
 
   // Take-profit ideas for a given entry + stop
@@ -1657,7 +1707,7 @@ const Brain = (() => {
   }
 
   // ---------------------------------------------------------------- intents
-  const DATA_INTENTS = new Set(['openBias', 'biasUntil', 'price', 'bias', 'why', 'mtf', 'levels', 'distance', 'range', 'day', 'brief', 'trade', 'account', 'callouts', 'plan', 'review', 'tradenow', 'timing', 'news', 'safe', 'stall', 'tpq', 'weather', 'dayplan']);
+  const DATA_INTENTS = new Set(['reach', 'manage', 'openTrade', 'openBias', 'biasUntil', 'price', 'bias', 'why', 'mtf', 'levels', 'distance', 'range', 'day', 'brief', 'trade', 'account', 'callouts', 'plan', 'review', 'tradenow', 'timing', 'news', 'safe', 'stall', 'tpq', 'weather', 'dayplan']);
 
   function scoreIntents(c, text, hasNums, k, ctxRaw) {
     const S = {};
@@ -1803,10 +1853,13 @@ const Brain = (() => {
     const S = scoreIntents(c, fixed, hasNums, k, ctx);
     if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
     if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(text))) if (v > (S[i] || 0)) S[i] = v;
+    if (typeof Extra !== 'undefined') for (const [i, v] of Object.entries(Extra.score(text))) if (v > (S[i] || 0)) S[i] = v;
     if (S.openBias && S.bias >= 9.9) S.openBias = 9.95; // "buy or sell at the open" — the open is the point
     const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
     let id = ranked.length ? ranked[0][0] : null;
     if (!id || ranked[0][1] < 3) { const b = bankMatch(fixed); if (b) id = b; }
+    // still nothing? answer about the closest topic you mentioned instead of "I didn't catch that"
+    if ((!id || (ranked.length && ranked[0][1] < 3)) && typeof Lex !== 'undefined' && !(id && bankMatch(fixed) === id)) { const tp = Lex.topic(text); if (tp) id = tp; }
     return { id, S, ranked };
   }
   // Which question a sentence is (used by the vocabulary tests in tools/vocab-test.js)
@@ -1871,10 +1924,11 @@ const Brain = (() => {
       case 'range': return needGold(() => rangeA(k));
       case 'day': return needGold(() => dayA(k, ''));
       case 'brief': return needGold(() => briefA(k));
-      case 'trade': return needGold(() => tradeA(k, dirOf(), styleOf(), c.has('PLAN') || c.has('RISK') || c.has('RR')));
+      case 'trade': return needGold(() => (!k.market.open ? openBiasA(k, { trade: true, dir: dirOf() }) : tradeA(k, dirOf(), styleOf(), c.has('PLAN') || c.has('RISK') || c.has('RR'))));
+      case 'openTrade': return needGold(() => openBiasA(k, { trade: true, dir: (c.has('BUY') || c.has('SELL') || (typeof Lex !== 'undefined' && Lex.side(text))) ? dirOf() : 0 }));
       case 'plan': return needGold(() => planA(k, styleOf(), true));
       case 'review': return needGold(() => reviewA(k, fixed, c.has('BUY') || c.has('SELL') ? dirOf() : 0, styleOf()));
-      case 'tradenow': return needGold(() => tradeNowA(k));
+      case 'tradenow': return needGold(() => (!k.market.open ? openBiasA(k, { trade: true }) : tradeNowA(k)));
       case 'timing': return needGold(() => timingA(k));
       case 'news': {
         const go = () => wrap(newsA(k, fixed));
@@ -1882,6 +1936,8 @@ const Brain = (() => {
       }
       case 'birthday': return wrap(birthdayA(k, fixed));
       case 'biasUntil': return needGold(() => biasUntilA(k, /\b(bullish|bull|uptrend)\b/.test(fixed) ? 1 : /\b(bearish|bear|downtrend)\b/.test(fixed) ? -1 : (typeof Lex !== 'undefined' ? Lex.dir(text) : 0)));
+      case 'reach': return needGold(() => reachA(k, fixed));
+      case 'manage': return needGold(() => manageA(k));
       case 'safe': return needGold(() => safeA(k, c.has('BUY') || c.has('SELL') ? dirOf() : biasDir(k)));
       case 'stall': return needGold(() => stallA(k, /\b(up|higher|rising|rise|climb|climbing|high|top|tops|ceiling|peak|pump|pumping|rally)\b/.test(fixed) ? 1 : /\b(down|lower|falling|fall|drop|dropping|low|bottom|bottoms|floor|dump|dumping)\b/.test(fixed) ? -1 : (typeof Lex !== 'undefined' && Lex.dir(text)) || biasDir(k) || 1));
       case 'tpq': {
@@ -1946,6 +2002,11 @@ const Brain = (() => {
       }
       case 'projects': return wrap(reply(`Your projects:<br>${chips((ctx.projects || []).map((p) => 'open ' + p.name))}`, `You have ${(ctx.projects || []).length} projects: ${(ctx.projects || []).map((p) => p.name).join(', ')}.`));
       default: {
+        if (id && id.startsWith('x:') && typeof Extra !== 'undefined') {
+          const xid = id.slice(2), go = () => { const r = Extra.run(xid, k, text); return r ? wrap(r) : null; };
+          const r = Extra.NEEDS_GOLD.has(xid) && !k.g ? ctx.refresh().then((g) => { k.g = g; return go(); }) : go();
+          if (r) return r;
+        }
         if (id && id.startsWith('life:') && typeof Life !== 'undefined') {
           const r = Life.run(id.slice(5), text, fixed, k, ctx);
           if (r) return r.then ? r.then(wrap) : wrap(r);
@@ -2002,6 +2063,7 @@ const Brain = (() => {
       const S = scoreIntents(concepts(fixed), fixed, /\d/.test(fixed), kk, ctx);
       if (typeof Life !== 'undefined') Object.assign(S, Life.score(t, fixed, S, kk));
       if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(t))) if (v > (S[i] || 0)) S[i] = v;
+      if (typeof Extra !== 'undefined') for (const [i, v] of Object.entries(Extra.score(t))) if (v > (S[i] || 0)) S[i] = v;
       let top = Math.max(0, ...Object.values(S));
       if (top < 3 && bankMatch(fixed)) top = 3;
       const tw = t.split(' ');
