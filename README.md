@@ -193,7 +193,7 @@ Notes:
 - If nothing qualifies, it sits out that day. Ask "how did your trade go today?" and it tells you why it waited.
 - Still at least 40 units, still never moves its stop, still closes its own trade at 4:50 PM.
 
-**Cloud trader (trades while your phone is off).** A copy of the same rules runs on GitHub every 10 minutes, Sunday to Friday. It only reads prices; it never touches your real OANDA account. It saves its paper trades to a small file, and the app copies them into your paper P&L the next time you open it.
+**Cloud trader (trades while your phone is off).** A copy of the same rules runs on GitHub every 5 minutes, Sunday to Friday. It only reads prices; it never touches your real OANDA account. It saves its paper trades to a small file, and the app copies them into your paper P&L the next time you open it.
 - One-time setup on the PC: double-click **Set up cloud trader.bat**. It copies your OANDA key from `.env` into GitHub's encrypted secret storage (never into the code).
 - Until that's done, JARVIS still trades while the app is open, the same valid-only way.
 - GitHub's timer can run a few minutes late, so entries and exits can be a few minutes off.

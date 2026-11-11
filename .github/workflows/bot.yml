@@ -1,4 +1,4 @@
-# JARVIS cloud trader: runs the same trading rules as the app every ~10 minutes, Sunday → Friday,
+# JARVIS cloud trader: runs the same trading rules as the app every ~5 minutes, Sunday → Friday,
 # so JARVIS can take (and manage) its one valid paper trade a day even when your phone is off.
 # It only READS prices from OANDA (key stored as a GitHub secret, never in the code) and writes its
 # paper trades to bot/trades.json on the "bot-data" branch. The app copies them into your paper P&L.
@@ -6,7 +6,7 @@ name: JARVIS cloud trader
 
 on:
   schedule:
-    - cron: '*/10 * * * 0-5'
+    - cron: '*/5 * * * 0-5'
   workflow_dispatch:
 
 permissions:

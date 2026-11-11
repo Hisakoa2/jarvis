@@ -26,7 +26,7 @@ gh secret set OANDA_ENV -R Hisakoa2/jarvis -b "%OENV%" || goto :fail
 echo Starting the cloud trader once so you can see it work...
 gh workflow run bot.yml -R Hisakoa2/jarvis
 echo.
-echo Done! JARVIS's cloud trader is on. It checks the market every 10 minutes.
+echo Done! JARVIS's cloud trader is on. It checks the market every 5 minutes.
 pause
 exit /b 0
 :fail
