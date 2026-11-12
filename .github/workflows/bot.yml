@@ -45,7 +45,7 @@ jobs:
             rm -f /tmp/out.txt
             GITHUB_OUTPUT=/tmp/out.txt node tools/bot-runner.js botdata/bot/trades.json || true
             if grep -q 'changed=1' /tmp/out.txt 2>/dev/null; then
-              (cd botdata && git pull -q --rebase || true; git add bot/trades.json && git commit -q -m "JARVIS cloud trader update" && git push -q) || echo "save failed, will retry"
+              (cd botdata && git add bot/trades.json && git commit -q -m "JARVIS cloud trader update" && { git pull -q --rebase || true; } && git push -q) || echo "save failed, will retry"
             fi
             # stop on Friday after the 5 PM New York close; the Sunday timer restarts it
             d=$(TZ=America/New_York date +%u); h=$(TZ=America/New_York date +%H)

@@ -57,7 +57,9 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
   try { g = await Data.snapshot({ forceCandles: true, sessions }); } catch (e) {
     console.log('Could not get prices:', e.message);
     st.check = { at: now, ok: false, why: 'could not reach OANDA' };
-    writeState(st); out('changed', now - (prev.heartbeat || 0) > 55 * 60e3 || prevCore !== core(st) ? 1 : 0);
+    const changed = now - (prev.heartbeat || 0) > 55 * 60e3 || prevCore !== core(st);
+    if (!changed) st.heartbeat = prev.heartbeat || 0;
+    writeState(st); out('changed', changed ? 1 : 0);
     return;
   }
 
@@ -105,8 +107,10 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
 
   // keep the last 60 trading days
   const ks = Object.keys(st.days).sort(); while (ks.length > 60) delete st.days[ks.shift()];
-  writeState(st);
-  // only commit when something real changed, or hourly so the app knows the cloud trader is alive
+  // only commit when something real changed, or hourly so the app knows the cloud trader is alive.
+  // The heartbeat only moves forward when we actually save, otherwise the hourly save never comes due.
   const changed = prevCore !== core(st) || now - (prev.heartbeat || 0) > 55 * 60e3;
+  if (!changed) st.heartbeat = prev.heartbeat || 0;
+  writeState(st);
   out('changed', changed ? 1 : 0);
 })().catch((e) => { console.error(e); process.exitCode = 1; });
