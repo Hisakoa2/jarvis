@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794471674525,
+ "heartbeat": 1794475017820,
  "check": {
-  "at": 1794463213107,
+  "at": 1794475017820,
   "ok": false,
   "why": "could not reach OANDA"
  },
