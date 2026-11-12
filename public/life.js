@@ -11,6 +11,9 @@ const Life = (() => {
   let st = load();
   function load() { try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && typeof s === 'object') return { ...blank(), ...s, bot: { days: {}, ...(s.bot || {}) } }; } catch {} return blank(); }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch {} }
+  // what was logged last, so "undo that" / "I didn't" / "scratch that" can take it back
+  let lastAction = null;
+  const did = (type, data) => { lastAction = { type, data, at: Date.now() }; };
 
   // ---- small helpers ----------------------------------------------------------------
   const B = () => Brain;
@@ -250,11 +253,21 @@ const Life = (() => {
   // =====================================================================================
   function waterA(k, t) {
     const day = dayKey(k.now, k.tz);
+    // the opposite: "remove a glass", "take off 2 glasses", "I didn't drink that", "reset my water"
+    if (/\b(reset|clear|zero out|start over)\b.*\bwater\b|\bwater\b.*\b(reset|clear)\b/.test(t)) { st.water[day] = 0; save(); return R(`Water reset to <b>0</b> for today${k.t}.`); }
+    if (/\b(remove|undo|delete|take (?:off|away|back)|subtract|minus|less|didnt drink|did not drink|scratch|wrong|too many|mistake)\b/.test(t) && !/\bremind/.test(t)) {
+      const nm = t.match(new RegExp('\\b' + NUMRE + '\\s+(?:glass(?:es)?|cups?|bottles?)'));
+      let n = nm ? num(nm[1]) || 1 : 1;
+      if (/bottle/.test(t)) n *= 2;
+      const before = st.water[day] || 0;
+      st.water[day] = Math.max(0, before - n); save(); did('waterRemove', { day, n: before - st.water[day] });
+      return R(`Took off ${n} glass${n === 1 ? '' : 'es'}${k.t}. 💧 Now <b>${st.water[day]}</b> of ${st.waterGoal} today.`, `Done${k.t}. That's ${st.water[day]} glasses today.`);
+    }
     const g = t.match(/\b(?:goal|target)\b.*?\b(\d{1,2})\b/);
     if (g && /\b(set|change|make|update)\b/.test(t)) { st.waterGoal = +g[1]; save(); return R(`Water goal set to <b>${st.waterGoal} glasses</b> a day${k.t}.`); }
     if (/\b(turn on|enable|start)\b.*\bwater reminders?\b|\bwater reminders? on\b|\bremind me to drink (?:more )?water\b(?!.*\b(in|at)\b)/.test(t)) { st.waterRemind = true; save(); return R(`Water reminders on${k.t}. I'll pop up every 2 hours between 9 AM and 9 PM while the app is open.`, `Water reminders are on${k.t}. Every two hours during the day.`); }
     if (/\b(turn off|disable|stop)\b.*\bwater reminders?\b|\bwater reminders? off\b/.test(t)) { st.waterRemind = false; save(); return R(`Water reminders off${k.t}.`); }
-    const verb = /\b(drank|drink|drinking|had|have had|add|log|logged|finished|chugged|downed|sipped|put down|record|count|track|mark|another|one more)\b/.test(t);
+    const verb = /\b(drank|drink|drinking|had|have had|add|log|logged|finished|chugged|downed|sipped|put down|record|count|track|mark|another|one more)\b/.test(t) && !/\b(remove|take off|take away|subtract|minus|delete|undo)\b/.test(t);
     const unitM = t.match(new RegExp('(?:\\b' + NUMRE + '\\s+)?(?:(?:more|full|big|small|whole|large)\\s+)?(glass(?:es)?|cups?|bottles?|ounces?|oz|liters?|litres?|gallons?)\\b'));
     const question = /\b(how much|how many|did i|have i)\b/.test(t) && !/\b(log|add)\b/.test(t);
     if (verb && (/\bwater\b/.test(t) || unitM) && !question && !/\b(coffee|tea|soda|beer|wine|juice|milk)\b/.test(t)) {
@@ -262,7 +275,7 @@ const Life = (() => {
       const u = (unitM && unitM[2]) || 'glass';
       if (/bottle/.test(u)) n *= 2; else if (/ounce|oz/.test(u)) n = n / 8; else if (/lit/.test(u)) n *= 4;
       n = Math.round(n * 2) / 2;
-      st.water[day] = (st.water[day] || 0) + n;
+      st.water[day] = (st.water[day] || 0) + n; did('water', { day, n });
       const ks = Object.keys(st.water).sort(); while (ks.length > 60) delete st.water[ks.shift()];
       save();
       const have = st.water[day], left = st.waterGoal - have;
@@ -317,8 +330,13 @@ const Life = (() => {
       return R(`Stopped tracking <b>${esc(h.name)}</b>${k.t}.`);
     }
     const h = habitFind(t);
+    if (h && /\b(didnt|did not|havent|have not|hasnt|not done|uncheck|unmark|undo|skip|skipped|missed|never did|forgot to|wasnt able to|couldnt)\b/.test(t)) {
+      const was = h.days.includes(day);
+      h.days = h.days.filter((d) => d !== day); save();
+      return R(was ? `Unchecked <b>${esc(h.name)}</b> for today${k.t}. No worries — there's still time.` : `<b>${esc(cap(h.name))}</b> isn't marked for today${k.t}. Still time to get it in.`, was ? `Unchecked ${h.name} for today${k.t}.` : `${h.name} isn't done yet today${k.t}. Still time.`);
+    }
     if (h && !/\b(my habits|habits|streaks?|how many|did i|have i)\b/.test(t)) {
-      if (!h.days.includes(day)) { h.days.push(day); h.days = h.days.slice(-400); save(); }
+      if (!h.days.includes(day)) { h.days.push(day); h.days = h.days.slice(-400); save(); did('habit', { name: h.name, day }); }
       const s = streak(h, k);
       return R(`✅ <b>${esc(cap(h.name))}</b> done for today${k.t}. Streak: <b>${s} day${s === 1 ? '' : 's'}</b>.${s >= 7 ? ' 🔥 Keep it rolling.' : ''}`, `Nice${k.t}. ${h.name} is done for today. That's a ${s} day streak.`);
     }
@@ -505,13 +523,29 @@ const Life = (() => {
       st.budgets[cat] = +bm[2]; save();
       return R(`${cat === 'total' ? 'Monthly budget' : cap(cat) + ' budget'} set to <b>${usd(+bm[2])}</b> a month${k.t}. I'll tell you how much is left whenever you log spending.`, `${cat === 'total' ? 'Monthly' : cap(cat)} budget set to ${sayUsd(+bm[2])} a month${k.t}.`);
     }
+    // remove a budget: "remove my food budget", "delete all budgets"
+    if (/\b(remove|delete|clear|cancel|drop|get rid of|turn off|no more)\b/.test(t) && /\bbudgets?\b/.test(t)) {
+      if (/\b(all|every|budgets)\b/.test(t)) { const n = Object.keys(st.budgets).length; st.budgets = {}; save(); return R(`Removed ${n ? 'all ' + n : 'all'} budgets${k.t}.`); }
+      const c = Object.keys(st.budgets).find((x) => t.includes(x)) || (/\b(monthly|total|overall)\b/.test(t) ? 'total' : null);
+      if (c && st.budgets[c] != null) { delete st.budgets[c]; save(); return R(`Removed your ${c === 'total' ? 'monthly' : c} budget${k.t}.`); }
+      return R(`I don't see that budget${k.t}.${Object.keys(st.budgets).length ? ' You have: ' + Object.keys(st.budgets).join(', ') + '.' : ''}`);
+    }
+    // remove one expense: "delete the lunch expense", "remove the 25 dollar one", "I didn't spend that"
+    const dm = t.match(/\b(?:delete|remove|erase|take off|cancel|scratch)\s+(?:the\s+|my\s+|that\s+)?(?:\$?(\d+(?:\.\d+)?)\s*(?:dollars?|bucks)?\s*)?(.*?)\s*(?:expense|purchase|entry|charge|one|spending)?$/);
+    if (dm && /\b(expense|purchase|entry|charge|spent|spending|dollar|bucks|\d)\b/.test(t) && !/\b(last|previous|subscription|budget)\b/.test(t)) {
+      const amt = dm[1] ? +dm[1] : null, q = (dm[2] || '').replace(/\b(the|on|for|at|i|my|expense|dollar|dollars|bucks)\b/g, ' ').trim();
+      const idx = st.money.map((x, i) => [x, i]).reverse().find(([x]) => (amt == null || Math.abs(x.amt - amt) < 0.01) && (!q || x.what.includes(q) || q.includes(x.what) || (x.cat || '') === q));
+      if (!idx) return R(`I couldn't find that expense${k.t}. Say “show my spending” to see the list.`);
+      st.money.splice(idx[1], 1); save();
+      return R(`Removed ${usd(idx[0].amt)} on ${esc(idx[0].what)}${k.t}.`);
+    }
     // undo / remove
     if (/\b(undo|delete|remove|scratch|take back|cancel)\b.*\b(last|that|previous)\b/.test(t) && !/\b(subscription|sub)\b/.test(t) && st.money.length) { const x = st.money.pop(); save(); return R(`Removed ${usd(x.amt)} on ${esc(x.what)}${k.t}.`); }
     // logging
     const sp = parseSpend(t);
     if (sp && !/\bhow much\b|\bdid i\b/.test(t)) {
       const cat = catOf(sp.what);
-      st.money.push({ amt: sp.amt, what: sp.what, cat, at: k.now }); st.money = st.money.slice(-2000); save();
+      st.money.push({ amt: sp.amt, what: sp.what, cat, at: k.now }); st.money = st.money.slice(-2000); save(); did('money', {});
       const p = Sessions.parts(new Date(k.now), k.tz), m0 = Sessions.zonedToUtc(p.y, p.m, 1, 0, 0, k.tz);
       const month = st.money.filter((x) => x.at >= m0), mt = month.reduce((a, x) => a + x.amt, 0), ct = month.filter((x) => (x.cat || catOf(x.what)) === cat).reduce((a, x) => a + x.amt, 0);
       let bl = '';
@@ -552,6 +586,7 @@ const Life = (() => {
   // "add netflix 15.99 a month on the 5th", "I pay 10 for spotify every month", "rent is 1200 due on the 1st"
   const ORD = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
   function nextDue(sub, k) {
+    if (sub.first && sub.first >= startOf(k.now, k.tz, 0)) return sub.first;
     const p = Sessions.parts(new Date(k.now), k.tz);
     if (sub.period === 'year' && sub.month) { let y = p.y; let d = Sessions.zonedToUtc(y, sub.month, sub.day || 1, 9, 0, k.tz); if (d < startOf(k.now, k.tz, 0)) d = Sessions.zonedToUtc(y + 1, sub.month, sub.day || 1, 9, 0, k.tz); return d; }
     if (sub.period === 'week' && sub.wd != null) { const wd = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay(); const add = (sub.wd - wd + 7) % 7; return startOf(k.now, k.tz, 0) + add * 864e5 + 9 * 3600e3; }
@@ -560,7 +595,7 @@ const Life = (() => {
     if (p.d > dd) { m++; if (m > 12) { m = 1; y++; } }
     return Sessions.zonedToUtc(y, m, Math.min(dd, dim(y, m)), 9, 0, k.tz);
   }
-  const monthly = (x) => (x.period === 'year' ? x.amt / 12 : x.period === 'week' ? x.amt * 52 / 12 : x.amt);
+  const monthly = (x) => { const a = x.amt || 0; return x.period === 'year' ? a / 12 : x.period === 'week' ? a * 52 / 12 : a; };
   const WDN = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const MON = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
   function subsA(k, t) {
@@ -573,39 +608,73 @@ const Life = (() => {
       const x = st.subs.find((y) => y.name.includes(q) || q.includes(y.name));
       if (x) { st.subs = st.subs.filter((y) => y !== x); save(); return R(`Removed <b>${esc(cap(x.name))}</b>${k.t}. That saves you ${usd(monthly(x))} a month.`, `Removed ${x.name}. That saves ${sayUsd(monthly(x))} a month${k.t}.`); }
     }
-    // add
-    const amtM = t.match(/\$?\s*(\d+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?)?/);
-    const isAdd = amtM && (/\b(add|new|track|i pay|i have|pay|costs?|is|subscription|sub|bill|due|every|a month|monthly|per month|a year|yearly|per year|annual|weekly|a week)\b/.test(t)) && !/\bhow much\b|\b(spent|dropped)\b/.test(t);
-    if (isAdd) {
-      let name = t.replace(/\$?\s*\d+(?:\.\d{1,2})?\s*(?:dollars?|bucks?)?/g, ' ')
-        .replace(/\b(add|new|track|a|an|the|my|i|pay|paying|have|has|is|are|costs?|for|subscription|subscriptions|sub|bill|bills|membership|due|on|every|each|month|months|monthly|per|year|yearly|annual|annually|week|weekly|a month|the \d+\w*|st|nd|rd|th|of|it|to|that|which|renews|charges|me|day|\d+)\b/g, ' ')
-        .replace(new RegExp('\\b(' + WDN.join('|') + '|' + MON.join('|') + ')\\b', 'g'), ' ').replace(/\s+/g, ' ').trim();
-      if (!name) name = 'subscription';
-      const period = /\b(year|yearly|annual|annually)\b/.test(t) ? 'year' : /\b(week|weekly)\b/.test(t) ? 'week' : 'month';
-      const dm = t.match(/\b(?:on|the)\s+(?:the\s+)?(\d{1,2})(?:st|nd|rd|th)?\b/) || t.match(/\b(\d{1,2})(?:st|nd|rd|th)\b/);
-      const wdM = t.match(new RegExp('\\b(' + WDN.join('|') + ')s?\\b')), monM = t.match(new RegExp('\\b(' + MON.join('|') + ')\\b'));
-      const sub = { name, amt: +amtM[1], period, day: dm ? Math.min(31, +dm[1]) : Sessions.parts(new Date(k.now), k.tz).d, wd: wdM ? WDN.indexOf(wdM[1]) : null, month: monM ? MON.indexOf(monM[1]) + 1 : null, bill: /\b(rent|bill|insurance|loan|payment|electric|internet|phone)\b/.test(t) || /\bbill\b/.test(t) };
-      if (period === 'year' && !sub.month) sub.month = Sessions.parts(new Date(k.now), k.tz).m;
-      const old = st.subs.find((y) => y.name === name);
+    // remove ALL: "remove subscriptions", "delete all my subscriptions", "clear my bills"
+    if (/\b(remove|delete|clear|cancel|wipe|erase|reset|get rid of)\b/.test(t) && /\b(all|every|everything|subscriptions|subs|bills)\b/.test(t) && !st.subs.some((y) => t.includes(y.name))) {
+      const n = st.subs.length; st.subs = []; save();
+      return R(n ? `Removed all ${n} subscriptions and bills${k.t}.` : `You didn't have any subscriptions saved${k.t}.`, n ? `Removed all ${n} subscriptions and bills${k.t}.` : `You didn't have any saved${k.t}.`);
+    }
+    // read the message: name, amount, how often, which day
+    const dateWords = new RegExp('\\b(?:' + MON.join('|') + ')\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b|\\b(\\d{1,2})(?:st|nd|rd|th)\\b(?:\\s+of\\s+(?:' + MON.join('|') + '))?|\\b(?:on|the)\\s+(?:the\\s+)?(\\d{1,2})(?:st|nd|rd|th)?\\b|\\b(\\d{1,2})\\s*/\\s*(\\d{1,2})\\b', 'g');
+    let dayN = null, monN = null;
+    const noDates = t.replace(dateWords, (m0, a1, a2, a3, a4, a5) => {
+      const mm = m0.match(new RegExp('\\b(' + MON.join('|') + ')\\b'));
+      if (mm) monN = MON.indexOf(mm[1]) + 1;
+      if (a4) { monN = +a4; dayN = +a5; } else dayN = +(a1 || a2 || a3);
+      return ' ';
+    });
+    const amtRx = /\$\s*(\d+(?:\.\d{1,2})?)|\b(\d+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?|usd)\b|\b(?:for|is|costs?|at|of|pay|paying|now|to|up to|down to|charges?)\s+\$?(\d+(?:\.\d{1,2})?)\b(?!\s*(?:st|nd|rd|th|minutes?|hours?|days?))|\b(\d+\.\d{2})\b|\b(\d+(?:\.\d{1,2})?)\s+(?:a|per|every|each)\s+(?:month|year|week)\b/;
+    const am = noDates.match(amtRx);
+    const amount = am ? +(am[1] || am[2] || am[3] || am[4] || am[5]) : null;
+    const period = /\b(year|yearly|annual|annually)\b/.test(t) ? 'year' : /\b(week|weekly)\b/.test(t) ? 'week' : 'month';
+    const wdM = t.match(new RegExp('\\b(' + WDN.join('|') + ')s?\\b'));
+    // the name: words after "for" (when they aren't a number), else what's left after removing filler
+    const FILL = /\b(add|new|track|set|save|put|a|an|the|my|i|me|pay|paying|paid|have|has|is|are|its|it|was|costs?|cost|for|subscription|subscriptions|sub|subs|bill|bills|membership|due|on|every|each|month|months|monthly|per|year|years|yearly|annual|annually|week|weeks|weekly|of|to|that|which|renews|renew|charges?|charged|day|dollars?|bucks|usd|now|up|down|went|goes|change|changed|update|updated|price|plan|payment|comes out|come out|will|be|next|this|in|at|and|so|um|uh|ok|okay|please|jarvis)\b/g;
+    const forM = noDates.match(/\bfor\s+([a-z][a-z ]*?)(?:\s+(?:subscription|membership|bill|plan))?\s*$/);
+    const known = st.subs.find((y) => new RegExp('\\b' + y.name + '\\b').test(t));
+    let name = known ? known.name : forM && !/^\d/.test(forM[1]) ? forM[1].replace(FILL, ' ').replace(/\s+/g, ' ').trim() : '';
+    if (!name) name = noDates.replace(/\$?\s*\d+(?:\.\d{1,2})?/g, ' ').replace(FILL, ' ').replace(new RegExp('\\b(' + WDN.join('|') + '|' + MON.join('|') + ')s?\\b', 'g'), ' ').replace(/\s+/g, ' ').trim();
+    // speech-to-text mishearings of common services
+    const FIX = { cloud: 'claude', clod: 'claude', 'cloud ai': 'claude', 'clawed': 'claude', 'chat gpt': 'chatgpt', 'chat gbt': 'chatgpt', 'net flicks': 'netflix', 'spot if i': 'spotify', 'spotty fi': 'spotify', 'you tube': 'youtube', 'hue lou': 'hulu', 'trading few': 'tradingview', 'trading view': 'tradingview', 'x box': 'xbox', 'ps plus': 'playstation plus' };
+    if (/\bclaude\b/.test(name) && /\bcloud\b/.test(name)) name = 'claude';
+    for (const [w, to] of Object.entries(FIX)) if (name === w || name.startsWith(w + ' ') || name.endsWith(' ' + w)) name = to;
+    name = name.split(' ').slice(0, 3).join(' ');
+    const wantsSave = amount != null || dayN != null || /\b(add|new|track|subscription|membership|bill|due|every|monthly|a month|yearly|weekly|i pay|renews)\b/.test(t);
+    const isQuestion = /^(when|how much|what|which|is|do|does|did)\b/.test(t.trim()) || /\bhow much\b/.test(t);
+    if (wantsSave && !isQuestion && name && !/\b(spent|dropped)\b/.test(t)) {
+      const old = known || st.subs.find((y) => y.name === name);
+      const sub = old ? { ...old } : { name, amt: null, period, day: null, wd: null, month: null };
+      if (amount != null) sub.amt = amount;
+      if (dayN != null) sub.day = Math.min(31, dayN);
+      if (monN != null && period === 'year') sub.month = monN;
+      if (!old || /\b(year|yearly|annual|week|weekly|month|monthly)\b/.test(t)) sub.period = period;
+      if (wdM) sub.wd = WDN.indexOf(wdM[1]);
+      if (sub.day == null) sub.day = Sessions.parts(new Date(k.now), k.tz).d;
+      if (sub.period === 'year' && !sub.month) sub.month = monN || Sessions.parts(new Date(k.now), k.tz).m;
+      // a specific first date ("due December 1st"): if it's further out than the normal next date, use it
+      sub.first = monN != null && dayN != null ? (() => { const p = Sessions.parts(new Date(k.now), k.tz); let y = p.y; let d = Sessions.zonedToUtc(y, monN, dayN, 9, 0, k.tz); if (d < startOf(k.now, k.tz, 0)) d = Sessions.zonedToUtc(y + 1, monN, dayN, 9, 0, k.tz); return d; })() : sub.first || null;
+      sub.bill = /\b(rent|bill|insurance|loan|payment|electric|internet|phone|car note|mortgage)\b/.test(t) || !!sub.bill;
       if (old) Object.assign(old, sub); else st.subs.push(sub);
-      save();
+      save(); did('sub', { name: sub.name, old: old ? { ...old } : null });
       const nd = nextDue(sub, k);
-      const tot = st.subs.reduce((a, x) => a + monthly(x), 0);
-      return R(`${old ? 'Updated' : 'Added'} <b>${esc(cap(name))}</b>: ${usd(sub.amt)} ${period === 'month' ? `a month, on the ${ORD(sub.day)}` : period === 'year' ? 'a year' : `a week${sub.wd != null ? ' on ' + cap(WDN[sub.wd]) + 's' : ''}`}${k.t}. Next: <b>${when(nd)}</b>. I'll remind you the day before.<br><span class="dim">All subscriptions & bills: ${usd(tot)} a month (${usd(tot * 12)} a year).</span>`,
-        `${old ? 'Updated' : 'Added'} ${name}, ${sayUsd(sub.amt)} a ${period}${k.t}. Next one is ${when(nd)}. I'll remind you the day before.`);
+      const tot = st.subs.reduce((acc, x) => acc + monthly(x), 0);
+      const how = sub.period === 'month' ? `a month, on the ${ORD(sub.day)}` : sub.period === 'year' ? 'a year' : `a week${sub.wd != null ? ' on ' + cap(WDN[sub.wd]) + 's' : ''}`;
+      const price = sub.amt != null ? `${usd(sub.amt)} ${how}` : `${how} — <span class="warn">how much is it?</span> Say “${esc(cap(sub.name))} is 20 dollars”`;
+      const priceS = sub.amt != null ? `${sayUsd(sub.amt)} ${how}.` : `${how}. How much is it?`;
+      return R(`${old ? 'Updated' : 'Saved'} <b>${esc(cap(sub.name))}</b>: ${price}${k.t}. Next due: <b>${when(nd)}</b>. I'll remind you the day before.<br><span class="dim">All subscriptions & bills: ${usd(tot)} a month. Fix anything in Settings → Subscriptions.</span>`,
+        `${old ? 'Updated' : 'Saved'} ${sub.name}${k.t}. ${cap(priceS)} Next due ${when(nd)}.`);
     }
     if (!st.subs.length) return R(`No subscriptions or bills saved yet${k.t}. Say “add Netflix 15.99 a month on the 5th” or “rent is 1200 due on the 1st”.`);
     const L = st.subs.map((x) => ({ ...x, nd: nextDue(x, k) })).sort((a, b) => a.nd - b.nd);
     const tot = L.reduce((a, x) => a + monthly(x), 0);
     const q = t.match(/\b(?:when is|when's|how much is|how much do i pay for|when do i pay)\s+(?:my\s+|the\s+)?(.+?)(?:\s+(?:due|bill|subscription))?$/);
     const one = q && L.find((x) => q[1].includes(x.name) || x.name.includes(q[1].trim()));
-    if (one) return R(`<b>${esc(cap(one.name))}</b>: ${usd(one.amt)} a ${one.period}, next on <b>${when(one.nd)}</b> (${daysTo(one.nd) === 0 ? 'today' : daysTo(one.nd) === 1 ? 'tomorrow' : 'in ' + daysTo(one.nd) + ' days'})${k.t}.`, `${one.name} is ${sayUsd(one.amt)}, next on ${when(one.nd)}${k.t}.`);
+    if (one) return R(`<b>${esc(cap(one.name))}</b>: ${one.amt != null ? usd(one.amt) : 'amount not set'} a ${one.period}, next on <b>${when(one.nd)}</b> (${daysTo(one.nd) === 0 ? 'today' : daysTo(one.nd) === 1 ? 'tomorrow' : 'in ' + daysTo(one.nd) + ' days'})${k.t}.`, `${one.name} is ${one.amt != null ? sayUsd(one.amt) : 'not priced yet'}, next on ${when(one.nd)}${k.t}.`);
     if (/\b(next|coming up|due soon|this week|upcoming)\b/.test(t)) {
       const soon = L.filter((x) => daysTo(x.nd) <= 7);
       if (!soon.length) return R(`Nothing due in the next 7 days${k.t}. Next up: ${esc(cap(L[0].name))} on ${when(L[0].nd)}.`);
-      return R(`Due in the next 7 days${k.t}:<ul>${soon.map((x) => `<li>${when(x.nd)} · <b>${esc(cap(x.name))}</b> · ${usd(x.amt)}</li>`).join('')}</ul>Total ${usd(soon.reduce((a, x) => a + x.amt, 0))}.`, `${soon.length} due this week${k.t}: ${soon.map((x) => x.name).join(', ')}.`);
+      return R(`Due in the next 7 days${k.t}:<ul>${soon.map((x) => `<li>${when(x.nd)} · <b>${esc(cap(x.name))}</b> · ${x.amt != null ? usd(x.amt) : '$?'}</li>`).join('')}</ul>Total ${usd(soon.reduce((a, x) => a + (x.amt || 0), 0))}.`, `${soon.length} due this week${k.t}: ${soon.map((x) => x.name).join(', ')}.`);
     }
-    return R(`Your subscriptions & bills${k.t} — <b>${usd(tot)} a month</b> (${usd(tot * 12)} a year):<ul>${L.map((x) => `<li><b>${esc(cap(x.name))}</b> · ${usd(x.amt)}/${x.period === 'month' ? 'mo' : x.period === 'year' ? 'yr' : 'wk'} · next ${when(x.nd)}</li>`).join('')}</ul>`,
+    return R(`Your subscriptions & bills${k.t} — <b>${usd(tot)} a month</b> (${usd(tot * 12)} a year):<ul>${L.map((x) => `<li><b>${esc(cap(x.name))}</b> · ${x.amt != null ? usd(x.amt) : '$?'}/${x.period === 'month' ? 'mo' : x.period === 'year' ? 'yr' : 'wk'} · next ${when(x.nd)}</li>`).join('')}</ul>`,
       `You have ${L.length} subscriptions and bills${k.t}, ${sayUsd(tot)} a month. Next up is ${L[0].name} on ${when(L[0].nd)}.`);
   }
 
@@ -615,23 +684,38 @@ const Life = (() => {
   function todoA(k, t) {
     const add = t.match(/^(?:please\s+)?(?:add|put|write down|note down|stick)\s+(.+?)\s+(?:to|on|in)\s+(?:my|the)\s+(?:to ?do(?: list)?|list|todos?|tasks?)$/) || t.match(/^(?:new\s+)?(?:to ?do|task)[: ]\s*(.+)$/) || t.match(/\b(?:add|put) (?:a )?(?:task|to ?do)\s+(?:to\s+)?(.+)$/);
     if (add) {
-      const items = add[1].split(/\s*,\s*|\s+and\s+/).map((x) => me2you(x.replace(/^(?:to\s+)/, '').trim())).filter(Boolean);
+      // typed commas survive in k.raw; spoken lists have none, so "milk eggs and bread" is split on known item words
+      const rawSeg = (k.raw || '').match(/(?:add|put|write down|note down|stick)\s+(.+?)\s+(?:to|on|in)\s+(?:my|the)\s+/);
+      const src = rawSeg && rawSeg[1].includes(',') ? rawSeg[1] : add[1];
+      const ITEMS = /^(milk|eggs?|bread|butter|cheese|chicken|beef|steak|rice|pasta|beans|bananas?|apples?|oranges?|grapes|berries|strawberries|lettuce|tomatoes|onions?|potatoes|carrots|spinach|water|juice|coffee|tea|sugar|salt|pepper|flour|cereal|oats|yogurt|ham|turkey|bacon|sausage|fish|salmon|tuna|shrimp|soap|shampoo|conditioner|toothpaste|deodorant|toilet paper|paper towels|napkins|trash bags|detergent|bleach|batteries|chips|cookies|snacks|soda|gatorade|protein|vitamins|ice|ketchup|mustard|mayo|sauce|oil|garlic|avocados?|lemons?|limes?|peppers|corn|tortillas|buns|wings|pizza|gum|candy)$/;
+      let items = src.split(/\s*,\s*|\s+and\s+|\s+plus\s+/).map((x) => x.replace(/[^a-z0-9' ]/g, ' ').replace(/\s+/g, ' ').replace(/^(?:to\s+|some\s+|a\s+|an\s+|the\s+)/, '').trim()).filter(Boolean);
+      items = items.flatMap((x) => { const w = x.split(' '); return w.length > 1 && w.every((y) => ITEMS.test(y)) ? w : [x]; }).map((x) => me2you(x));
       items.forEach((text) => st.todos.push({ text, done: false, at: k.now }));
       save();
       return R(`Added to your list${k.t}: <b>${items.map(esc).join('</b>, <b>')}</b>. ${st.todos.filter((x) => !x.done).length} things on it now.`, `Added ${items.join(' and ')} to your list${k.t}.`);
     }
     if (/\b(clear|empty|wipe|delete)\b.*\b(list|to ?dos?|tasks)\b/.test(t)) { const n = st.todos.length; st.todos = /\b(done|finished|completed|checked)\b/.test(t) ? st.todos.filter((x) => !x.done) : []; save(); return R(`List cleared${k.t}. (${n - st.todos.length} removed)`); }
-    const done = t.match(/\b(?:check off|cross off|tick off|mark|done with|finished|completed|did|remove|delete|take)\s+(?:the\s+|my\s+)?(.+?)(?:\s+(?:as done|off (?:my|the) list|from (?:my|the) list|done|off))?$/);
+    const done = t.match(/\b(?:check off|cross off|tick off|mark|done with|finished|completed|did|remove|delete|erase|drop|take|got|bought|grabbed|picked up|handled|called|paid)\s+(?:the\s+|my\s+|some\s+)?(.+?)(?:\s+(?:as done|off (?:my|the) list|from (?:my|the) list|done|off))?$/);
     if (done && /\b(list|to ?do|task|check off|cross off|tick off|mark)\b/.test(t) || done && st.todos.some((x) => !x.done && x.text.includes(done[1].replace(/^(?:item|number)\s+/, '')))) {
       const q = done[1].replace(/\s+(?:on|from|off)\s+(?:my|the)\s+.*$/, '').replace(/^(?:item|number)\s+/, '').trim();
       const open = st.todos.filter((x) => !x.done);
       const it = /^\d+$/.test(q) ? open[+q - 1] : open.find((x) => x.text.includes(q) || q.includes(x.text)) || open.find((x) => q.split(' ').some((w) => w.length > 3 && x.text.includes(w)));
       if (!it) return R(`I couldn't find “${esc(q)}” on your list${k.t}.`);
-      if (/\b(remove|delete|take)\b/.test(t)) st.todos = st.todos.filter((x) => x !== it); else { it.done = true; it.doneAt = k.now; }
+      const removing = /\b(remove|delete|take|erase|drop|get rid of)\b/.test(t);
+      if (removing) st.todos = st.todos.filter((x) => x !== it); else { it.done = true; it.doneAt = k.now; did('todo', { text: it.text }); }
       st.todos = st.todos.filter((x) => !x.done || k.now - (x.doneAt || 0) < 3 * 864e5);
       save();
       const left = st.todos.filter((x) => !x.done).length;
+      if (removing) return R(`Removed <b>${esc(it.text)}</b> from your list${k.t}. ${left ? `${left} left.` : 'List is clear.'}`, `Removed ${it.text}${k.t}. ${left ? left + ' left.' : 'Your list is clear.'}`);
       return R(`✅ <b>${esc(cap(it.text))}</b> — done${k.t}. ${left ? `${left} left.` : 'List is clear! 🎉'}`, `${cap(it.text)}, done${k.t}. ${left ? left + ' left.' : 'Your list is clear.'}`);
+    }
+    // the opposite of done: "uncheck eggs", "eggs isn't done", "put eggs back"
+    const un = t.match(/\b(?:uncheck|unmark|untick|undo|put back|bring back|not done with|isnt done|is not done|reopen)\s+(?:the\s+|my\s+)?(.+?)(?:\s+(?:on|to|back on)\s+(?:my|the)\s+list)?$/) || t.match(/^(.+?)\s+(?:isnt|is not|wasnt|was not)\s+done$/);
+    if (un) {
+      const q = un[1].trim(), it = st.todos.filter((x) => x.done).reverse().find((x) => x.text.includes(q) || q.includes(x.text));
+      if (!it) return R(`I don't see a finished “${esc(q)}” on your list${k.t}.`);
+      it.done = false; delete it.doneAt; save();
+      return R(`Put <b>${esc(it.text)}</b> back on your list${k.t}.`);
     }
     const open = st.todos.filter((x) => !x.done);
     if (!open.length) return R(`Your to-do list is empty${k.t}. Say “add groceries to my list”.`);
@@ -754,6 +838,19 @@ const Life = (() => {
   }
 
   // Things that pop up while the app is open: finished timers, water reminders
+  // "undo that", "scratch that", "I didn't", "that was wrong" → take back the last thing logged (within 10 minutes)
+  function undoA(k) {
+    const a = lastAction;
+    if (!a || Date.now() - a.at > 10 * 60e3) return R(`There's nothing recent to undo${k.t}.`);
+    lastAction = null;
+    if (a.type === 'water') { st.water[a.data.day] = Math.max(0, (st.water[a.data.day] || 0) - a.data.n); save(); return R(`Undone — took off ${a.data.n} glass${a.data.n === 1 ? '' : 'es'}${k.t}. Now ${st.water[a.data.day]} today.`); }
+    if (a.type === 'waterRemove') { st.water[a.data.day] = (st.water[a.data.day] || 0) + a.data.n; save(); return R(`Undone — put back ${a.data.n} glass${a.data.n === 1 ? '' : 'es'}${k.t}. Now ${st.water[a.data.day]} today.`); }
+    if (a.type === 'habit') { const h = st.habits.find((x) => x.name === a.data.name); if (h) { h.days = h.days.filter((d) => d !== a.data.day); save(); } return R(`Undone — unchecked ${esc(a.data.name)}${k.t}.`); }
+    if (a.type === 'money') { const x = st.money.pop(); save(); return R(x ? `Undone — removed ${usd(x.amt)} on ${esc(x.what)}${k.t}.` : `Nothing to undo${k.t}.`); }
+    if (a.type === 'todo') { const it = st.todos.find((x) => x.text === a.data.text && x.done); if (it) { it.done = false; save(); } return R(`Undone — ${esc(a.data.text)} is back on your list${k.t}.`); }
+    if (a.type === 'sub') { if (a.data.old) { const i = st.subs.findIndex((x) => x.name === a.data.name); if (i >= 0) st.subs[i] = a.data.old; } else st.subs = st.subs.filter((x) => x.name !== a.data.name); save(); return R(`Undone — ${a.data.old ? 'put ' + esc(a.data.name) + ' back how it was' : 'removed ' + esc(a.data.name)}${k.t}.`); }
+    return R(`Undone${k.t}.`);
+  }
   function due(now, tz) {
     const out = [];
     const done = st.timers.filter((x) => x.end <= now);
@@ -768,7 +865,7 @@ const Life = (() => {
         if (st.subPops[key]) continue;
         st.subPops[key] = now; const pk = Object.keys(st.subPops); while (pk.length > 60) delete st.subPops[pk.shift()];
         save();
-        out.push({ key: 'sub-' + key, text: `💳 ${cap(x.name)} — ${usd(x.amt)} ${days === 0 ? 'is due today' : 'is due tomorrow'}.`, say: `Heads up, ${x.name}, ${sayUsd(x.amt)}, is due ${days === 0 ? 'today' : 'tomorrow'}.` });
+        out.push({ key: 'sub-' + key, text: `💳 ${cap(x.name)}${x.amt != null ? ' — ' + usd(x.amt) : ''} ${days === 0 ? 'is due today' : 'is due tomorrow'}.`, say: `Heads up, ${x.name}${x.amt != null ? ', ' + sayUsd(x.amt) + ',' : ''} is due ${days === 0 ? 'today' : 'tomorrow'}.` });
       }
     }
     if (st.waterRemind) {
@@ -1024,7 +1121,13 @@ const Life = (() => {
     // countdowns
     if (/\bcount ?downs?\b/.test(t) && !/\btimer\b/.test(t)) set('countdown', 9.3);
     if (/\b(how many|how long) (days|weeks|until|till|til|before)\b.*\b(until|till|til|to|before)\b|\bdays (until|till|til|left until)\b/.test(t)) set('countdown', 9.2);
+    // a subscription you already saved, by name: "claude is 20 dollars", "when is netflix due", "netflix went up"
+    if (st.subs.some((x) => new RegExp('\\b' + x.name + '\\b').test(t)) && !/\b(spent|dropped|bought)\b/.test(t)) set('subs', 9.95);
+    // an item already on your list: "done with eggs", "uncheck eggs", "remove eggs"
+    if (st.todos.some((x) => x.text.length > 2 && t.includes(x.text)) && /\b(done|finished|got|bought|check|cross|tick|uncheck|unmark|untick|remove|delete|erase|drop|put back|not done|complete|completed)\b/.test(t)) set('todo', 9.9);
     // memory
+    if (/\bforget\b/.test(t) && st.memory.length && !/\bshortcut\b/.test(t)) set('memory', 9.65);
+    if (/\b(undo|scratch that|take that back|never ?mind that|that was wrong|that'?s wrong|i didn'?t|i did not)\b/.test(t) && lastAction && Date.now() - lastAction.at < 10 * 60e3 && t.trim().split(' ').length <= 6 && !/\b(drink|read|work|spend|spent|habit|glass|water)\b/.test(t)) set('undo', 9.9);
     if (/^\s*(please )?(remember|note|keep in mind)\b(?! to\b)/.test(t) && !/\bremember when\b/.test(t)) set('memory', 9.7);
     if (/\bwhat('?s| is| was) my\b|\bwhat did i (tell|say)\b|\bdo you remember\b|\bwhat do you (remember|know about me)\b|\bforget (that|about)\b|\bwhere('?s| is| did i)\b.*\bmy\b/.test(t) && st.memory.length) {
       const words = kw(t);
@@ -1076,6 +1179,7 @@ const Life = (() => {
       case 'sleep': return sleepA(k, t) || R(`Morning${k.t}!`);
       case 'money': return moneyA(k, t);
       case 'subs': return subsA(k, t);
+      case 'undo': return undoA(k);
       case 'todo': return todoA(k, t);
       case 'countdown': return countdownA(k, t);
       case 'memory': return memoryA(k, t, text) || R(`I don't remember anything about that${k.t}. Say “remember …” to teach me.`);
@@ -1093,5 +1197,8 @@ const Life = (() => {
     return null;
   }
 
-  return { score, run, due, greetLine, botTick, botCatchUp, cloudSync, cloudInfo: () => ({ ...cloud }), botStatus, tradeDay, state: () => st, reload: () => { st = load(); } };
+  const subsList = () => st.subs.map((x) => ({ ...x }));
+  function removeSub(name) { st.subs = st.subs.filter((x) => x.name !== name); save(); }
+  function clearSubs() { st.subs = []; save(); }
+  return { subsList, removeSub, clearSubs, score, run, due, greetLine, botTick, botCatchUp, cloudSync, cloudInfo: () => ({ ...cloud }), botStatus, tradeDay, state: () => st, reload: () => { st = load(); } };
 })();

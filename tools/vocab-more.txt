@@ -64,3 +64,55 @@ x:about|{who are you|what's your name|are you ai|who made you}
 x:well|{i can't sleep|help me relax|i can't focus}
 x:chat|{i'm going to the gym|i'm home|wish me luck|i got paid|i passed my challenge|i'm about to trade|cheer me up|talk to me|i'm heading out}
 x:chat|do you like {music|pizza|football|trading}
+# ---- opposites & alternates (v12 audit)
+life:water|{remove|take off|delete|subtract} {a|one|two|2} {glass|glasses|cup} {of water|}
+life:water|{i didn't drink|i did not drink} {that|that glass|a glass} {of water|}
+life:water|{reset|clear} my water {for today|}
+life:water|{turn off|stop|disable} water reminders
+life:water|{turn on|start|enable} water reminders
+life:water|{set|change} my water goal to {6|10|12}
+life:habit|{remove|delete|stop tracking} {the |my |}{reading|workout|meditate} habit
+life:habit|{stop tracking|quit tracking} {reading|workout}
+life:habit|i {didn't|did not|haven't} {work out|read|meditate} today
+life:habit|{uncheck|unmark} {workout|reading} {for today|}
+life:todo|{uncheck|unmark|put back} {eggs|milk} {on my list|}
+life:todo|{remove|delete|take} {eggs|milk} {from|off} my list
+life:todo|{clear|empty|wipe} my {list|to do list}
+life:todo|{check off|cross off} {eggs|milk|bread}
+life:money|{remove|delete|cancel} my {food|gas|monthly} budget
+life:money|{delete|remove} the {lunch|shoes|25 dollar} expense
+life:money|{undo|delete|remove} {the |my |}last expense
+life:subs|{remove|delete|clear|cancel} {all |}{my |}subscriptions
+life:subs|{remove|delete|clear} all my bills
+life:subs|{change|update} netflix to {17.99|20}
+life:subs|my {cloud|claude|chatgpt} subscription is due on {december 1st|the 1st|the 15th} {for claude|}
+life:memory|forget {my locker|that my car is on level 3|what i told you about my locker}
+life:timer|{cancel|stop|delete} {the|my} timer
+life:timer|how much time is left {on the timer|on my timer|}
+life:countdown|{delete|remove|cancel} {the|my} {christmas|birthday|vacation} countdown
+remindClear|{delete|remove|cancel|clear} {all |}{my |}reminders
+remindList|{what are my|show my|list my|any} reminders
+handsfree|{stop|quit} listening
+handsfree|{start|keep} listening
+handsfree|turn {on|off} {hands free|the mic|listening}
+mute|{mute|be quiet|stop talking out loud|go silent}
+unmute|{unmute|talk to me out loud|turn your voice back on}
+life:sleep|{i'm going to bed|going to sleep|i'm off to bed|heading to bed}
+life:sleep|{i just woke up|i'm up|just got up|i woke up}
+life:sleep|how did i sleep {last night|this week|}
+biasUntil|when {will|does} {gold|price} {start|begin} {being bullish|being bearish|going up|going down}
+biasUntil|when {will|does} {gold|price} {stop|quit} {going up|going down|dropping|rallying|falling}
+session|{when does|what time does} {london|new york|asia} {open|start|close|end}
+market|{is|are} {gold|the market|markets} {open|closed} {right now|today|}
+trade|should i {buy|sell|go long|go short|short|long} {now|right now|here}
+life:best|{what was|show me} my {best|worst|biggest winning|biggest losing} trade {this week|today|this month|}
+weather|{is it|will it be} {hot|cold|warm|chilly|rainy|sunny} {today|tomorrow|outside|tonight}
+x:chat|{i'm leaving|i'm heading out|i'm home|i'm back}
+# ---- typos & speech slips
+bias|{whats|wats} the {bais|biass|buy us|bias} {rn|right now|}
+bias|is gold {bulish|bear ish|bull ish|barish}
+news|when is {c p i|n f p|f o m c}
+x:define|what does {f o m c|c p i|n f p} mean
+weather|{wats|whats} the {wether|weather} {tmrw|tomorrow|tonight}
+life:water|{hw|how} much water did i drink {2day|today|}
+price|{xau usd|gold} price {rn|right now}

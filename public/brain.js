@@ -79,11 +79,24 @@ const Brain = (() => {
     WORKOUT: ['workout', 'gym', 'exercise', 'exercises', 'training session', 'lift', 'lifting', 'leg day', 'push day', 'pull day', 'cardio', 'routine'],
   };
 
+  // things speech-to-text often writes instead of what you said
+  const HEARD = [
+    [/\b(?:buy us|by us|bias's|biasses|bayes|bias is is)\b/g, 'bias'], [/\b(?:bear ish|bare ish|barish|bearsh|bear-ish)\b/g, 'bearish'], [/\b(?:bull ish|bullsh|bullies|bully ish|bull-ish)\b/g, 'bullish'],
+    [/\b(?:x a u|xau usd|gold usd|gold\/usd|xauusd)\b/g, 'gold'], [/\b(?:partial's|partials's|parcels)\b/g, 'partials'], [/\b(?:stop lost|stop laws|stop loss's)\b/g, 'stop loss'],
+    [/\b(?:fed meeting|fed decision)\b/g, 'fomc'], [/\b(?:non farm|nonfarm payrolls|non farm payroll)\b/g, 'nfp'], [/\b(?:consumer price index)\b/g, 'cpi'],
+    [/\b(?:london's|londons)\b/g, 'london'], [/\b(?:asias|asia's)\b/g, 'asia'], [/\b(?:new yorks|new york's)\b/g, 'new york'],
+    [/\b(?:wanna|wana)\b/g, 'want to'], [/\b(?:gotta|gota)\b/g, 'got to'], [/\b(?:kinda)\b/g, 'kind of'], [/\b(?:lemme)\b/g, 'let me'], [/\b(?:gimme)\b/g, 'give me'],
+    [/\b(?:rn)\b/g, 'right now'], [/\b(?:tmrw|tmr|tomorow|tommorow|tommorrow)\b/g, 'tomorrow'], [/\b(?:2day|tday)\b/g, 'today'], [/\b(?:2nite|tonite)\b/g, 'tonight'],
+    [/\b(?:pls|plz|pleas)\b/g, 'please'], [/\b(?:thx|ty|thanx)\b/g, 'thanks'], [/\b(?:bc|cuz|cause)\b/g, 'because'], [/\b(?:idk)\b/g, 'i do not know'],
+    [/\b(?:wats|wuts|whatz)\b/g, 'what is'], [/\bhowz\b/g, 'how is'], [/\bhw\b/g, 'how'], [/\b(?:u r|ur)\b/g, 'you are'],
+    [/\b(?:subscription's|subscriptons|subcriptions|subsciptions|subscritions)\b/g, 'subscriptions'], [/\b(?:subscripton|subcription|subsciption)\b/g, 'subscription'],
+    [/\b(?:remainder|reminded me)\b(?= to)/g, 'remind me'], [/\b(?:to do's|todo's|to-do's)\b/g, 'todos'],
+  ];
   const CONTRACTIONS = [
     [/\b(what|where|how|who|when|it|that|there|here|gold|today)'?s\b/g, '$1 is'],
     [/\bi'?m\b/g, 'i am'], [/\b(you|we|they)'?re\b/g, '$1 are'], [/\b(i|you|we|they)'?ve\b/g, '$1 have'],
     [/\b(you|they)'?ll\b/g, '$1 will'], [/\b(i|we|it)'ll\b/g, '$1 will'], [/\b(you|they)'?d\b/g, '$1 would'], [/\b(i|we)'d\b/g, '$1 would'],
-    [/\bcan'?t\b/g, 'can not'], [/\bwon'?t\b/g, 'will not'], [/\b(do|does|did|is|are|was|should|would|could)n'?t\b/g, '$1 not'],
+    [/\bcan'?t\b/g, 'can not'], [/\bwon'?t\b/g, 'will not'], [/\b(do|does|did|is|are|was|were|should|would|could|have|has|had|need|must)n'?t\b/g, '$1 not'], [/\bain'?t\b/g, 'is not'],
     [/\bwhats\b/g, 'what is'], [/\bhows\b/g, 'how is'], [/\bwheres\b/g, 'where is'], [/\bwanna\b/g, 'want to'], [/\bgonna\b/g, 'going to'],
     [/\bu\b/g, 'you'], [/\bur\b/g, 'your'], [/\b(?:pls|plz)\b/g, 'please'], [/\bn\.?\s?y\.?c?\b/g, 'ny'],
     // keep "short term" / "long term" / "how long" from reading as sell / buy
@@ -103,6 +116,9 @@ const Brain = (() => {
   function clean(s) {
     let t = String(s).toLowerCase().replace(/[’‘`]/g, "'").replace(/(\d),(?=\d{3}\b)/g, '$1');
     for (const [re, to] of CONTRACTIONS) t = t.replace(re, to);
+    t = t.replace(/\b([a-z])(?:[ .]([a-z])\b){1,4}/g, (m) => (/^([a-z][ .]){1,4}[a-z]$/.test(m) && !/\b(i|a)\b/.test(m.replace(/[ .]/g, ' ').trim().split(' ').slice(0, 1).join('')) ? m.replace(/[ .]/g, '') : m));
+    for (const [re, to] of HEARD) t = t.replace(re, to);
+    t = t.replace(/([a-z])'([a-z])/g, '$1$2'); // any other apostrophe inside a word: "y'all" → "yall", not "y all"
     return t.replace(/([a-z])-([a-z])/g, '$1 $2').replace(/%/g, ' percent ').replace(/\$/g, ' ').replace(/[^a-z0-9.\s+\-*/]+/g, ' ').replace(/(?<!\d)\.|\.(?!\d)/g, ' ').replace(/\s+/g, ' ').trim();
   }
   function stripWake(t) { return t.replace(WAKE, ' ').replace(/\s+/g, ' ').trim(); }
@@ -128,6 +144,9 @@ const Brain = (() => {
     return text.split(' ').map((t) => {
       if (t.length < 4 || vocab.has(t) || STOP.has(t) || /\d/.test(t)) return t;
       let best = t, bestD = t.length >= 7 ? 3 : 2;
+      // swapped letters ("bais" → "bias", "wieght" → "weight") count as one slip
+      const srt = (w) => w.split('').sort().join('');
+      for (const v of vocab) if (v.length === t.length && srt(v) === srt(t) && [...v].filter((ch, i) => ch !== t[i]).length === 2) return v;
       for (const v of vocab) {
         if (Math.abs(v.length - t.length) > 2) continue;
         const d = lev(t, v);
@@ -1861,6 +1880,7 @@ const Brain = (() => {
     if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
     if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(text))) if (v > (S[i] || 0)) S[i] = v;
     if (typeof Extra !== 'undefined') for (const [i, v] of Object.entries(Extra.score(text))) if (v > (S[i] || 0)) S[i] = v;
+    if (fixed !== text && typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(fixed))) if (v - 0.05 > (S[i] || 0)) S[i] = v - 0.05; // typo-fixed version, a hair weaker
     if (S.openBias && S.bias >= 9.9) S.openBias = 9.95; // "buy or sell at the open" — the open is the point
     const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
     let id = ranked.length ? ranked[0][0] : null;
@@ -2008,6 +2028,11 @@ const Brain = (() => {
       }
       case 'birthday': return wrap(birthdayA(k, fixed));
       case 'biasUntil': return needGold(() => biasUntilA(k, /\b(bullish|bull|uptrend)\b/.test(fixed) ? 1 : /\b(bearish|bear|downtrend)\b/.test(fixed) ? -1 : (typeof Lex !== 'undefined' ? Lex.dir(text) : 0)));
+      case 'handsfree': {
+        const on = !/\b(stop|off|disable|quit|pause|dont|do not|no more|turn off|deactivate|mute)\b/.test(text);
+        if (ctx.handsFree) ctx.handsFree(on);
+        return wrap(reply(on ? `Hands-free is on${k.t}. Just say “Jarvis” and talk.` : `Okay${k.t}, I'll stop listening. Tap 🎧 or say it in the box to turn me back on.`));
+      }
       case 'reach': return needGold(() => reachA(k, fixed));
       case 'manage': return needGold(() => manageA(k));
       case 'safe': return needGold(() => safeA(k, c.has('BUY') || c.has('SELL') ? dirOf() : biasDir(k)));
@@ -2081,6 +2106,7 @@ const Brain = (() => {
           if (r) return r;
         }
         if (id && id.startsWith('life:') && typeof Life !== 'undefined') {
+          k.raw = String(raw || '').toLowerCase();
           const r = Life.run(id.slice(5), text, fixed, k, ctx);
           if (r) return r.then ? r.then(wrap) : wrap(r);
         }

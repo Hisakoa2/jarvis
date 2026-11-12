@@ -517,6 +517,7 @@
       gold: () => gold, refresh: (force) => fetchGold(!!force), projects: config.projects || [], sessions: config.sessions,
       openProject, clear: () => { $('cmdOutput').innerHTML = ''; },
       setMuted: (m) => { Voice.setMuted(m); renderMute(); }, stopSpeaking: () => Voice.stopSpeaking(),
+      handsFree: (on) => setHandsFree(on, true),
       tz: TZ(), title: prefs.title, birthday: prefs.birthday,
       news: typeof News !== 'undefined' ? News : null,
       paper: Paper,
@@ -646,9 +647,22 @@
       demo: '<span class="warn">●</span> <b>Demo mode</b> — enter your OANDA details below.',
     }[m];
     renderMute();
+    renderSubs();
     openedAt = Date.now();
     if (!dlg.open) dlg.showModal();
   }
+  // Settings → Subscriptions & bills: see them all, remove any with ✕
+  function renderSubs() {
+    const box = $('subsList');
+    if (!box || typeof Life === 'undefined' || !Life.subsList) return;
+    const L = Life.subsList();
+    const per = { month: '/mo', year: '/yr', week: '/wk' };
+    box.innerHTML = L.length ? L.map((x) => `<div class="sub-row"><span><b>${esc(x.name.charAt(0).toUpperCase() + x.name.slice(1))}</b> <span class="dim">${x.amt != null ? '$' + x.amt.toFixed(2) : '$?'}${per[x.period] || ''}${x.period === 'month' && x.day ? ' · the ' + x.day + (x.day % 10 === 1 && x.day !== 11 ? 'st' : x.day % 10 === 2 && x.day !== 12 ? 'nd' : x.day % 10 === 3 && x.day !== 13 ? 'rd' : 'th') : ''}</span></span><button type="button" class="icon-btn sub-del" data-sub="${esc(x.name)}" aria-label="Remove ${esc(x.name)}">✕</button></div>`).join('')
+      : '<p class="dim small">None saved yet.</p>';
+    $('subsClear').hidden = !L.length;
+  }
+  $('subsList').addEventListener('click', (e) => { const b = e.target.closest('[data-sub]'); if (b) { Life.removeSub(b.dataset.sub); renderSubs(); } });
+  $('subsClear').addEventListener('click', () => { if (confirm('Remove all subscriptions and bills?')) { Life.clearSubs(); renderSubs(); } });
   $('settingsBtn').addEventListener('click', openSettings);
   $('bannerSetup').addEventListener('click', openSettings);
   $('settingsClose').addEventListener('click', () => dlg.close());

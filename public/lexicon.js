@@ -65,7 +65,7 @@ const Lex = (() => {
     REMINDW: 'remind|reminder|reminders|dont let me forget',
     WEATHERW: 'forecast|weather|wether|outside|out side|temperature|temp|temps|rain|raining|rainy|snow|snowing|sunny|sun out|cloudy|windy|cold|hot|warm|chilly|freezing|humid|humidity|umbrella|degrees|storm|stormy|thunder|sky|nice out|nice day|heat|feels like outside|forecast today|forecast for today|forecast tomorrow',
     WEARW: 'wear|wearing|outfit|outfits|dress|dressed|put on|clothes|clothing|fit check|layers|hoodie|sweater|jacket|coat|shorts or pants|pants or shorts|tshirt|t shirt|long sleeve',
-    HABITW: 'habit|habits|streak|streaks|routine tracker|daily goal|daily goals',
+    HABITW: 'stop tracking|start tracking|tracking|habit|habits|streak|streaks|routine tracker|daily goal|daily goals',
     TODOW: 'to do list|my to do|the to do|on my to do|todo|to dos|todos|task|tasks|chores|checklist|my list|the list|shopping list|grocery list|errands',
     MONEYW: 'spent|spend|spending|paid|pay|bought|cost me|expenses|expense|budget|money|dollars|bucks|cash',
     TIMERW: 'timer|timers|countdown timer|set an alarm|alarm for|minutes from now|stopwatch',
@@ -134,6 +134,17 @@ const Lex = (() => {
     { id: 'timing', s: 9.35, all: ['BEST', 'TIMEW', 'ENTER'], not: ['MYTRADE', 'YOURTRADE', 'SLEEPW', 'NOWGOOD'] },
     { id: 'tradenow', s: 8.6, all: ['NOWGOOD', 'ENTER'], not: ['BUY', 'SELL', 'MYTRADE', 'YOURTRADE', 'OPENT'] },
     { id: 'weather', s: 9.6, all: ['UMB'], not: [] },
+    { id: 'life:habit', s: 9.45, all: ['NEGPAST', 'HABITACT'], not: ['GOLD', 'MYTRADE', 'YOURTRADE', 'TODOW', 'BOOKW'] },
+    { id: 'life:habit', s: 9.45, all: ['NEGPAST', 'HABITACT', 'NOW'], not: ['GOLD', 'MYTRADE'] },
+    { id: 'life:habit', s: 9.4, all: ['UNCHECKW', 'HABITACT'], not: ['TODOW'] },
+    { id: 'life:water', s: 9.45, all: ['NEGPAST', 'DRINKV'], not: ['OTHERDRINK', 'HABITACT'] },
+    { id: 'life:todo', s: 9.35, all: ['UNCHECKW'], not: ['HABITACT', 'HABITW', 'GOLD'] },
+    { id: 'life:memory', s: 9.5, all: ['FORGETW'], not: ['TODOW', 'REMINDW', 'HABITW', 'SHORTW'] },
+    { id: 'remindClear', s: 9.9, all: ['CLEARW', 'REMINDW'], not: [] },
+    { id: 'mute', s: 9.6, all: ['MUTEW'], not: ['UNMUTEW', 'GOLD'] },
+    { id: 'unmute', s: 9.7, all: ['UNMUTEW'], not: ['GOLD'] },
+    { id: 'life:sleep', s: 9.4, all: ['BEDNOW'], not: ['WHEN', 'SHOULD', 'CLOCKT', 'WHAT'] },
+    { id: 'handsfree', s: 9.85, all: ['HFW'], not: ['GOLD', 'MOVIEW'] },
     { id: 'session', s: 9.15, all: ['SESSNAME', 'SESSV|WHEN|IS'], not: ['BIAS', 'UPDOWN', 'BULL', 'BEAR', 'WILL', 'DOING', 'MYTRADE', 'YOURTRADE', 'HOWFAR', 'BUY', 'SELL', 'ENTER', 'WEATHERW', 'TIMEZ'] },
     { id: 'sessions', s: 9.0, all: ['WHAT|WHICH|ANY', 'SESSWHICH'], not: ['SESSNAME', 'BIAS', 'MYTRADE'] },
     { id: 'life:money', s: 9.75, all: ['MONEYQ'], not: ['SUBW', 'GOLD', 'MYTRADE', 'YOURTRADE', 'WATERW', 'TIMERW'] },
@@ -155,6 +166,7 @@ const Lex = (() => {
     { id: 'paperStatus', s: 8.35, all: ['HOW|IS|WHAT|WHERE', 'MYTRADE'], not: ['YOURTRADE', 'TP', 'SL', 'SAFE'] },
     // —— life ——
     { id: 'life:water', s: 9.7, all: ['WATERW'], not: ['WEATHERW', 'OTHERDRINK'] },
+    { id: 'life:water', s: 9.6, all: ['TAKEOFF', 'GLASSU'], not: ['OTHERDRINK', 'TODOW', 'MONEYW'] },
     { id: 'life:water', s: 9.5, all: ['DRINKV', 'GLASSU'], not: ['OTHERDRINK', 'WEATHERW'] },
     { id: 'life:water', s: 9.4, all: ['HOWMUCH', 'GLASSU'], not: ['OTHERDRINK', 'WEATHERW', 'GOLD'] },
     { id: 'life:sleepQ', s: 9.1, all: ['WHEN|WHAT|SHOULD', 'SLEEPW'], not: ['WEATHERW'] },
@@ -191,7 +203,7 @@ const Lex = (() => {
   W.SITOUT = 'sit out|sit this out|sit it out|stay out|stay away|take the day off|skip today|skip trading|not trade|avoid trading|stay flat|be flat';
   W.MOVEQ = 'whats the move|what is the move|whats the wave|what are we doing|whats good tonight|whats the plan tonight|what is the plan tonight';
   W.WOKE = 'just woke up|i woke up|woke up|im up|i am up|just got up|i got up|im awake|i am awake|just got out of bed';
-  W.HABITACT = 'work out|workout|worked out|gym|read|meditate|journal|walk|run|stretch|pray|study';
+  W.HABITACT = 'work out|workout|worked out|gym|read|reading|meditate|meditated|journal|journaled|walk|walked|run|ran|stretch|stretched|pray|prayed|study|studied';
   W.GOODDAY = 'good day to trade|good time to trade|good day for trading|a day to trade|day to trade|good day for a trade';
   W.NICEW = 'nice|nice out|beautiful|cold|hot|warm|chilly|freezing|rainy|sunny|cloudy|windy|humid|gloomy';
   W.DUEW = 'anything due|any bills|any bills due|bills coming up|whats due|what is due|bills due|bill due|due this week|due soon|due today|due tomorrow|payments due|my bills|upcoming bills|upcoming payments';
@@ -202,6 +214,18 @@ const Lex = (() => {
   W.MONEYQ = 'biggest expense|biggest expenses|my expenses|expenses|spending|spent|budget|budgets|money tracker|how much money';
   W.SUBW = 'subscription|subscriptions|membership|memberships|monthly|a month|per month|every month|yearly|a year|per year|every year|annual';
   W.BUDGETW = 'budget|budgets';
+  W.HFW = 'stop listening|start listening|keep listening|listen to me|listen for me|hands free|handsfree|wake word|always listen|always listening|dont listen|do not listen|stop hearing me|quit listening|turn on listening|turn off listening|turn on the mic|turn off the mic|mic on|mic off|microphone on|microphone off';
+  W.TAKEOFF = 'remove|take off|take away|subtract|minus|delete|undo|scratch|less';
+  W.NEGPAST = 'didnt|did not|havent|have not|hasnt|skipped|missed|never did|forgot to|couldnt|wasnt able to|no';
+  W.UNCHECKW = 'uncheck|unmark|untick|put back|put it back|not done with|isnt done|reopen';
+  W.FORGETW = 'forget|forget about|forget that|forget what i told you|delete what i told you|erase what i told you|stop remembering';
+  W.CLEARW = 'clear|delete|remove|cancel|erase|wipe|get rid of';
+  W.MUTEW = 'mute|go silent|be quiet|stop talking out loud|quiet mode|silent mode|no voice|text only|stop speaking out loud|dont talk out loud';
+  W.UNMUTEW = 'unmute|turn your voice back on|voice back on|voice on|talk out loud|speak out loud|talk to me out loud|speak again|start talking again|turn the sound on|sound on';
+  W.BEDNOW = 'off to bed|heading to bed|going to bed|going to sleep|im going to sleep|bed time for me|hitting the hay|calling it a night|about to sleep|about to go to bed|time for bed|im going to bed';
+  W.SHORTW = 'shortcut|shortcuts';
+  // names the spell-fixer must leave alone (months, days, apps & services, common names)
+  W.NAMESX = 'january|february|march|april|june|july|august|september|october|november|december|monday|tuesday|wednesday|thursday|friday|saturday|sunday|claude|cloud|netflix|spotify|hulu|disney|youtube|amazon|prime|apple|icloud|google|chatgpt|openai|tradingview|xbox|playstation|nintendo|peloton|audible|kindle|paramount|peacock|crunchyroll|discord|snapchat|instagram|tiktok|uber|lyft|doordash|grubhub|instacart|walmart|target|costco|verizon|tmobile|sprint|comcast|xfinity|spectrum|geico|progressive|allstate|mortgage|insurance|rent|electric|internet|phone|gym|membership|planet|fitness|starbucks|chipotle|mcdonalds|wendys|chick|subway|dominos|pizza|tacos|burger|groceries|grocery|milk|eggs|bread|butter|cheese|chicken|rice|bananas|apples|coffee|locker|parked|level|garage|password|birthday|anniversary|vacation|christmas|thanksgiving|halloween|easter|valentines';
   W.UMB = 'umbrella|raincoat|rain jacket|rain boots';
   W.GIVE = 'give me|tell me|show me|whats|what is|update';
   W.GOOD = 'good|great|nice|solid|decent|clean|smart';

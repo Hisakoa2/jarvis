@@ -62,6 +62,11 @@ dialog.settings { border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.0
 #cmdOutput > div { border-radius: 14px; }
 .topbar { -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 
+/* Settings → subscriptions */
+.subs-list { display: grid; gap: 6px; margin: 6px 0; }
+.sub-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.07); }
+.sub-del { width: 30px; height: 30px; border-radius: 999px; }
+
 /* JARVIS trader */
 .bot-tag { display: inline-block; font-family: var(--disp); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; padding: 1px 7px; margin-right: 6px; border-radius: 999px; color: #0b0820; background: linear-gradient(90deg, var(--cyan), var(--violet)); vertical-align: 1px; }
 .paper-pos.bot { box-shadow: inset 3px 0 0 var(--violet); }

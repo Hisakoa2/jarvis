@@ -194,7 +194,7 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v11 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v12 · NO AI · <span id="lastUpdate">--</span></footer>
 
   <dialog id="settings" class="panel settings">
     <form method="dialog" autocomplete="off">
@@ -244,6 +244,13 @@
         <label>Risk per trade when I pick the size (% of balance)<input id="setRisk" type="text" inputmode="decimal" placeholder="1" spellcheck="false"></label>
         <div class="set-actions"><button type="button" class="ghost-btn" id="paperReset">RESET PAPER ACCOUNT</button></div>
         <div class="set-msg" id="paperMsg"></div>
+      </div>
+
+      <div class="set-block">
+        <div class="set-title">SUBSCRIPTIONS &amp; BILLS</div>
+        <p class="dim small">Add them by voice (“add Netflix 15.99 a month on the 5th”). Remove them here.</p>
+        <div id="subsList" class="subs-list"></div>
+        <div class="set-actions"><button type="button" class="ghost-btn" id="subsClear">REMOVE ALL</button></div>
       </div>
 
       <div class="set-block">

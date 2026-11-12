@@ -185,6 +185,26 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v12
+
+**Subscriptions understand you properly.** "My Claude subscription is due on December 1st" now saves Claude, due Dec 1, and asks how much it is (it used to read the "1" in "1st" as $1). Then "Claude is 20 dollars" fills in the price. "Netflix is now 17.99" / "change Netflix to 18.99" update the price instead of adding a new one. It also fixes common mishearings ("cloud" → Claude, "net flicks" → Netflix).
+- **"Remove subscriptions"** / "delete all my bills" removes them all.
+- **Settings → Subscriptions & Bills**: see every one with its price and day, tap ✕ to remove one, or Remove All.
+
+**Every feature now has its opposite:**
+- Water: "remove a glass", "take off 2 glasses", "I didn't drink that", "reset my water"
+- Habits: "I didn't work out today", "uncheck reading", "stop tracking reading"
+- To-do: "uncheck eggs", "put eggs back", "remove milk from my list" (removes, doesn't mark done), "I got the bread" (done). Spoken lists like "add milk eggs and bread" now become three items.
+- Money: "delete the lunch expense", "remove my food budget", "delete all budgets"
+- Memory: "forget my locker" · Reminders: "clear my reminders" · Hands-free: "stop listening" / "start listening" · Voice: "go silent" / "turn your voice back on" · Sleep: "heading to bed" / "I just woke up"
+- **"Undo that" / "scratch that"** takes back the last thing you logged (water, habit, expense, to-do, subscription) within 10 minutes.
+
+**Smarter hearing.** Letters said one at a time ("c p i", "f o m c") join up; swapped letters ("bais" → bias) and common slips ("buy us" → bias, "bear ish" → bearish, "rn", "tmrw") are understood; month names, apps and services are never "corrected" into other words.
+
+**Two tests now guard everything:**
+- `node tools/vocab-test.js` — 7,053 sentences, checks each goes to the right feature.
+- `node tools/behavior-test.js` — 83 real conversations in order, checks the actual answers (including every opposite).
+
 ### New in v11
 
 **Just say "Jarvis".** Hands-free listening is now on by default — no tapping, no "hey". Say "Jarvis, what's the bias" or just "Jarvis" and wait. Works while the app is open on screen (Safari can't listen in the background). Turn it off in Settings if you want.
