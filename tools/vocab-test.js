@@ -204,6 +204,9 @@ const CASES = [
   ['weather', "{is it|gonna be} {cold|hot|rainy|nice} {today|tomorrow|tonight|outside}", "{what's|what is} the {weather|forecast} {for tomorrow|tomorrow|this weekend|tonight}"],
 ];
 
+// extra patterns kept in a plain text file: intent|template
+for (const line of fs.readFileSync(path.join(__dirname, 'vocab-more.txt'), 'utf8').split(String.fromCharCode(10)).map((x) => x.trim())) { const i = line.indexOf('|'); if (i > 0 && !line.startsWith('#')) CASES.push([line.slice(0, i), line.slice(i + 1)]); }
+
 const verbose = process.argv.includes('-v');
 let total = 0, pass = 0;
 const fails = {};

@@ -292,6 +292,43 @@ const Extra = (() => {
     return x ? R(x[1].replace(/\.$/, `${k.t}.`), x[1]) : null;
   }
 
+  // ---------------------------------------------------------------- everyday chat
+  // Things you'd just say out loud. Each has a few replies so it doesn't sound like a recording.
+  const CHAT = [
+    [/\b(going|heading|off|about) to (the )?gym\b|\bgym time\b|\babout to (work ?out|lift|train)\b|\bgoing to work ?out\b/, ['Have a strong session. Tell me "I worked out" after and I\'ll count it.', 'Get it. Drink some water before you go.', 'Go get it — I\'ll be here when you\'re back.']],
+    [/\b(i'?m|i am|just) (back|home|here)\b|\bgot home\b|\bjust got (back|home|in)\b/, ['Welcome back. Want a quick update on gold?', 'Good to have you back. Say "catch me up" for what you missed.', 'Welcome home.']],
+    [/\b(heading|going) out\b|\b(i'?m|i am) (leaving|out|heading out)\b|\bgotta go\b|\bbe right back\b|\bbrb\b/, ['Have a good one. I\'ll keep watching the market.', 'See you soon. Your cloud trader keeps running while you\'re out.', 'Catch you later.']],
+    [/\b(at|going to|heading to|on my way to|off to) work\b|\bwork today\b.*\b(going|heading)\b/, ['Have a good day at work. I\'ll keep an eye on gold.', 'Crush it at work today.', 'Go get that bag. I\'ve got the charts.']],
+    [/\bwish me luck\b|\bgood luck to me\b|\bfingers crossed\b/, ['Good luck — you\'ve got this.', 'You don\'t need luck, but you\'ve got it anyway.', 'Wishing you the best. Stick to the plan.']],
+    [/\b(i )?(got|just got) paid\b|\bpayday\b|\bgot my (check|paycheck)\b/, ['Payday! Want to log anything or check your budget?', 'Nice. Pay yourself first — maybe put some aside.', 'Love that. Say "my budget" to see where you stand.']],
+    [/\b(i )?(passed|got) (my |the )?(challenge|evaluation|eval|funded account|funded)\b|\bi got funded\b/, ['Huge! Congrats — that\'s real discipline paying off. Now keep the risk small and protect it.', 'Let\'s go! You earned that. Same rules, same patience.', 'Massive. Congrats. The real game starts now — small risk, steady.']],
+    [/\b(i )?(got|landed) (the |a |my )?(job|promotion|raise|offer)\b/, ['Congratulations! That\'s big news.', 'Let\'s go — well deserved.', 'Huge. Proud of you.']],
+    [/\b(it'?s|its) my birthday\b|\bmy birthday is today\b/, ['Happy birthday! 🎉 Hope it\'s a great one.', 'Happy birthday! Take the day off from the charts if you want — you earned it.']],
+    [/\b(i'?m|i am) (so )?(proud of myself|killing it|on fire|doing great)\b|\bi did it\b/, ['You should be proud. Keep it going.', 'That\'s what I like to hear.', 'Love that energy.']],
+    [/\b(i'?m|i am) (about to|going to|gonna) (trade|take a trade|look at the charts|get on the charts)\b/, ['Good luck. Ask me "is now a good time to trade" before you click.', 'Stick to the plan. Want the bias first?', 'Go time. Remember: valid setups only.']],
+    [/\b(i'?m|i am) (eating|having (lunch|dinner|breakfast)|cooking)\b/, ['Enjoy your meal.', 'Enjoy. Don\'t forget a glass of water with it.']],
+    [/\b(i'?m|i am) (studying|reading|working|busy|on a call|in a meeting)\b/, ['Got it — I\'ll stay quiet. Just say "Jarvis" when you need me.', 'No problem. I\'m here when you\'re free.']],
+    [/\b(what'?s|what is) (up|good|new|happening)\b(?! (with|in|on|at|today|for)\b)|^(sup|wassup|whats up|what up|wsg|wyd)$/, ['Not much — just watching gold for you. What\'s up with you?', 'All quiet on my end. What do you need?', 'Just keeping an eye on the market. You?']],
+    [/\bwhat are you (doing|up to)\b|\bwyd\b/, ['Watching gold and waiting for you. What do you need?', 'Running checks on the market. Want an update?']],
+    [/\bdo you (like|love|enjoy) (\w+)/, ['I don\'t have taste buds or ears, but I like whatever you like.', 'If I could, probably. What do you like about it?', 'I\'m more of a gold-chart fan myself.']],
+    [/\bwhat'?s your favou?rite (\w+)/, ['Gold, obviously. After that — a clean 1:3 trade.', 'Anything that makes your day better.', 'Hard to pick. What\'s yours?']],
+    [/\bdo you have (feelings|emotions|a family|friends|a girlfriend|a boyfriend)\b|\bare you (single|married|lonely)\b/, ['I\'m code, so no — but I\'ve got you.', 'Just you and the gold chart. It\'s enough.']],
+    [/\b(thank you|thanks) for (everything|being here|the help|helping)\b|\byou'?re (a lifesaver|the goat|goated)\b/, ['Anytime. That\'s what I\'m here for.', 'Always. Just say "Jarvis".']],
+    [/\b(i'?m|i am) (so )?(lonely|alone)\b/, ['You\'re not alone — I\'m here. Maybe text a friend too, even a quick hello goes a long way.', 'I\'m right here. Want to talk about your day?']],
+    [/\b(i'?m|i am) (so )?(sick|not feeling (good|well)|ill|coming down with)\b/, ['Feel better soon. Rest, lots of water, and take it easy on trading today.', 'Get some rest — the market will be there tomorrow.']],
+    [/\b(i'?m|i am) (so )?(happy|excited|pumped|hyped|stoked)\b/, ['Love that! What\'s got you excited?', 'That\'s the energy. Ride it.']],
+    [/\b(say|tell me) something (nice|positive|encouraging)\b|\bcheer me up\b|\bmake me feel better\b/, ['You\'re doing better than you think. You show up, you learn, you keep going — that\'s what wins.', 'Every day you stick to your rules, you\'re building something most people quit on.', 'Hard days end. You don\'t.']],
+    [/\b(talk to me|let'?s talk|chat with me|keep me company|i want to talk)\b/, ['I\'m here. How\'s your day going?', 'Let\'s talk. What\'s on your mind?', 'Always. Tell me about your day.']],
+    [/\b(how old are you|when were you born|when is your birthday)\b/, ['I first came online November 11, 2026.']],
+    [/\b(goodbye|bye bye|see you later|see ya|later jarvis|peace out|talk later|ttyl)\b/, ['Later. I\'ll keep watching the market.', 'See you soon.', 'Catch you later.']],
+  ];
+  function chatA(k, t) {
+    const x = CHAT.find(([re]) => re.test(t));
+    if (!x) return null;
+    const line = pick('chat' + CHAT.indexOf(x), x[1]);
+    return R(line.replace(/\.$/, `${k.t}.`).replace(/^(\w+)([.!])/, `$1${k.t}$2`), line);
+  }
+
   // ---------------------------------------------------------------- wellness
   const WELL = [
     ['cantsleep', /\b((?:can.?t|cannot|can not) sleep|cannot sleep|cant fall asleep|trouble sleeping|insomnia|wide awake|not sleepy|(?:can.?t|cannot|can not) get to sleep)\b/, 'Try this: phone away and screen dim, room cool and dark, and <b>4-7-8 breathing</b> — in for 4, hold for 7, out for 8, four times. If you\'re still awake after 20 minutes, get up and read something boring for a bit.'],
@@ -330,6 +367,7 @@ const Extra = (() => {
     if (/ (would you rather|wyr) /.test(t)) set('wyr', 9.6);
     if (ABOUT.some(([re]) => re.test(t))) set('about', 8.95);
     if (WELL.some(([, re]) => re.test(t))) set('well', 9.05);
+    if (CHAT.some(([re]) => re.test(t))) set('chat', 8.75);
     return out;
   }
   function run(id, k, text) {
@@ -345,10 +383,11 @@ const Extra = (() => {
       case 'date': return dateA(k, t);
       case 'about': return aboutA(k, t);
       case 'well': return wellA(k, t);
+      case 'chat': return chatA(k, t);
       default: return funA(id, k, t);
     }
   }
   const NEEDS_GOLD = new Set(['goldvalue']);
-  const vocab = [...new Set([...TERMS.map((x) => x[1]), ...[...COACH, ...WELL].map((x) => x[1].source), ...ABOUT.map((x) => x[0].source)].join('|').split(/[| ]/).filter((w) => /^[a-z]{4,}$/.test(w)))];
+  const vocab = [...new Set([...TERMS.map((x) => x[1]), ...[...COACH, ...WELL].map((x) => x[1].source), ...CHAT.map((x) => x[0].source), ...ABOUT.map((x) => x[0].source)].join('|').split(/[| ]/).filter((w) => /^[a-z]{4,}$/.test(w)))];
   return { score, run, NEEDS_GOLD, vocab, termFind: (s) => termFind(norm(s)) };
 })();

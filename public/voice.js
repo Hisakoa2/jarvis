@@ -4,16 +4,18 @@
 //   - Listening: SpeechRecognition. Apple/Google turn speech into text on their
 //     servers (same as Siri / keyboard dictation).
 //   - Hands-free: listens continuously while the app is open and wakes up when
-//     it hears "Hey JARVIS".
+//     it hears "JARVIS" ("hey" optional).
 // ============================================================================
 const Voice = (() => {
   const PREF_KEY = 'jarvis.voice';
   const synth = window.speechSynthesis || null;
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
-  let prefs = { muted: false, voiceURI: null, rate: 1.0, pitch: 1.0, handsFree: false };
+  let prefs = { muted: false, voiceURI: null, rate: 1.0, pitch: 1.0, handsFree: true };
   try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREF_KEY) || '{}') }; } catch {}
   try { if (localStorage.getItem('jarvis.muted') === '1') prefs.muted = true; } catch {}
+  // v11: hands-free (just say "Jarvis") is on for everyone once; you can still switch it off in Settings
+  try { if (!prefs.wake11) { prefs.handsFree = true; prefs.wake11 = true; localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } } catch {}
   const save = () => { try { localStorage.setItem(PREF_KEY, JSON.stringify(prefs)); } catch {} };
 
   // Rank voices so the best-sounding British male voice is the default.
@@ -80,7 +82,8 @@ const Voice = (() => {
   let rec = null, recMode = null; // 'once' | 'wake'
   let onceHandlers = null, wakeHandlers = null;
   let wakePaused = false, wakeWanted = false, awaitingCommand = false, awaitTimer = null;
-  const WAKE_RE = /\b(?:hey|hi|ok|okay|yo)?\s*(?:jarvis|jervis|javis|jarvas|jarves|travis|jarvi)\b/i;
+  // just say "Jarvis" ("hey" is optional), plus the ways speech-to-text often mishears it
+  const WAKE_RE = /\b(?:hey|hi|ok|okay|yo)?\s*(?:jarvis|jervis|javis|jarvas|jarves|jarvus|jarvez|jarviss|travis|jarvi|charvis|garvis|darvis|jar vis)\b/i;
 
   const ERRORS = {
     'not-allowed': 'Microphone access was blocked. To stop being asked every time on iPhone: in Safari tap the “aA” button → Website Settings → Microphone → Allow. Home Screen app: Settings → Apps → Safari → Microphone → Allow.',
@@ -128,7 +131,7 @@ const Voice = (() => {
     try { rec.start(); } catch (err) { h.onError(`Couldn’t start the microphone: ${err.message}`); }
   }
 
-  // ---- hands-free: always listening for "Hey JARVIS"
+  // ---- hands-free: always listening for "JARVIS"
   // h: { onWake(), onCommand(text), onInterim(text), onState('on'|'off'|'awake'), onError(msg) }
   function startWake(h) {
     if (!Rec) { h.onError('Hands-free needs Safari (iPhone) or Chrome/Edge (PC).'); return false; }
@@ -164,7 +167,7 @@ const Voice = (() => {
         if (!m) continue;
         const after = text.slice(m.index + m[0].length).replace(/^[\s,.!?]+/, '').trim();
         if (after.split(' ').length >= 2 || (after && !/^(please|um|uh)$/i.test(after))) h.onCommand(text, alts);
-        else { // just "Hey JARVIS" → wait for the command
+        else { // just "JARVIS" → wait for the command
           awaitingCommand = true;
           h.onWake();
           h.onState('awake');

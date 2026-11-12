@@ -185,6 +185,32 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v11
+
+**Just say "Jarvis".** Hands-free listening is now on by default — no tapping, no "hey". Say "Jarvis, what's the bias" or just "Jarvis" and wait. Works while the app is open on screen (Safari can't listen in the background). Turn it off in Settings if you want.
+
+**Money tracker.** "I spent 20 on food", "dropped 45 on dinner", "bought shoes for 60", "paid 30 for gas". It sorts spending into categories (food, gas, shopping, bills, fun…).
+- "How much did I spend this week / this month / on food / yesterday", "biggest expense this month", "show my spending"
+- Budgets: "set my food budget to 300", "set a monthly budget of 2000", "my budget" — and every time you log, it tells you what's left.
+- "Undo last expense"
+
+**Subscriptions & bills.** "Add Netflix 15.99 a month on the 5th", "I pay 10 for Spotify every month", "rent is 1200 due on the 1st".
+- "My subscriptions" (with the monthly and yearly total), "when is rent due", "what's due this week", "cancel Netflix"
+- A silent pop-up the day before and the day each one is due.
+
+**Follow-up memory.** It remembers what you just asked for 3 minutes:
+- "What time is it in London?" → "what about Tokyo?"
+- "How much did I spend this week?" → "what about on food?"
+- "What's the bias?" → "and on Monday?" · "Tell me a fact" → "another one"
+
+**Teach JARVIS your own phrases.** "When I say status, show the bias then my subscriptions" — now "status" does both. "My shortcuts" lists them, "forget status" removes one.
+
+**Sessions.** "When does the Asia session start?", "is London open?", "when does New York close?", "what session are we in?" — with start and end times.
+
+**Everyday chat.** "I'm going to the gym", "I'm home", "wish me luck", "I got paid", "I passed my challenge", "cheer me up", "talk to me", "what's up", "do you like music"…
+
+The vocabulary test now checks **6,412** sentence combinations (`node tools/vocab-test.js`; more patterns live in `tools/vocab-more.txt`). Try any sentence with `node tools/ask.js "your question"`.
+
 ### New in v10
 
 **Ready for the market being closed.** "Should I hop on a trade when the market opens?", "should I buy when it opens", "what's the plan for Monday" now give the plan for the open: which side your rules favour, whether your idea goes with or against them, where it flips, and a reminder that the first hour is thin.

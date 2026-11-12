@@ -134,6 +134,12 @@ const Lex = (() => {
     { id: 'timing', s: 9.35, all: ['BEST', 'TIMEW', 'ENTER'], not: ['MYTRADE', 'YOURTRADE', 'SLEEPW', 'NOWGOOD'] },
     { id: 'tradenow', s: 8.6, all: ['NOWGOOD', 'ENTER'], not: ['BUY', 'SELL', 'MYTRADE', 'YOURTRADE', 'OPENT'] },
     { id: 'weather', s: 9.6, all: ['UMB'], not: [] },
+    { id: 'session', s: 9.15, all: ['SESSNAME', 'SESSV|WHEN|IS'], not: ['BIAS', 'UPDOWN', 'BULL', 'BEAR', 'WILL', 'DOING', 'MYTRADE', 'YOURTRADE', 'HOWFAR', 'BUY', 'SELL', 'ENTER', 'WEATHERW', 'TIMEZ'] },
+    { id: 'sessions', s: 9.0, all: ['WHAT|WHICH|ANY', 'SESSWHICH'], not: ['SESSNAME', 'BIAS', 'MYTRADE'] },
+    { id: 'life:money', s: 9.75, all: ['MONEYQ'], not: ['SUBW', 'GOLD', 'MYTRADE', 'YOURTRADE', 'WATERW', 'TIMERW'] },
+    { id: 'life:money', s: 9.8, all: ['MONEYQ', 'BUDGETW'], not: ['GOLD'] },
+    { id: 'life:subs', s: 9.7, all: ['SUBW'], not: ['MONEYQ', 'GOLD', 'TIMERW', 'WATERW', 'HABITW', 'MYTRADE', 'YOURTRADE', 'REMINDW', 'NEWS'] },
+    { id: 'life:subs', s: 9.7, all: ['DUEW'], not: ['GOLD', 'NEWS', 'TODOW', 'REMINDW'] },
     { id: 'help', s: 9.2, all: ['HELPQ'], not: [] },
     { id: 'stall', s: 8.3, all: ['HOWFAR'], not: ['MYTRADE', 'TP', 'SL', 'YOURTRADE', 'WEATHERW', 'TIMERW', 'COUNTW'] },
     { id: 'levels', s: 8.1, all: ['WHERE|WHAT|ANY|HOWMUCH|IS', 'LEVEL'], not: ['SL', 'TP', 'MYTRADE', 'HOWFAR', 'WEATHERW', 'YOURTRADE'] },
@@ -188,6 +194,14 @@ const Lex = (() => {
   W.HABITACT = 'work out|workout|worked out|gym|read|meditate|journal|walk|run|stretch|pray|study';
   W.GOODDAY = 'good day to trade|good time to trade|good day for trading|a day to trade|day to trade|good day for a trade';
   W.NICEW = 'nice|nice out|beautiful|cold|hot|warm|chilly|freezing|rainy|sunny|cloudy|windy|humid|gloomy';
+  W.DUEW = 'anything due|any bills|any bills due|bills coming up|whats due|what is due|bills due|bill due|due this week|due soon|due today|due tomorrow|payments due|my bills|upcoming bills|upcoming payments';
+  W.SESSNAME = 'asia|asian|tokyo|japan|london|uk|europe|european|ldn|new york|newyork|ny|nyc|us session|american session|sydney';
+  W.SESSV = 'start|starts|starting|begin|begins|kick off|kicks off|open|opens|opening|close|closes|closing|end|ends|ending|finish|finishes|over|done|session|sessions|time|hours|come in|comes in|get going|live|active|on';
+  W.SESSWHICH = 'session are we in|session is it|session is open|sessions are open|session right now|session now|sessions open|session we in|what session|which session|current session';
+  W.TIMEZ = 'time is it in|time in|whats the time in|clock in';
+  W.MONEYQ = 'biggest expense|biggest expenses|my expenses|expenses|spending|spent|budget|budgets|money tracker|how much money';
+  W.SUBW = 'subscription|subscriptions|membership|memberships|monthly|a month|per month|every month|yearly|a year|per year|every year|annual';
+  W.BUDGETW = 'budget|budgets';
   W.UMB = 'umbrella|raincoat|rain jacket|rain boots';
   W.GIVE = 'give me|tell me|show me|whats|what is|update';
   W.GOOD = 'good|great|nice|solid|decent|clean|smart';

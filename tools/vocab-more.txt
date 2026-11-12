@@ -1,0 +1,66 @@
+session|when does {the |}{asia|asian|london|new york|ny|tokyo} session {start|begin|open|kick off}
+session|{is|is the} {london|new york|asia|tokyo} {open|session open|closed} {yet|right now|}
+session|{when does|what time does} {london|new york|asia} {close|end|finish}
+session|how long until {london|new york|asia} {opens|starts|}
+sessions|{what|which} session {are we in|is it|is open} {right now|}
+market|{is the market|is gold} {open|closed} {right now|today|}
+market|{when does|what time does} {the market|gold} {open|close} {today|}
+life:money|i {spent|dropped|paid|blew} {20|35|12.50} {dollars|bucks|} on {food|gas|uber|shoes|lunch}
+life:money|{i bought|grabbed|got} {lunch|shoes|a hoodie|coffee} for {12|60|5}
+life:money|how much {did i spend|have i spent} {today|this week|this month|on food|on gas this month|yesterday}
+life:money|{what's my|show my|what is my} {spending|budget|biggest expense} {this month|this week|}
+life:money|set {my|a} {food|gas|monthly} budget {to|of} {300|150|2000}
+life:subs|add {netflix|spotify|gym membership|hulu} {15|9.99|30} {a month|monthly|every month} {on the 5th|on the 1st|}
+life:subs|{my rent is|rent is} {1200|900} {due on the 1st|a month|every month}
+life:subs|{show my|what are my|list my} {subscriptions|bills|subs}
+life:subs|{when is|when's} {rent|netflix|spotify} due
+life:subs|{what's due|what bills are due|anything due} {this week|soon|tomorrow|}
+life:subs|{cancel|remove} {netflix|spotify} {subscription|}
+life:subs|how much do i pay {for subscriptions|a month for subscriptions|in subscriptions}
+openTrade|{should i|can i} {trade|take a trade|hop on a trade} {when london opens|at the london open|when new york opens}
+bias|{what's|what is} the bias {on gold|for gold|for today|right now|}
+bias|{give me|tell me} {the|your} {read|bias|direction} {on gold|today|}
+bias|{bullish or bearish|up or down} {right now|today|on gold}
+biasUntil|when {will|does} {gold|price} {flip|turn} {bullish|bearish}
+biasUntil|{how long|until when} {does|will} {the|this} {bias|trend} {last|hold|stay}
+day|{what's|what is} {gold|the market|price} {doing|up to} {right now|today|this morning|}
+day|{how's|how is} {gold|the market} {today|doing|moving|looking}
+price|{what's|what is} {the price of gold|gold's price|gold price|the gold price} {right now|today|}
+trade|should i {buy|sell|go long|go short} {gold|right now|here|today}
+tradenow|{should i|can i} {trade|take a trade} {right now|today|now}
+news|{any|is there} {news|red folder news|big news} {today|tomorrow|this week}
+news|when is {cpi|nfp|fomc|the fed meeting|jobs report}
+levels|{where is|what is} {support|resistance} {right now|today|}
+stall|how {far|low|high} {can|will} {gold|price} {go|drop|run} {today|}
+reach|{will|can|do you think} {gold|price} {hit|reach|break} {4000|4050|3950|the high|the low} {today|}
+life:water|{i drank|i had|log} {a|one|two|another} {glass|glasses|bottle} of water
+life:water|how much water {did i drink|have i had} {today|}
+life:sleepQ|what time should i {go to bed|sleep} {tonight|if i wake up at 7|}
+life:sleepQ|i {need to|have to|want to} {wake up|get up|be up} at {6|7|9:30|8 am}
+life:habit|add a habit {of|to} {working out|reading|meditating|journaling} {every day|daily|}
+life:habit|{show|what are} my {habits|streaks}
+life:todo|add {milk|eggs|call mom} to my {list|to do list}
+life:todo|{what's on|show} my {to do list|list}
+life:countdown|how many days {until|till} {christmas|my birthday|thanksgiving|new year}
+life:timer|set a timer for {5|10|25} minutes
+life:memory|remember {my locker is 42|that my car is parked on level 3}
+life:morning|{start my day|morning routine|morning briefing|good morning routine}
+life:vibe|{what's the vibe|vibe check} {today|tonight|}
+life:wear|what should i wear {today|tonight|tomorrow|}
+weather|{what's|what is} the weather {like|today|tomorrow|tonight|}
+weather|{is it|will it be} {cold|hot|rainy|warm} {today|tomorrow|outside}
+life:books|{any|recommend|suggest} {good |}books {to read|}
+life:movies|{any|recommend|suggest} {good |}{movies|shows} {to watch|tonight|}
+life:food|what should i {eat|have} for {dinner|lunch|breakfast}
+life:myday|{how's|how is|how was} your day
+x:define|{what is|explain|define|what's} {a pip|an order block|a fair value gap|liquidity|leverage|drawdown|a funded account}
+x:coach|{i keep|i've been} {revenge trading|overtrading}
+x:convert|{convert|what is} {10|5} {miles to km|kg to pounds|fahrenheit to celsius}
+x:worldtime|what time is it in {london|tokyo|dubai|la}
+x:date|{what's the date|what day is it|what's today's date}
+x:coin|{flip a coin|heads or tails}
+x:fact|{tell me a fact|fun fact|tell me something interesting}
+x:about|{who are you|what's your name|are you ai|who made you}
+x:well|{i can't sleep|help me relax|i can't focus}
+x:chat|{i'm going to the gym|i'm home|wish me luck|i got paid|i passed my challenge|i'm about to trade|cheer me up|talk to me|i'm heading out}
+x:chat|do you like {music|pizza|football|trading}

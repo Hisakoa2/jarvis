@@ -568,7 +568,7 @@
   $('stopBtn').addEventListener('click', () => Voice.stopSpeaking());
   micBtn.addEventListener('click', () => {
     Voice.listenOnce({
-      onState(on) { micBtn.classList.toggle('listening', on); document.body.classList.toggle('v-listening', on); status(on ? 'LISTENING…' : hfOn ? 'SAY “HEY JARVIS”' : ''); if (on) $('cmdInput').value = ''; },
+      onState(on) { micBtn.classList.toggle('listening', on); document.body.classList.toggle('v-listening', on); status(on ? 'LISTENING…' : hfOn ? 'SAY “JARVIS”' : ''); if (on) $('cmdInput').value = ''; },
       onInterim(text) { $('cmdInput').value = text; status('LISTENING… ' + text.toUpperCase()); },
       onFinal(text, alts) { $('cmdInput').value = ''; run(bestGuess(text, alts), true); },
       onError(m) { status(''); micBtn.classList.remove('listening'); log('voice', `<span class="err">${esc(m)}</span>`); },
@@ -588,12 +588,12 @@
           document.body.classList.toggle('v-awake', s === 'awake');
           document.body.classList.toggle('v-hf', s === 'on' || s === 'awake');
           $('hfBtn').classList.toggle('on', s === 'on' || s === 'awake');
-          status(s === 'awake' ? 'LISTENING FOR YOUR COMMAND…' : s === 'on' ? 'SAY “HEY JARVIS”' : s === 'paused' ? 'HANDS-FREE PAUSED · TAP 🎧' : '');
+          status(s === 'awake' ? 'LISTENING FOR YOUR COMMAND…' : s === 'on' ? 'SAY “JARVIS”' : s === 'paused' ? 'HANDS-FREE PAUSED · TAP 🎧' : '');
           if (s === 'on' || s === 'awake') $('cmdInput').value = '';
         },
         onError(m) { log('hands-free', `<span class="err">${esc(m)}</span>`); },
       });
-      if (announce && hfOn) log('hands-free', 'Hands-free is <b>on</b>. Say “Hey JARVIS” followed by anything — or just “Hey JARVIS” and wait for me.');
+      if (announce && hfOn) log('hands-free', 'Hands-free is <b>on</b>. Just say “JARVIS” followed by anything — or “JARVIS” and wait for me. No tapping needed while the app is open.');
     } else {
       Voice.stopWake(); hfOn = false;
       $('hfBtn').classList.remove('on'); document.body.classList.remove('v-hf', 'v-awake'); status('');

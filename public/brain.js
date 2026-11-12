@@ -1456,10 +1456,17 @@ const Brain = (() => {
     if (!st) return reply(`Couldn't work out the ${esc(sess.name)} session — check config/sessions.json.`);
     if (st.open) {
       const w = words(st.closesAt - k.now);
-      return reply(`<b>${esc(sess.name)}</b> is <span class="up">OPEN</span> — closes in <b>${w}</b> (${fmtT(st.closesAt, k.tz, false)} ET).`, `${sess.name} is open${k.t}. It closes in ${w}.`);
+      const started0 = st.progress > 0 && st.progress < 1 ? k.now - (st.closesAt - k.now) * st.progress / (1 - st.progress) : null;
+      const started = started0 ? Math.round(started0 / 300e3) * 300e3 : null;
+      const sH = started ? ` It started at ${fmtT(started, k.tz, false)} ET.` : '', sS = started ? ` It started at ${sayT(started, k.tz)}.` : '';
+      return reply(`<b>${esc(sess.name)}</b> is <span class="up">OPEN</span> right now — closes in <b>${w}</b> (${fmtT(st.closesAt, k.tz, false)} ET).${sH}`, `${sess.name} is open right now${k.t}.${sS} It closes in ${w}.`);
     }
     const w = words(st.opensAt - k.now);
-    return reply(`<b>${esc(sess.name)}</b> ${wantClose ? 'is closed. It next opens' : 'opens'} in <b>${w}</b> — ${fmtT(st.opensAt, k.tz, true)} ET.`, `${sess.name} opens in ${w}, at ${sayT(st.opensAt, k.tz)} New York time.`);
+    const hm = (x) => { const m = String(x || '').match(/(\d+):(\d+)/); return m ? +m[1] * 60 + +m[2] : null; };
+    const o = hm(sess.open), c0 = hm(sess.close), dur = o != null && c0 != null ? (((c0 - o) % 1440) + 1440) % 1440 * 60e3 : 0;
+    const closeH = dur ? ` and runs until ${fmtT(st.opensAt + dur, k.tz, false)} ET` : '', closeS = dur ? `, and runs until ${sayT(st.opensAt + dur, k.tz)}` : '';
+    if (wantClose) return reply(`<b>${esc(sess.name)}</b> is closed right now. It next opens ${fmtT(st.opensAt, k.tz, true)} ET (in ${w})${closeH}.`, `${sess.name} is closed right now${k.t}. It opens in ${w}${closeS}.`);
+    return reply(`<b>${esc(sess.name)}</b> opens in <b>${w}</b> — ${fmtT(st.opensAt, k.tz, true)} ET${closeH}.`, `${sess.name} opens in ${w}, at ${sayT(st.opensAt, k.tz)} New York time${closeS}.`);
   }
   function allSessionsA(k) {
     const rows = (k.sessionsAll || []);
@@ -1870,7 +1877,72 @@ const Brain = (() => {
     return pickIntent(concepts(fixed), text, fixed, /\d/.test(fixed), context(ctx), ctx);
   }
 
+  // =====================================================================================
+  // CONVERSATION MEMORY + YOUR OWN PHRASES
+  //  • follow-ups: "what's the weather" → "and tomorrow?" / "what time is it in London" → "what about Tokyo?"
+  //    "how much did I spend this week" → "what about on food?" / "tell me a fact" → "another one"
+  //  • teach me: "when I say status, show the bias and my trade" → saying "status" runs it
+  // =====================================================================================
+  const ALIAS_KEY = 'jarvis.aliases';
+  const aliases = () => { try { return JSON.parse(localStorage.getItem(ALIAS_KEY)) || {}; } catch { return {}; } };
+  const saveAliases = (a) => { try { localStorage.setItem(ALIAS_KEY, JSON.stringify(a)); } catch {} };
+  let last = null; // { text, id, at }
+  const FOLLOW = /^(?:and|ok and|okay and|so|also|plus|what about|how about|and what about|and how about|what if|same for|same thing for|now|then|ok what about|okay what about|and for|for|on|in|at)\b\s*(.*)$/;
+  const AGAIN = /^(?:another(?: one)?|one more|again|more|tell me more|give me another|next|next one|say that again|repeat that|repeat|what did you say|come again|are you sure|really|for real|you sure|what do you mean|huh|say it again)$/;
+  function teach(text, k) {
+    let m = text.match(/^(?:when|whenever|if) i say\s+(.+?)\s*,?\s+(?:i mean|that means|it means|you should|you|then|do|show me|show|give me|tell me|say)?\s*(.+)$/) || text.match(/^(?:teach(?: you| yourself)?|learn|new shortcut|make a shortcut|shortcut)\s*:?\s+(.+?)\s+(?:means|=|is|for|does)\s+(.+)$/);
+    if (m && m[1] && m[2] && !/^(?:hey|hi)$/.test(m[1])) {
+      const key = m[1].replace(/^["']|["']$/g, '').trim(), val = m[2].replace(/^(?:to |that )/, '').trim();
+      if (key.split(' ').length > 6) return null;
+      const a = aliases(); a[key] = val; saveAliases(a);
+      return reply(`Got it${k.t}. When you say <b>“${esc(key)}”</b>, I'll do: <b>${esc(val)}</b>. <span class="dim">Say “my shortcuts” to see them, or “forget ${esc(key)}”.</span>`, `Got it${k.t}. When you say ${key}, I'll do ${val}.`);
+    }
+    if (/^(?:my|show|list|what are my|show me my)\s*(?:shortcuts|custom commands|phrases|aliases)$/.test(text)) {
+      const a = Object.entries(aliases());
+      if (!a.length) return reply(`No shortcuts yet${k.t}. Teach me one: “when I say status, show the bias and my trade”.`);
+      return reply(`Your shortcuts${k.t}:<ul>${a.map(([x, y]) => `<li><b>${esc(x)}</b> → ${esc(y)}</li>`).join('')}</ul>`, `You have ${a.length} shortcuts${k.t}: ${a.map(([x]) => x).join(', ')}.`);
+    }
+    m = text.match(/^(?:forget|delete|remove)\s+(?:the\s+)?(?:shortcut\s+)?(.+?)(?:\s+shortcut)?$/);
+    if (m && aliases()[m[1]]) { const a = aliases(); delete a[m[1]]; saveAliases(a); return reply(`Forgot the shortcut <b>${esc(m[1])}</b>${k.t}.`); }
+    return null;
+  }
   function interpret(raw, ctx) {
+    const text0 = stripWake(clean(raw));
+    const k0 = { t: (ctx.title || '').trim() ? `, ${ctx.title.trim()}` : '' };
+    if (text0) {
+      const tr = teach(text0, k0);
+      if (tr) return tr;
+      // your own shortcut → run what it stands for (several parts joined by "and then" / "then")
+      const al = aliases(), key = Object.keys(al).sort((a, b) => b.length - a.length).find((x) => text0 === x || text0 === 'jarvis ' + x);
+      if (key) {
+        const parts = al[key].split(/\s*(?:,? and then |,? then |;|,? plus |,? and also )\s*/).filter(Boolean);
+        if (parts.length === 1) return interpretOne(parts[0], ctx);
+        return Promise.all(parts.map((p) => Promise.resolve(interpretOne(p, ctx)))).then((rs) => { const ok = rs.filter(Boolean); return { html: ok.map((r) => r.html).join('<hr class="dim">'), say: ok.map((r) => r.say).join(' ') }; });
+      }
+      // follow-ups within 3 minutes of the last question
+      if (last && Date.now() - last.at < 3 * 60e3 && text0.split(' ').length <= 8) {
+        if (AGAIN.test(text0)) return remember(last.text, interpretOne(last.text, ctx), ctx);
+        const f = text0.match(FOLLOW);
+        const own = routeOf(text0, ctx), ownScore = own && own.ranked.length ? own.ranked[0][1] : 0;
+        if (f && f[1]) {
+          const combined = f[1] + ' ' + last.text, r = routeOf(combined, ctx);
+          // same topic as before → it's a follow-up, unless the new words clearly mean something else
+          if (r && r.id && ((r.id === last.id && ownScore < 9.5) || ownScore < 8.5)) return remember(combined, interpretOne(combined, ctx), ctx, last.text);
+        }
+      }
+    }
+    return remember(text0, interpretOne(raw, ctx), ctx);
+  }
+  // keep the last real question so follow-ups know what "it" / "and tomorrow?" refer to
+  function remember(text, res, ctx, keepText) {
+    try {
+      const r = routeOf(keepText || text, ctx);
+      if (r && r.id && !['hello', 'thanks', 'bye', 'help', 'clear', 'mute', 'unmute', 'stopspeak', 'refresh'].includes(r.id)) last = { text: keepText || text, id: r.id, at: Date.now() };
+    } catch {}
+    return res;
+  }
+
+  function interpretOne(raw, ctx) {
     const original = clean(raw);
     const hadWake = WAKE.test(original); WAKE.lastIndex = 0;
     let text = stripWake(original);
@@ -1971,8 +2043,9 @@ const Brain = (() => {
       case 'account': return needGold(() => accountA(k));
       case 'math': return wrap(mathA(fixed, k) || reply(`I couldn't work that sum out${k.t}. Try “4065 minus 4030”.`));
       case 'session': {
-        const s = findSession(fixed, ctx.sessions.sessions || []);
-        return wrap(sessionA(k, s, c.has('CLOSE') && !c.has('OPEN')));
+        const s = findSession(fixed, ctx.sessions.sessions || []) || findSession(text, ctx.sessions.sessions || []);
+        if (!s) return wrap(allSessionsA(k));
+        return wrap(sessionA(k, s, (c.has('CLOSE') || /\b(end|ends|ending|finish|finishes|over|done|stop|stops)\b/.test(text)) && !c.has('OPEN')));
       }
       case 'sessions': return wrap(allSessionsA(k));
       case 'market': return wrap(marketA(k));
