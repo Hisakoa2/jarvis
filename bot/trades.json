@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794521541715,
+ "heartbeat": 1794524853149,
  "check": {
-  "at": 1794475017820,
+  "at": 1794524853149,
   "ok": false,
-  "why": "could not reach OANDA"
+  "why": "outside the trading window (6:15 PM to 4 PM New York)"
  },
  "days": {
   "2026-11-12": {
