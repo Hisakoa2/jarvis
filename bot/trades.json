@@ -1,7 +1,7 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794469253859,
+ "heartbeat": 1794471674525,
  "check": {
   "at": 1794463213107,
   "ok": false,
@@ -10,7 +10,7 @@
  "days": {
   "2026-11-12": {
    "id": "2026-11-12-S",
-   "status": "open",
+   "status": "closed",
    "dir": -1,
    "entry": 3978.48,
    "sl": 3994.27,
@@ -19,7 +19,11 @@
    "rr": 1.5,
    "why": "bearish bias, setup score 4: the bias is bearish, which is with you, the four hour trend agrees, the daily trend agrees",
    "openedAt": 1794451141402,
-   "lastCheck": 1794469200000
+   "lastCheck": 1794471300000,
+   "exit": 3954.8,
+   "reason": "tp",
+   "closedAt": 1794471674525,
+   "result": 23.68
   }
  }
 }
