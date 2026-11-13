@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794524853149,
+ "heartbeat": 1794528162643,
  "check": {
-  "at": 1794524853149,
+  "at": 1794528162643,
   "ok": false,
-  "why": "outside the trading window (6:15 PM to 4 PM New York)"
+  "why": "setup score 3 (needs 4 outside London/New York hours)"
  },
  "days": {
   "2026-11-12": {
