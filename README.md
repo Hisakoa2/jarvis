@@ -185,6 +185,13 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v14
+- **Opposite trade questions get the right yes or no.** "Should I *not* close?", "is it a bad idea to close?", "is it too early to close?", "should I hold off on closing?", "should I avoid taking partials?": JARVIS flips its yes/no so it always matches what you asked. "Shouldn't I close?" is treated as "I should close, right?".
+- **Either-or and open questions get a straight answer** with no yes or no in front: "should I stay in or get out?" → "I'd hold it, sir." It works the same for "what should I do with my trade?" and "I don't want to hold".
+- **More ways to ask:** "should I cut my losses", "should I take the win", "cash out", "is my trade still good / valid / on track", "should I exit my position".
+- **Fix:** if you said "I'm in a buy at 4000" and then "I'm in a sell at 4000", the sell used to keep the buy's stop and target. Now it gets its own.
+- **Cloud trader:** if it can't reach OANDA, it now saves the exact reason straight away, and notes when prices come back.
+
 ### New in v13
 - **Wins & losses calendar.** Tap **CALENDAR** in the paper trading panel. Each day shows green or red with its total. Tap a day to see its trades, then tap a trade to see:
   - entry and exit (price and time)

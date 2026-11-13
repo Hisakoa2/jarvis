@@ -136,3 +136,10 @@ size|how many {contracts|units|lots} {should i use|do i use|would i need} {to ri
 size|{i want to risk|i wanna risk|i only want to lose} {100|200} {dollars|bucks} how many contracts {should i use|do i need|}
 tradenow|{are|is} {market conditions|conditions|the market} {ok|okay|good|fine|safe} {to trade|for trading} {right now|today|}
 tradenow|{should i|can i|is it ok to} trade {right now|now|today}
+# v14 trade coach opposites: "not" questions, avoid / hold off, either-or, cut losses, still good
+coach|{should i not|do i not|is it a bad idea to|would it be dumb to|is it too early to|is it a mistake to} {close|exit|hold|cut|take partials on} {my|this|the} {trade|position|sell|buy|short|long}
+coach|should i {avoid|hold off on|skip} {closing|exiting|taking partials on} {my|this|the} {trade|position|sell|buy}
+coach|{should i|do i} {stay in|hold|keep it} or {get out|close|exit|cut it}
+coach|{should i|is it time to|do i} {cut my losses|take the win|take the loss|take the l|bank it|cash out}
+coach|{is|are} {my|this|the} {trade|position|sell|buy} still {good|valid|ok|okay|alive|safe|on track}
+coach|what {should|do|would} i do {with|about} {my|this|the} {trade|position|sell|buy}

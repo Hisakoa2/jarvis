@@ -126,7 +126,7 @@ const Brain = (() => {
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
   // trade-coach words the spell-fixer must leave alone ("bring" was turning into "being")
-  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses'.split(' ').forEach((w) => VOCAB.add(w));
+  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses early premature dumb stupid mistake avoid skip exit exiting closing cash bank'.split(' ').forEach((w) => VOCAB.add(w));
   const STOP = new Set('water glass glasses drank drink drinking bottle bottles hydrate trade trades trading tonight night watch watching movie movies film films show shows book books read reading novel timer timers minute minutes seconds hour hours dollar dollars bucks spent spend spending food eat hungry dinner lunch breakfast snack habit habits streak streaks list todo todos task tasks check checked countdown countdowns days weeks christmas birthday trip remember forget locker vibe vibes wear jacket coat hoodie outfit outside feeling feel feels sleep slept bed bedtime wake woke awake morning routine bored tired great good okay mood moods partial partials contracts contract units half quarter challenge best worst biggest record stats your yours jarvis milk eggs trash money expense expenses quote motivate motivation the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
 
   function lev(a, b) {
@@ -1013,7 +1013,8 @@ const Brain = (() => {
   function tradeOf(k, t) {
     const s = statedFrom(t, k);
     if (s) {
-      const same = statedTrade && Math.abs(statedTrade.entry - s.entry) < 0.01 ? statedTrade : null;
+      // same trade = same entry AND same side (a sell at the old buy's price is a new trade — don't keep the buy's stop/target)
+      const same = statedTrade && Math.abs(statedTrade.entry - s.entry) < 0.01 && (!s.side || !statedTrade.side || s.side === statedTrade.side) ? statedTrade : null;
       if (!s.side && same) s.side = same.side;
       if (!s.side) { const b = bdir(k); if (b) { s.side = b; s.guessed = true; } }
       if (same) { if (s.sl == null) s.sl = same.sl; if (s.tp == null) s.tp = same.tp; if (s.units == null) s.units = same.units; }
@@ -1061,8 +1062,35 @@ const Brain = (() => {
   // Which trade question is this? (null = not one)
   const COACH_Q = /\b(should|shall|can|could|may|would|will|do i|do we|is now|is this|do you think|is it|is that|would it|ok|okay|cool|fine|good|alright|all right|smart|wise|bad|worth|recommend|advise|advice|think|time to|better|wanna|want to|need to|have to|must|thoughts|idea|or not|yes or no)\b/;
   const MINE = /\b(my|the|this|our|that|current|open)\s+(trade|position|sell|buy|short|long|entry|stop|stop loss|sl|tp|take profit|target|profits?|order|runner)\b|\b(i am|im|we are|were) (in|holding|still in)\b|\bin (a|the|my|this) (trade|sell|buy|short|long|position)\b/;
-  function coachKind(t, k) {
+  // "hold off on closing" / "avoid closing" / "skip partials" all mean "not …"; -ing words back to the base word
+  function coachNorm(t) {
     t = t.replace(/\bstop (going|being|rising|falling|dropping|moving|climbing|pumping|dumping|selling|buying|trending|running)\b/g, 'quit $1'); // "stop" the verb, not a stop loss
+    t = t.replace(/\bhold(?:ing)? off(?: on)? /g, 'not ').replace(/\b(?:avoid|skip|refrain from|stay away from) /g, 'not ');
+    return t.replace(/\bclosing\b/g, 'close').replace(/\bexiting\b/g, 'exit').replace(/\bgetting out\b/g, 'get out').replace(/\btaking\b/g, 'take')
+      .replace(/\bmoving\b/g, 'move').replace(/\blowering\b/g, 'lower').replace(/\braising\b/g, 'raise').replace(/\bcutting\b/g, 'cut').replace(/\bbailing\b/g, 'bail');
+  }
+  // a "not" question flips the yes/no ("should I NOT close?" → "Yes sir, hold it" means don't close).
+  // Two negatives cancel. "shouldn't I close?" is really "I should close, right?" so it doesn't flip.
+  const NEG_RX = [
+    /\b(?:should|shall|would|could|can|do|must) (?:i|we) not\b/, /\b(?:i|we) (?:should|shall|would|must) not\b/, /\b(?:i|we) (?:shouldnt|shouldn t|wouldnt|wouldn t)\b/,
+    /\b(?:dont|don t|do not|didnt|did not) (?:think (?:i|we) should|plan to|need to)\b/, /(?<!\b(?:i|we|should|shall|would|could|can|do|must) )\bnot (?:to )?(?:close|exit|get out|hold|keep|stay|take|move|lower|raise|cut|bail|trail|tighten|widen|extend|push|pull|change|adjust|let it|ride|leave|bank|cash)\b/,
+    /\b(?:bad|dumb|stupid|silly|terrible|wrong|crazy|risky|reckless|a mistake|mistake|too early|too soon|premature|too greedy|greedy) (?:idea |move |call )?(?:to|if)\b/,
+  ];
+  const SOFT_NEG = /\b(?:dont|don t|do not) (?:want|wanna|feel like)\b|\b(?:id|i would|i d) rather not\b/;
+  function coachNeg(t) {
+    t = t.replace(/\bor not\b|\bnot sure\b|\bnot yet\b|\bif not\b|\bnot really\b/g, ' ');
+    if (SOFT_NEG.test(t) && !/^(?:should|shall|can|could|would|is|do|does|am)\b/.test(t)) return 'soft'; // "I don't want to hold" — a feeling, not a yes/no
+    return NEG_RX.filter((r) => r.test(t)).length % 2 === 1;
+  }
+  // either-or and "what should I do" questions get an answer without a leading yes/no
+  const HOLD_W = '(?:hold|keep|stay|ride|let it)', CLOSE_W = '(?:close|exit|get out|bail|cut|take)';
+  const coachOpen = (t) => /\bwhat (?:should|do|would|can|shall) (?:i|we) do\b|\bwhat (?:now|next)\b|\bwhat would you do\b|\bwhat do you (?:think|suggest|recommend)\b/.test(t) ||
+    new RegExp(`\\b${HOLD_W}\\b.*\\bor\\b.*\\b${CLOSE_W}\\b|\\b${CLOSE_W}\\b.*\\bor\\b.*\\b${HOLD_W}\\b`).test(t.replace(/\bor not\b/g, ''));
+  const flipYN = (x) => x.replace(/^(Yes|No)\b/, (m) => (m === 'Yes' ? 'No' : 'Yes'));
+  const dropYN = (x) => x.replace(/^(?:Yes|No)((?:, [^—,.]+)?)(?: —|,) (.)(.*?)([.!])/, (m, tt, c, rest, p) => c.toUpperCase() + rest + tt + p);
+
+  function coachKind(t, k) {
+    t = coachNorm(t);
     if (/\b(remind|reminder|habit|water|subscription|workout|gym|todo|to do|list|alarm|timer)\b/.test(t)) return null;
     if (/\bhow many (contracts|units|lots|oz|ounces)\b|\bposition size\b|\blot size\b|\bhow (big|much) (should|can) i (size|trade)\b/.test(t)) return null;
     const P = k.paper, hasTrade = !!((P && P.positions().length) || statedTrade || statedFrom(t, k));
@@ -1077,6 +1105,9 @@ const Brain = (() => {
     if (/\bpartials?\b|\bpartial (profit|profits|close)\b|\btake (some|a little|a bit|part|half)( of)?( the)? (profit|profits|off|money)\b|\btake (some|a little|a bit of) profits?\b|\btake profits? (now|here|off|early)\b|\bscale (out|off)\b|\bsecure (some )?(profit|profits|gains)\b|\block in (some )?(profit|profits|gains)\b|\bpay (my ?self|yourself)\b|\bclose (half|part|some)\b|\btake half\b|\btake some off\b|\bhalf off\b/.test(t) && q) return 'partial';
     if (tpW && !tpN && q && /\b(lower|raise|move|bring|extend|tighten|widen|change|adjust|push|pull|shrink|reduce|increase|cut|shorten|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'tpAdj';
     if (slW && !stopN && q && /\b(lower|raise|move|bring|trail|trailing|tighten|widen|wide|wider|change|adjust|push|pull|shrink|reduce|increase|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'stopAdj';
+    if (hasTrade && q && /\bcut (?:my |the |our )?loss(?:es)?\b|\btake (?:the|my) (?:l|loss|hit|win|w|profit|profits|money|gains?)\b|\bbank (?:it|the (?:win|profit|money))\b|\bcash out\b|\bcall it\b/.test(t)) return 'close';
+    if (hasTrade && /\b(?:is|are) (?:my|the|this|our) (?:trade|position|buy|sell|long|short|entry) (?:still )?(?:good|valid|ok|okay|alive|safe|fine|working|healthy|in play|on track|solid|looking good)\b/.test(t)) return 'hold';
+    if (hasTrade && /\bwhat (?:should|do|would|can|shall) (?:i|we) do (?:with|about|on|here with) (?:my|the|this|our|it)\b|\bwhat (?:now|next) (?:with|for) (?:my|the|this) (?:trade|position)\b|\bwhat do you (?:think|suggest|recommend) (?:about|for|on) (?:my|the|this) (?:trade|position)\b/.test(t)) return 'hold';
     if (q && /\b(close|exit|get out|cut|bail|take the (loss|win|profit|money|l|w)|bank it|secure it|end (it|the trade)|close out|cash out)\b/.test(t) && (mine || (hasTrade && /\b(close|exit|get out|bail|cut)\b( it| out| now| here| early| the trade| this)?$/.test(t)))) return 'close';
     if (/\bhold(ing)?\b(?! on\b| up\b| that\b| please\b)|\bkeep (it|holding|riding|this|the|my|our)\b|\bstay in\b|\blet it (run|ride|play out|cook|breathe)\b|\bride (it|the|this|my|our)\b|\bleave (it|the trade) (open|running|alone|be)\b/.test(t) && (mine || hasTrade)) return 'hold';
     if (statedFrom(t, k) && /\b(i am|im|we are|were) in\b|\b(i|we) (just )?(sold|bought|entered|shorted|longed|went long|went short|took|got in|jumped in|hopped in|opened)\b|\bmy entry\b|\bentered\b/.test(t)) return 'where';
@@ -1112,6 +1143,7 @@ const Brain = (() => {
   }
 
   function coachA(k, t, kind) {
+    t = coachNorm(t);
     const tr = tradeOf(k, t);
     if (kind === 'where') return whereA(k, tr);
     if (!tr) return reply(`Which trade${k.t}? I don't see an open paper trade. Tell me like “I'm in a sell at 4000” and ask me again.`, `Which trade${k.t}? Tell me something like, I'm in a sell at 4000, and ask again.`);
@@ -1190,6 +1222,9 @@ const Brain = (() => {
         h = `${Y} — trail it to ${f2(to)}.`; d = ` ${lb ? `That's just past ${esc(lb.name)}, and it locks in ${J.cost((to - tr.entry) * dir)}.` : 'That\'s break even — risk-free.'}`; say(`${Y}, trail it to ${sayPrice(to)}.`);
       } else { v = 'warn'; h = `I'd leave it where it is${k.t}.`; d = ` You're only ${J.R != null ? (J.R >= 0 ? '+' : '') + J.R.toFixed(1) + 'R' : f2(J.move)} — tightening now just gets you stopped on noise. Trail once you're past ${f2(oneR)} (+1R).`; say(`I'd leave it where it is${k.t}. Trail once you're past ${sayPrice(oneR)}.`); }
     }
+    const neg = coachNeg(t);
+    if (neg === 'soft' || coachOpen(t)) { h = dropYN(h); s = dropYN(s); }
+    else if (neg) { h = flipYN(h); s = flipYN(s); }
     const closed = k.market.open ? '' : ' <span class="dim">(The market is closed — this is based on the last price.)</span>';
     return reply(tradeHead(k, tr, J) + `<b class="${v}">${h}</b>${d}${closed}` + END_H + demoNote(g), s + END_S + demoSay(g));
   }
