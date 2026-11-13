@@ -83,7 +83,7 @@ const Paper = (() => {
     const pl = pnlAt(p, px);
     st.positions = st.positions.filter((x) => x !== p);
     st.balance = r2(st.balance + pl);
-    const h = { id: p.id, side: p.side, units: p.units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason, openedAt: p.openedAt, closedAt: at, bot: !!p.bot, worst: extreme(p.worst, px, p, -1), best: extreme(p.best, px, p, 1) };
+    const h = { id: p.id, side: p.side, units: p.units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason, openedAt: p.openedAt, closedAt: at, bot: !!p.bot, worst: extreme(p.worst, px, p, -1), best: extreme(p.best, px, p, 1), xv: 2 };
     st.history.unshift(h);
     if (st.history.length > 200) st.history.pop();
     if (reason !== 'manual') event(reason, h);
@@ -125,7 +125,7 @@ const Paper = (() => {
     const px = closePx(p, bid, ask), pl = r2(units * (px - p.entry) * p.side);
     p.units -= units;
     st.balance = r2(st.balance + pl);
-    const h = { id: p.id, side: p.side, units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason: 'partial', openedAt: p.openedAt, closedAt: Date.now(), bot: !!p.bot, left: p.units, worst: extreme(p.worst, px, p, -1), best: extreme(p.best, px, p, 1) };
+    const h = { id: p.id, side: p.side, units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason: 'partial', openedAt: p.openedAt, closedAt: Date.now(), bot: !!p.bot, left: p.units, worst: extreme(p.worst, px, p, -1), best: extreme(p.best, px, p, 1), xv: 2 };
     st.history.unshift(h);
     if (st.history.length > 200) st.history.pop();
     save();
@@ -149,14 +149,16 @@ const Paper = (() => {
 
   // ---- price updates ------------------------------------------------------------
   // One bar of prices (or a single tick when high = low). Stops are checked before targets.
-  function bar({ bh, bl, ah, al }, at) {
+  // `start` = when the bar began. A 5-minute candle that began BEFORE a trade existed is skipped for
+  // that trade — its high/low could be from before you got in (false drawdown, or a stop that never happened).
+  function bar({ bh, bl, ah, al }, at, start = at) {
     for (const o of [...st.orders]) {
-      if (at < o.placedAt) continue;
+      if (start < o.placedAt) continue;
       const hit = o.side > 0 ? (o.type === 'limit' ? al <= o.entry : ah >= o.entry) : (o.type === 'limit' ? bh >= o.entry : bl <= o.entry);
       if (hit) fill(o, o.entry, at);
     }
     for (const p of [...st.positions]) {
-      if (at < p.openedAt) continue;
+      if (start < p.openedAt) continue;
       watch(p, bh, bl, ah, al);
       if (p.side > 0) {
         if (p.sl != null && bl <= p.sl) close(p.id, p.sl, p.sl >= p.entry ? 'stop_profit' : 'stop', at);
@@ -181,7 +183,7 @@ const Paper = (() => {
     const n = st.events.length;
     for (const c of candles) {
       if (c.t + 300e3 <= st.lastCheck) continue;
-      bar(c, c.t + 300e3 - 1);
+      bar(c, c.t + 300e3 - 1, c.t);
       if (!st.positions.length && !st.orders.length) break;
     }
     if (candles.length) st.lastCheck = Math.max(st.lastCheck, candles[candles.length - 1].t);

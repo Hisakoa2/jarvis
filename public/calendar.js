@@ -32,15 +32,18 @@ const TradeCal = (() => {
   const rrTxt = (r) => `1:${r >= 10 ? Math.round(r) : Math.round(r * 10) / 10}`;
 
   // older trades don't have drawdown saved yet — work it out from 5-minute candles (last 16 days)
+  // short trades (under 15 min) saved before v15 could include prices from before the entry — redo them once
+  const needsFill = (h) => h.worst == null || h.best == null || (!h.xv && h.closedAt && h.openedAt && h.closedAt - h.openedAt < 15 * 60e3);
   async function fillExtremes(h) {
-    if (h.worst != null && h.best != null) return false;
+    if (!needsFill(h)) return false;
     if (typeof Data === 'undefined' || !h.openedAt || Date.now() - h.openedAt > 15.5 * 86400e3) return false;
     let cs = [];
     try { cs = await Data.candlesSince(h.openedAt - 300e3); } catch { return false; }
     const end = h.closedAt || Date.now();
     let worst = h.entry, best = h.entry;
     for (const c of cs) {
-      if (c.t + 300e3 <= h.openedAt || c.t > end) continue;
+      // only candles that sit fully inside the trade — a part-candle includes prices from before you got in
+      if (c.t < h.openedAt || c.t + 300e3 > end) continue;
       const adv = h.side > 0 ? c.bl : c.ah, fav = h.side > 0 ? c.bh : c.al;
       worst = h.side > 0 ? Math.min(worst, adv) : Math.max(worst, adv);
       best = h.side > 0 ? Math.max(best, fav) : Math.min(best, fav);
@@ -53,7 +56,7 @@ const TradeCal = (() => {
     if (h.sl != null) worst = h.side > 0 ? Math.max(worst, h.sl) : Math.min(worst, h.sl);
     if (/^stop/.test(h.reason || '') && h.sl != null) worst = h.side > 0 ? Math.max(worst, h.sl) : Math.min(worst, h.sl);
     if (h.exit != null) { worst = h.side > 0 ? Math.min(worst, h.exit) : Math.max(worst, h.exit); best = h.side > 0 ? Math.max(best, h.exit) : Math.min(best, h.exit); }
-    if (Paper.patchHistory) Paper.patchHistory(h, { worst: r2(worst), best: r2(best) }); else { h.worst = r2(worst); h.best = r2(best); }
+    if (Paper.patchHistory) Paper.patchHistory(h, { worst: r2(worst), best: r2(best), xv: 2 }); else { h.worst = r2(worst); h.best = r2(best); h.xv = 2; }
     return true;
   }
 
@@ -151,7 +154,7 @@ const TradeCal = (() => {
         const isOpen = t.dataset.t[0] === 'o', i = +t.dataset.t.slice(1);
         tradeOpen = isOpen ? renderDay.open[i] : renderDay.list[i];
         if (!tradeOpen) return;
-        busy = !isOpen && (tradeOpen.worst == null || tradeOpen.best == null);
+        busy = !isOpen && needsFill(tradeOpen);
         render();
         if (busy) { const h = tradeOpen; await fillExtremes(h); busy = false; if (tradeOpen === h) render(); }
       }

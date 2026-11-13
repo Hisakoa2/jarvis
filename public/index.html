@@ -189,16 +189,32 @@
     </section>
 
     <section class="panel projects-panel">
-      <div class="panel-head"><span>PROJECTS</span><span class="tag" id="projCount">0</span></div>
+      <div class="panel-head"><span>APPS</span><span class="tag" id="projCount">0</span></div>
       <div id="projects" class="projects"></div>
+      <div class="apps-bar">
+        <button type="button" class="ghost-btn" id="chartBtn">LIVE CHART</button>
+        <button type="button" class="ghost-btn" id="appAddBtn">+ ADD APP</button>
+      </div>
+      <form id="appForm" class="app-form" hidden autocomplete="off">
+        <input id="appName" type="text" placeholder="Name (e.g. Forex Factory)" spellcheck="false">
+        <input id="appUrl" type="text" inputmode="url" autocapitalize="off" placeholder="Link (e.g. forexfactory.com)" spellcheck="false">
+        <button type="submit" class="ghost-btn">ADD</button>
+      </form>
+      <p class="dim small apps-note">Tap a tile to open it. On iPhone, TradingView and OANDA links open their apps if you have them installed. Say “open TradingView” too.</p>
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v14 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v15 · NO AI · <span id="lastUpdate">--</span></footer>
 
   <dialog id="calDlg" class="panel settings cal-dlg">
     <div class="panel-head"><span>WINS &amp; LOSSES</span><button type="button" class="link-btn" id="calClose" aria-label="Close">✕</button></div>
     <div id="calBody"></div>
+  </dialog>
+
+  <dialog id="chartDlg" class="panel settings chart-dlg">
+    <div class="panel-head"><span>XAU/USD · LIVE CHART</span><button type="button" class="link-btn" id="chartClose" aria-label="Close">✕</button></div>
+    <div id="tvChart" class="tv-chart"><div class="dim">Loading TradingView…</div></div>
+    <div class="set-actions"><a class="ghost-btn" href="https://www.tradingview.com/chart/?symbol=OANDA%3AXAUUSD" target="_blank" rel="noopener">OPEN IN TRADINGVIEW</a></div>
   </dialog>
 
   <dialog id="settings" class="panel settings">
@@ -246,7 +262,8 @@
         <div class="set-title">PAPER TRADING</div>
         <p class="dim small">Pretend money on this device only — nothing is sent to OANDA.</p>
         <label>Starting balance ($)<input id="setPaperBal" type="text" inputmode="numeric" placeholder="100000" spellcheck="false"></label>
-        <label>Risk per trade when I pick the size (% of balance)<input id="setRisk" type="text" inputmode="decimal" placeholder="1" spellcheck="false"></label>
+        <label>Most to risk on one trade ($)<input id="setRisk" type="text" inputmode="decimal" placeholder="250" spellcheck="false"></label>
+        <p class="dim small">This is not leverage. It's the most you lose if the stop loss is hit. When you say “sell now” without a size, JARVIS and its trader pick the number of units so a stop-out costs about this much.</p>
         <div class="set-actions"><button type="button" class="ghost-btn" id="paperReset">RESET PAPER ACCOUNT</button></div>
         <div class="set-msg" id="paperMsg"></div>
       </div>

@@ -39,10 +39,9 @@ const Life = (() => {
   // =====================================================================================
   // JARVIS TRADER — one paper trade a day, silent. You find out in the paper panel or by asking.
   // =====================================================================================
-  const BOT_MIN_UNITS = 40;
-  function botUnits(risk, riskPct) {
-    const bal = Paper.stats().balance;
-    return Math.max(BOT_MIN_UNITS, Math.round((bal * (riskPct || 1) / 100) / Math.max(risk, 0.5)));
+  // size so that hitting the stop loses no more than your max risk ($250 unless you change it in Settings)
+  function botUnits(risk, maxRisk) {
+    return Math.max(1, Math.floor((+maxRisk > 0 ? +maxRisk : 250) / Math.max(risk, 0.5)));
   }
   // Called on every price update while the app is open.
   // JARVIS only trades when botCheck() says the setup is valid — never just to fill the day.
@@ -62,16 +61,12 @@ const Life = (() => {
     }
     if (cloud.live) return;          // the cloud trader is running — it takes the trade
     if (open) return;
-    let slot = day, extra = 0;
-    if (rec) {
-      const h1 = botHist().find((h) => h.id === rec.id);
-      if (!h1 || st.bot.days[day + '#2'] || now - h1.closedAt < 30 * 60e3) return;
-      slot = day + '#2'; extra = h1.pl < 0 ? 1 : 0;   // after a loss the 2nd needs a stronger setup
-    }
-    const c = B().botCheck(ctx(), { extra });
+    if (rec) return;                 // one trade a day — the strongest setup only
+    const slot = day;
+    const c = B().botCheck(ctx());
     lastCheck = { at: now, ...c };
     if (!c.ok) return;
-    const units = botUnits(c.risk, ctx().riskPct);
+    const units = botUnits(c.risk, ctx().maxRisk);
     const res = Paper.place({ side: c.dir, units, sl: c.sl, tp: c.tp, bid: g.price.bid, ask: g.price.ask, bot: true, note: c.why });
     const pos = res.position || res.order;
     st.bot.days[slot] = { id: pos.id, at: now, dir: c.dir, units, entry: pos.entry, sl: c.sl, tp: c.tp, rr: Math.round(c.rr * 100) / 100, why: c.why };
@@ -84,7 +79,7 @@ const Life = (() => {
   // phone off. It writes its trades to a small public file; the app copies them into your paper account.
   const CLOUD_URL = 'https://raw.githubusercontent.com/Hisakoa2/jarvis/bot-data/bot/trades.json';
   const cloud = { live: false, at: 0, data: null };
-  async function cloudSync(riskPct) {
+  async function cloudSync(maxRisk) {
     if (typeof Paper === 'undefined') return [];
     let d;
     try {
@@ -103,7 +98,7 @@ const Life = (() => {
       let r = st.bot.days[day];
       if (r && !r.cloud) continue;                       // the app already traded that day itself
       if (r && r.synced) continue;                       // finished and copied already
-      const units = r ? r.units : botUnits(c.risk, riskPct);
+      const units = r ? r.units : botUnits(c.risk, maxRisk);
       if (!r) {
         if (c.status === 'open') {
           const pos = Paper.adopt({ side: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, openedAt: c.openedAt, note: c.why, bot: true });
@@ -126,7 +121,7 @@ const Life = (() => {
     return out;
   }
   // kept for the app's startup call: no more "made-up" catch-up trades — the cloud trader covers phone-off days
-  async function botCatchUp(riskPct) { return cloudSync(riskPct); }
+  async function botCatchUp(maxRisk) { return cloudSync(maxRisk); }
 
   const botHist = () => (typeof Paper === 'undefined' ? [] : Paper.history().filter((h) => h.bot));
   function botStatus(k) {
@@ -155,7 +150,7 @@ const Life = (() => {
     const reason = chk && !chk.ok && chk.why ? ` Last check${chk.at ? ` (${clock(chk.at, k.tz)})` : ''}: ${chk.why}.` : '';
     const where = cloud.live ? ' My cloud copy is watching the market even when your phone is off.' : '';
     if (k.market.state === 'weekend' || !k.market.open) return R(`Market's closed${k.t}, so no trade right now. When it reopens I look for one valid setup per trading day — from 6:15 PM to 4 PM New York.${where}`);
-    return R(`No trade yet today${k.t}. I only take a trade when it's actually valid — bias pointing one way, the setup score agreeing, no big news about to hit, and a target at least twice the stop (1:2). Up to 2 trades a day, never just to fill a quota. If nothing qualifies, I sit out. That's a win too.<span class="dim">${esc(reason)}${where}</span>`,
+    return R(`No trade yet today${k.t}. I only take a trade when it's actually valid — bias pointing one way, the setup score agreeing, no big news about to hit, and a target at least twice the stop (1:2). One trade a day, only the strongest setup, never more than $${Math.round(k.maxRisk || 250)} at risk. If nothing qualifies, I sit out. That's a win too.<span class="dim">${esc(reason)}${where}</span>`,
       `No trade yet today${k.t}. I only get in when the setup is actually valid, and if nothing qualifies, I sit out.${reason}`);
   }
   function botStatsA(k) {

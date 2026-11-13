@@ -94,14 +94,10 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
     }
   }
 
-  // ---- 2. maybe take a trade — only if it's valid. Up to 2 a day: the 2nd only after the 1st is
-  //         closed (30 min cool-off), and after a losing 1st it needs a stronger setup ----
+  // ---- 2. maybe take a trade — only if it's valid. ONE a day, and only a strong setup ----
   const day = tradeDay(now);
   const busy = Object.values(st.days).some((t) => t.status === 'open');
-  const first = st.days[day], second = st.days[day + '#2'];
-  let slot = null, extra = 0;
-  if (!first) slot = day;
-  else if (first.status === 'closed' && !second && now - (first.closedAt || 0) >= 30 * 60e3) { slot = day + '#2'; extra = first.result < 0 ? 1 : 0; }
+  const slot = st.days[day] ? null : day, extra = 0;
   if (slot && !busy) {
     const ctx = { tz: NY, title: '', sessions, projects: [], gold: () => g, riskPct: 1, news: News };
     const c = Brain.botCheck(ctx, { extra });

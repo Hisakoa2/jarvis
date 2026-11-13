@@ -214,6 +214,7 @@ const Brain = (() => {
       news: ctx.news || (typeof News !== 'undefined' ? News : null),
       reminders: ctx.reminders || (typeof Reminders !== 'undefined' ? Reminders : null),
       riskPct: +ctx.riskPct > 0 ? +ctx.riskPct : 1,
+      maxRisk: +ctx.maxRisk > 0 ? +ctx.maxRisk : 250,   // most $ lost if a stop is hit (Settings)
       t: T ? `, ${T}` : '',            // ", sir"
       Tc: T ? T[0].toUpperCase() + T.slice(1) : '', // "Sir"
       tod: p.h < 5 ? 'night' : p.h < 12 ? 'morning' : p.h < 17 ? 'afternoon' : p.h < 22 ? 'evening' : 'night',
@@ -1314,9 +1315,10 @@ const Brain = (() => {
     const riskPct = (text.match(/(\d+(?:\.\d+)?)\s*percent/) || [])[1];
     const riskUsd = (text.match(/risk(?:ing)?\s*(\d+(?:\.\d+)?)\s*(?:dollars|bucks|usd)?/) || [])[1];
     if (!units) {
-      const dollars = riskUsd && !riskPct ? +riskUsd : (S.balance * (riskPct ? +riskPct : k.riskPct)) / 100;
+      // you said a $ or % risk → use it; otherwise risk your max per trade ($250 unless changed in Settings)
+      const dollars = riskUsd && !riskPct ? +riskUsd : riskPct ? (S.balance * +riskPct) / 100 : k.maxRisk;
       units = sl != null ? Math.max(1, Math.floor(dollars / Math.abs(entry - sl))) : 10;
-      sizeNote = sl != null ? ` (risking ${riskPct ? riskPct + '%' : riskUsd ? '$' + riskUsd : k.riskPct + '%'} of the paper account)` : '';
+      sizeNote = sl != null ? ` (risking ${riskPct ? riskPct + '% of the paper account' : riskUsd ? '$' + riskUsd : 'your max of $' + Math.round(k.maxRisk)})` : '';
     }
     const res = P.place({ side: dir, units, entry: pending ? entry : null, sl, tp, bid: g.price.bid, ask: g.price.ask, auto: autoBits.length > 0, style: st });
     const pos = res.position || res.order;
@@ -1996,7 +1998,7 @@ const Brain = (() => {
     ['What’s my balance?', 'Account summary (read-only)'],
     ['Any callouts?', 'Things I noticed'],
     ['Ambient mode', 'Full-screen HUD'],
-    ['Open Aegis', 'Opens a project tile'],
+    ['Open TradingView', 'Opens an app tile (add your own in the APPS panel)'],
     ['Mute / unmute', 'Voice replies off / on'],
   ];
   const chips = (list) => list.map((c) => `<button type="button" class="chip" data-cmd="${esc(c)}">${esc(c)}</button>`).join('');
@@ -2473,7 +2475,8 @@ const Brain = (() => {
     const news = timingFlags(k).find((x) => x.lvl === 'stop' && /High-impact/.test(x.html));
     if (news) return { ok: false, dir, score: sc.score, why: 'high-impact news is too close' };
     const prime = mins >= 3 * 60 && mins < 11 * 60 + 30;
-    const need = (prime ? 3 : 4) + (opt.extra || 0);
+    // one trade a day, so only the strongest setups: bias + both trends + room (or a building flip)
+    const need = (prime ? 4 : 5) + (opt.extra || 0);
     if (sc.score < need) return { ok: false, dir, score: sc.score, why: `setup score ${sc.score} (needs ${need}${prime ? '' : ' outside London/New York hours'})` };
     const pl = buildPlan(k, dir, 'day');
     const risk = Math.abs(pl.entry - pl.stop);

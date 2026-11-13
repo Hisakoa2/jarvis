@@ -85,6 +85,8 @@ const show = process.argv.includes('--show');
     ['should I cut my losses', 'coach', "i'd close|close part|hold"],
     ['is my trade still good', 'coach', "wouldn't hold|full size|carefully|hold it"],
     ["I don't want to hold", 'coach', 'sir', 'no, sir'],
+    // v15: with no size given, a trade risks the max per trade ($250 by default), not 1% of the account
+    ['sell now', '!coach', 'max of $250'],
   ];
   let ok = 0;
   for (const [say, route, must, not] of T) {

@@ -6,7 +6,7 @@
   const PRICE_POLL_MS = 5000;
   const PREFS_KEY = 'jarvis.prefs';
 
-  let prefs = { title: 'sir', boot: true, birthday: '11-15', weatherCity: '', riskPct: 1 };
+  let prefs = { title: 'sir', boot: true, birthday: '11-15', weatherCity: '', riskPct: 1, maxRisk: 250 };
   try { prefs = { ...prefs, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; } catch {}
   const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} };
 
@@ -52,7 +52,7 @@
         fetch('config/projects.json', { cache: 'no-store' }).then((r) => r.json()),
         fetch('config/sessions.json', { cache: 'no-store' }).then((r) => r.json()),
       ]);
-      config = { projects: p.projects || [], sessions: s };
+      config = { projects: [...(p.projects || []), ...myApps().map((a) => ({ ...a, mine: true }))], sessions: s };
     } catch (e) {
       log('config', `<span class="err">Couldn’t read the config files (${esc(e.message)}).</span>`);
     }
@@ -74,9 +74,51 @@
       <a class="tile" href="${esc(resolveUrl(p.url))}" target="_blank" rel="noopener" data-i="${i}">
         <span class="tile-name">${esc(p.name)}</span>
         <span class="tile-desc">${esc(p.description || '')}</span>
-        <span class="tile-url">${esc(p.url)}</span>
-      </a>`).join('') || '<div class="dim">No projects yet — add some to config/projects.json</div>';
+        <span class="tile-url">${esc(p.url)}</span>${p.mine ? `<span class="tile-x" data-rm="${i}" role="button" aria-label="Remove ${esc(p.name)}">✕</span>` : ''}
+      </a>`).join('') || '<div class="dim">No apps yet — tap + ADD APP.</div>';
   }
+  // ---------- your own app links (saved on this device) ----------
+  const APPS_KEY = 'jarvis.apps';
+  function myApps() { try { const a = JSON.parse(localStorage.getItem(APPS_KEY) || '[]'); return Array.isArray(a) ? a.filter((x) => x && x.name && x.url) : []; } catch { return []; } }
+  function saveApps(a) { try { localStorage.setItem(APPS_KEY, JSON.stringify(a)); } catch {} }
+  function syncApps() { config.projects = [...config.projects.filter((p) => !p.mine), ...myApps().map((a) => ({ ...a, mine: true }))]; renderProjects(); }
+  $('projects').addEventListener('click', (e) => {
+    const x = e.target.closest('[data-rm]');
+    if (!x) return;
+    e.preventDefault(); e.stopPropagation();
+    const p = config.projects[+x.dataset.rm];
+    if (p && p.mine) { saveApps(myApps().filter((a) => !(a.name === p.name && a.url === p.url))); syncApps(); }
+  });
+  $('appAddBtn').addEventListener('click', () => { const f = $('appForm'); f.hidden = !f.hidden; if (!f.hidden) $('appName').focus(); });
+  $('appForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = $('appName').value.trim();
+    let url = $('appUrl').value.trim();
+    if (!name || !url) return;
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(url)) url = 'https://' + url.replace(/^\/+/, '');
+    saveApps([...myApps().filter((a) => a.name.toLowerCase() !== name.toLowerCase()), { name, url, description: 'Your app' }]);
+    $('appName').value = ''; $('appUrl').value = ''; $('appForm').hidden = true;
+    syncApps();
+  });
+  // ---------- live TradingView chart (TradingView's own free embed) ----------
+  let tvLoaded = false;
+  function openChart() {
+    const d = $('chartDlg'); if (!d.open) d.showModal();
+    if (tvLoaded) return;
+    tvLoaded = true;
+    const s = document.createElement('script');
+    s.src = 'https://s3.tradingview.com/tv.js'; s.async = true;
+    s.onload = () => {
+      try {
+        $('tvChart').innerHTML = '';
+        new window.TradingView.widget({ autosize: true, symbol: 'OANDA:XAUUSD', interval: '15', timezone: 'America/New_York', theme: 'dark', style: '1', locale: 'en', allow_symbol_change: true, withdateranges: true, container_id: 'tvChart' });
+      } catch { $('tvChart').innerHTML = '<div class="dim">Couldn’t load the chart — tap OPEN IN TRADINGVIEW.</div>'; }
+    };
+    s.onerror = () => { tvLoaded = false; $('tvChart').innerHTML = '<div class="dim">Couldn’t reach TradingView — check your connection, or tap OPEN IN TRADINGVIEW.</div>'; };
+    document.head.appendChild(s);
+  }
+  $('chartBtn').addEventListener('click', openChart);
+  $('chartClose').addEventListener('click', () => $('chartDlg').close());
   function openProject(p) {
     const i = config.projects.indexOf(p);
     const tile = document.querySelector(`.tile[data-i="${i}"]`);
@@ -284,8 +326,13 @@
     const s = Life.botStatus({ now: Date.now() });
     let txt;
     if (s.open) txt = `In a ${s.open.side > 0 ? 'BUY' : 'SELL'} today — ask “how’s your trade”`;
-    else if (s.closed.length) { const v = s.closed.reduce((a, h) => a + h.pl, 0); txt = `Today’s trade done: <span class="${v >= 0 ? 'up' : 'down'}">${money2(v)}</span>`; }
-    else txt = 'Watching for a valid setup (up to 2 a day, 1:2 or better, 40+ units, sits out if nothing qualifies)';
+    else if (s.closed.length) {
+      // say WHEN it traded — the trading day starts 6 PM New York, so "today's" trade may be from last night
+      const v = s.closed.reduce((a, h) => a + h.pl, 0), h = s.closed[s.closed.length - 1];
+      const when = new Date(h.openedAt || h.closedAt).toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+      txt = `Today’s trade done (${h.side > 0 ? 'BUY' : 'SELL'} ${when}): <span class="${v >= 0 ? 'up' : 'down'}">${money2(v)}</span> · next one after 6:15 PM NY`;
+    }
+    else txt = `Watching for the day’s strongest setup (1 a day, 1:2 or better, max $${Math.round(prefs.maxRisk || 250)} risk, sits out if nothing qualifies)`;
     const ci = Life.cloudInfo ? Life.cloudInfo() : null;
     if (ci && ci.live) txt += ' · <span class="dim">cloud on</span>';
     return `<div class="bot-line"><span class="bot-tag">JARVIS TRADER</span> ${txt}</div>`;
@@ -542,7 +589,7 @@
       news: typeof News !== 'undefined' ? News : null,
       paper: Paper,
       reminders: typeof Reminders !== 'undefined' ? Reminders : null,
-      riskPct: prefs.riskPct,
+      riskPct: prefs.riskPct, maxRisk: prefs.maxRisk || 250,
       weather: (city) => Weather.get(city || prefs.weatherCity || null),
       ambient: (on) => setAmbient(on), isAmbient: () => ambientOn,
       callouts: () => callouts,
@@ -654,7 +701,7 @@
     $('setBirthday').value = prefs.birthday || '';
     $('setCity').value = prefs.weatherCity || '';
     $('setPaperBal').value = Paper.stats().start;
-    $('setRisk').value = prefs.riskPct || 1;
+    $('setRisk').value = prefs.maxRisk || 250;
     $('setBoot').checked = prefs.boot !== false;
     $('setHandsFree').checked = !!Voice.prefs.handsFree;
     $('setRate').value = Voice.prefs.rate; $('setPitch').value = Voice.prefs.pitch;
@@ -714,7 +761,7 @@
   $('setTitle').addEventListener('input', (e) => { prefs.title = e.target.value.trim(); savePrefs(); });
   $('setBirthday').addEventListener('input', (e) => { prefs.birthday = e.target.value.trim().replace(/\//g, '-'); savePrefs(); });
   $('setCity').addEventListener('input', (e) => { prefs.weatherCity = e.target.value.trim(); savePrefs(); });
-  $('setRisk').addEventListener('input', (e) => { const v = +String(e.target.value).replace(/[^0-9.]/g, ''); if (v > 0 && v <= 20) { prefs.riskPct = v; savePrefs(); } });
+  $('setRisk').addEventListener('input', (e) => { const v = +String(e.target.value).replace(/[^0-9.]/g, ''); if (v >= 1 && v <= 1e6) { prefs.maxRisk = v; savePrefs(); } });
   $('paperReset').addEventListener('click', () => {
     const n = Math.round(+String($('setPaperBal').value).replace(/[^0-9.]/g, ''));
     if (!(n >= 100)) { $('paperMsg').textContent = 'Enter a starting balance (100 or more).'; return; }
@@ -762,7 +809,7 @@
     $('bootGo').focus();
   }
   // copy JARVIS's cloud trades (taken while the phone was off) into the paper account
-  function syncCloud() { if (typeof Life !== 'undefined' && Life.cloudSync) Life.cloudSync(prefs.riskPct).then(() => renderPaper()).catch(() => {}); }
+  function syncCloud() { if (typeof Life !== 'undefined' && Life.cloudSync) Life.cloudSync(prefs.maxRisk || 250).then(() => renderPaper()).catch(() => {}); }
   function engage() {
     if (document.body.classList.contains('engaged')) return;
     document.body.classList.add('engaged');

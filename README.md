@@ -185,6 +185,16 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v15
+- **JARVIS trader: one trade a day, only the strongest setup.** It now needs a setup score of 4 in London/New York hours and 5 outside them (before, 3 and 4). That means the bias plus both trends plus room to the next level, or a flip building. Fewer trades, better ones.
+- **Max $250 risk per trade.** Settings now asks for **"Most to risk on one trade ($)"**, default 250, instead of a percent. That number is not leverage: it's what you lose if the stop is hit. When you say "sell now" without a size, JARVIS picks the units so a stop-out costs about that much. A 16-dollar stop means 15 units, not 61. The JARVIS trader's trades are sized the same way.
+- **Calendar and other pop-ups open where you are on the screen**, not at the top of the page.
+- **Drawdown and best profit are accurate for short trades.** Before, a trade of a few seconds could show the whole 5-minute candle's high and low, including prices from before you got in. Short trades saved earlier get recalculated once.
+- **Catch-up after the phone sleeps** no longer counts prices from before a trade opened, so it can't show false drawdown or a stop that never happened.
+- **The trader line says when** it traded (for example "SELL Thu 8:07 PM") and that the next one comes after 6:15 PM New York.
+- **APPS panel (was Projects).** The dead placeholder tiles (Aegis, Lodestar, Aurum, ATLAS on localhost) are gone. **+ ADD APP** adds any website or app link, saved on that phone, and the ✕ removes it. "Open <name>" works by voice too.
+- **LIVE CHART:** a real TradingView gold chart inside JARVIS (TradingView's free embed), plus a button to open it in the TradingView app.
+
 ### New in v14
 - **Opposite trade questions get the right yes or no.** "Should I *not* close?", "is it a bad idea to close?", "is it too early to close?", "should I hold off on closing?", "should I avoid taking partials?": JARVIS flips its yes/no so it always matches what you asked. "Shouldn't I close?" is treated as "I should close, right?".
 - **Either-or and open questions get a straight answer** with no yes or no in front: "should I stay in or get out?" → "I'd hold it, sir." It works the same for "what should I do with my trade?" and "I don't want to hold".
