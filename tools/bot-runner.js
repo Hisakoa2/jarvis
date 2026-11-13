@@ -25,7 +25,8 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
 
 (async () => {
   const prev = readState();
-  const core = (s) => JSON.stringify({ e: s.enabled, d: s.days }, (k, v) => (k === 'lastCheck' || k === 'worst' || k === 'best' ? undefined : v));
+  // also save straight away when the price feed goes down or comes back, so the app can show it
+  const core = (s) => JSON.stringify({ e: s.enabled, d: s.days, down: !!(s.check && /^could not reach/.test(s.check.why || '')) }, (k, v) => (k === 'lastCheck' || k === 'worst' || k === 'best' ? undefined : v));
   const prevCore = core(prev);
   const key = process.env.OANDA_API_KEY, account = process.env.OANDA_ACCOUNT_ID, env = process.env.OANDA_ENV || 'practice';
   if (!key || !account) {
@@ -56,12 +57,14 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
   let g;
   try { g = await Data.snapshot({ forceCandles: true, sessions }); } catch (e) {
     console.log('Could not get prices:', e.message);
-    st.check = { at: now, ok: false, why: 'could not reach OANDA' };
+    st.check = { at: now, ok: false, why: 'could not reach OANDA', err: String(e.message || e).slice(0, 160) };
     const changed = now - (prev.heartbeat || 0) > 55 * 60e3 || prevCore !== core(st);
     if (!changed) st.heartbeat = prev.heartbeat || 0;
     writeState(st); out('changed', changed ? 1 : 0);
     return;
   }
+
+  if (st.check && /^could not reach/.test(st.check.why || '')) st.check = { at: now, ok: false, why: 'prices are back' };
 
   // ---- 1. look after an open trade: stop, target, or 4:50 PM close ----
   for (const [day, t] of Object.entries(st.days)) {
