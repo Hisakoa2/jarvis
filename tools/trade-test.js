@@ -86,7 +86,7 @@ const show = process.argv.includes('--show');
     ['is my trade still good', 'coach', "wouldn't hold|full size|carefully|hold it"],
     ["I don't want to hold", 'coach', 'sir', 'no, sir'],
     // v15: with no size given, a trade risks the max per trade ($250 by default), not 1% of the account
-    ['sell now', '!coach', 'max of $250'],
+    ['sell now', '!coach', 'inside your $250 max'],
   ];
   let ok = 0;
   for (const [say, route, must, not] of T) {
@@ -99,6 +99,20 @@ const show = process.argv.includes('--show');
     const pass = routeOk && mustOk && notOk && !/ERROR/.test(txt);
     if (pass) ok++;
     if (!pass || show) console.log(`${pass ? 'ok  ' : 'FAIL'} [${rid}] ${say}\n      ${txt.slice(0, 420)}`);
+  }
+  // v16: keeping a trade inside the $250 max — tighten to closer structure, size down, or both
+  const fk = (atr, levels) => ({ g: { bias: { atr }, price: { bid: 3900, ask: 3900.3 }, levels: { list: levels } } });
+  const FR = [
+    ['tightened', fk(10, [{ name: 'A', price: 3896.5 }]), { entry: 3900, stop: 3880, risk: 20, unit: 10 }, (r) => r.units >= 40 && r.units * r.risk <= 250],
+    ['both', fk(10, [{ name: 'A', price: 3895 }]), { entry: 3900, stop: 3880, risk: 20, unit: 10 }, (r) => r.units < 40 && r.units * r.risk <= 250 && r.risk < 20],
+    ['sized', fk(14, []), { entry: 3895, stop: 3887, risk: 8, unit: 14 }, (r) => r.stop === 3887 && r.units === 31],
+    ['fits', fk(10, []), { entry: 3900, stop: 3894, risk: 6, unit: 10 }, (r) => r.units === 41],
+  ];
+  for (const [how, k, p, chk] of FR) {
+    const r = Brain.fitRisk(k, 1, p, 250);
+    const pass = r.how === how && chk(r);
+    T.push(0); if (pass) ok++;
+    if (!pass || show) console.log(`${pass ? 'ok  ' : 'FAIL'} fitRisk ${how}: got ${r.how}, stop ${r.stop}, ${r.units} units, risk $${(r.units * r.risk).toFixed(0)}`);
   }
   // the panel's own trade: place a paper sell/buy and ask about it
   console.log(`\n${ok}/${T.length} trade answers correct`);

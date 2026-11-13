@@ -764,6 +764,36 @@ const Brain = (() => {
     return null;
   }
   // Levels in a direction (JARVIS levels + $10 / $50 round numbers), nearest first
+  // Keep a trade inside your max risk ($250) the way JARVIS thinks is best:
+  //  • a closer structure level still clears normal noise → tighten the stop to it, keep your usual 40 units
+  //  • the stop needs its room → keep the stop, size down
+  //  • a closer level helps but not enough → do both (tighten, then size down)
+  const USUAL_UNITS = 40;
+  function fitRisk(k, dir, p, maxRisk, want = USUAL_UNITS) {
+    const g = k.g, entry = p.entry, cap = maxRisk / want;   // stop distance that still allows `want` units
+    const unitsFor = (r) => Math.max(1, Math.floor(maxRisk / r));
+    const keep = (how) => ({ stop: p.stop, risk: p.risk, units: unitsFor(p.risk), how, anchor: p.anchor });
+    if (!(p.risk > 0)) return keep('fits');
+    if (p.risk <= cap) return keep('fits');
+    const h1 = g.bias.atr || 3, pad = p.unit * 0.25, spread = Math.abs(g.price.ask - g.price.bid) || 0.3;
+    const floor = Math.max(h1 * 0.5, spread * 4);            // any tighter and normal noise tags it
+    const base = g.levels.list;
+    const extra = roundLevels(entry, 10, p.unit * 4).filter((r) => !base.some((l) => Math.abs(l.price - r.price) < p.unit * 0.15));
+    const c = base.concat(extra).filter((l) => (l.price - entry) * dir < 0)
+      .map((l) => ({ l, d: Math.abs(entry - l.price) + pad })).filter((x) => x.d >= floor && x.d < p.risk - 0.01);
+    const fit = c.filter((x) => x.d <= cap).sort((a, b) => b.d - a.d)[0];   // most room that still fits 40 units
+    const tight = fit || c.sort((a, b) => a.d - b.d)[0];
+    if (!tight) return keep('sized');
+    return { stop: entry - dir * tight.d, risk: tight.d, units: unitsFor(tight.d), how: fit ? 'tightened' : 'both', anchor: tight.l };
+  }
+  function fitNote(fr, maxRisk) {
+    const at = fr.anchor ? `just past ${esc(fr.anchor.name)}` : '';
+    const cost = usd0(fr.units * fr.risk);
+    if (fr.how === 'tightened') return { h: `Stop tightened to ${at} so your usual ${USUAL_UNITS}+ units fit your $${Math.round(maxRisk)} max (a stop-out costs about ${cost}).`, s: `I tightened the stop so your usual size fits your ${Math.round(maxRisk)} dollar max.` };
+    if (fr.how === 'both') return { h: `Stop tightened to ${at}, and sized down to ${fr.units} units: the stop still needs that room, so a stop-out costs about ${cost}, inside your $${Math.round(maxRisk)} max.`, s: `I tightened the stop and sized down to ${fr.units} units to stay inside your ${Math.round(maxRisk)} dollar max.` };
+    if (fr.how === 'sized') return { h: `Sized down to ${fr.units} units: the stop needs that room${at ? ` (${at})` : ''}, so a stop-out costs about ${cost}, inside your $${Math.round(maxRisk)} max.`, s: `I sized down to ${fr.units} units because the stop needs its room. A stop-out costs about ${cost}.` };
+    return { h: `A stop-out costs about ${cost}, inside your $${Math.round(maxRisk)} max.`, s: '' };
+  }
   function levelsToward(k, dir, from, step = 10, n = 4) {
     const g = k.g, unit = g.bias.atr || 3;
     const base = g.levels.list.slice();
@@ -1304,8 +1334,12 @@ const Brain = (() => {
     const entry = pending ? entryAt : mkt;
     const side = dir > 0 ? 'buy' : 'sell';
     const noStop = /\b(no|without a?)\s*(stop|sl)\b/.test(text);
-    let sl = t.stop, tp = t.target, autoBits = [];
-    if (sl == null && !noStop) { const p = buildPlan(k, dir, st, entry); sl = p.stop; autoBits.push('stop'); }
+    let sl = t.stop, tp = t.target, autoBits = [], fit = null;
+    if (sl == null && !noStop) {
+      const p = buildPlan(k, dir, st, entry); sl = p.stop; autoBits.push('stop');
+      // no size and no risk said → JARVIS fits the trade inside your max risk (tighter stop, smaller size, or both)
+      if (!parseUnits(text) && !/\b(risk|risking|percent)\b/.test(text)) { fit = fitRisk(k, dir, p, k.maxRisk); sl = fit.stop; }
+    }
     if (tp == null && sl != null) { tp = suggestTargets(k, dir, entry, sl, st).tp1; autoBits.push('take profit'); }
     if (sl != null && (dir > 0 ? sl >= entry : sl <= entry)) return reply(`<span class="warn">On a ${side}, the stop has to be ${dir > 0 ? 'below' : 'above'} the entry (${f2(entry)}). You said ${f2(sl)}.</span>`, `On a ${side} the stop has to be ${dir > 0 ? 'below' : 'above'} the entry${k.t}.`);
     if (tp != null && (dir > 0 ? tp <= entry : tp >= entry)) return reply(`<span class="warn">On a ${side}, the take profit has to be ${dir > 0 ? 'above' : 'below'} the entry (${f2(entry)}). You said ${f2(tp)}.</span>`, `On a ${side} the take profit has to be ${dir > 0 ? 'above' : 'below'} the entry${k.t}.`);
@@ -1314,6 +1348,8 @@ const Brain = (() => {
     let units = parseUnits(text), sizeNote = '';
     const riskPct = (text.match(/(\d+(?:\.\d+)?)\s*percent/) || [])[1];
     const riskUsd = (text.match(/risk(?:ing)?\s*(\d+(?:\.\d+)?)\s*(?:dollars|bucks|usd)?/) || [])[1];
+    const fitN = fit ? fitNote(fit, k.maxRisk) : null;
+    if (!units && fit) units = fit.units;
     if (!units) {
       // you said a $ or % risk → use it; otherwise risk your max per trade ($250 unless changed in Settings)
       const dollars = riskUsd && !riskPct ? +riskUsd : riskPct ? (S.balance * +riskPct) / 100 : k.maxRisk;
@@ -1332,12 +1368,13 @@ const Brain = (() => {
       `<b>Done${k.t}.</b> ${what}`,
       pos.sl != null ? `Stop <b>${f2(pos.sl)}</b> (risk ${usd(-risk)})${autoBits.includes('stop') ? ' <span class="dim">— my pick, from structure</span>' : ''}` : '<span class="warn">No stop loss on this one.</span>',
       pos.tp != null ? `Take profit <b>${f2(pos.tp)}</b> (${usd(reward)}${risk ? `, ${(reward / risk).toFixed(1)}R` : ''})${autoBits.includes('take profit') ? ' <span class="dim">— my pick</span>' : ''}` : '',
+      fitN ? `<span class="${fit.how === 'fits' ? 'dim' : 'warn'}">${fitN.h}</span>` : '',
       rulesH,
       '<span class="dim">Paper trade — pretend money, nothing sent to OANDA. Say “move my stop to break even” or “close my trade” anytime.</span>',
     ].filter(Boolean);
     const say = res.order
       ? `Done${k.t}. ${side} order placed at ${sayPrice(pos.entry)} for ${units} units. Stop ${pos.sl != null ? sayPrice(pos.sl) : 'none'}, take profit ${pos.tp != null ? sayPrice(pos.tp) : 'none'}. ${rulesS}`
-      : `Done${k.t}. ${dir > 0 ? 'Bought' : 'Sold'} ${units} units at ${sayPrice(pos.entry)}. Stop at ${pos.sl != null ? sayPrice(pos.sl) : 'none'}${pos.tp != null ? `, take profit at ${sayPrice(pos.tp)}` : ''}${autoBits.length ? ', my picks' : ''}. ${rulesS} I'll let you know when it's hit.`;
+      : `Done${k.t}. ${dir > 0 ? 'Bought' : 'Sold'} ${units} units at ${sayPrice(pos.entry)}. Stop at ${pos.sl != null ? sayPrice(pos.sl) : 'none'}${pos.tp != null ? `, take profit at ${sayPrice(pos.tp)}` : ''}${autoBits.length ? ', my picks' : ''}. ${fitN && fitN.s ? fitN.s + ' ' : ''}${rulesS} I'll let you know when it's hit.`;
     return reply(lines.join('<br>') + demoNote(g), say + demoSay(g));
   }
 
@@ -2479,14 +2516,17 @@ const Brain = (() => {
     const need = (prime ? 4 : 5) + (opt.extra || 0);
     if (sc.score < need) return { ok: false, dir, score: sc.score, why: `setup score ${sc.score} (needs ${need}${prime ? '' : ' outside London/New York hours'})` };
     const pl = buildPlan(k, dir, 'day');
-    const risk = Math.abs(pl.entry - pl.stop);
-    if (!(risk > 0)) return { ok: false, dir, score: sc.score, why: 'no clean stop' };
-    let tp = pl.tp1;
+    if (!(Math.abs(pl.entry - pl.stop) > 0)) return { ok: false, dir, score: sc.score, why: 'no clean stop' };
+    // stay inside the max risk ($250): tighter stop at closer structure, smaller size, or both
+    const fr = fitRisk(k, dir, pl, opt.maxRisk || k.maxRisk);
+    const risk = fr.risk;
+    pl.stop = fr.stop;
+    let tp = fr.how === 'tightened' || fr.how === 'both' ? suggestTargets(k, dir, pl.entry, fr.stop, 'day').tp1 : pl.tp1;
     if (Math.abs(tp - pl.entry) < risk * 2) tp = pl.entry + dir * risk * 2; // at least 1 to 2
     const why = `${lc(g.bias.bias)} bias, setup score ${sc.score}${prime ? ' in prime hours' : ''}: ${sc.f.filter((x) => x.pts > 0).map((x) => x.say).slice(0, 3).join(', ')}`;
-    return { ok: true, dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why };
+    return { ok: true, dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why, units: fr.units, fit: fr.how };
   }
   function botPlan(ctx) { const c = botCheck(ctx); return c.ok ? c : null; }
 
-  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf };
+  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf, fitRisk };
 })();

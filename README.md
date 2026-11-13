@@ -185,6 +185,15 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v16
+- **JARVIS picks how to stay inside your $250 max.** When it chooses the stop for you (you say "sell now" without a size), it decides:
+  - **Tighten the stop**, if there's a closer price level that's still far enough from normal noise (at least half the hourly range). You keep your usual 40+ units.
+  - **Size down**, if the stop needs its room. You get fewer units, and a stop-out still costs about $250 or less.
+  - **Both**, if a closer level helps but not enough: a tighter stop and a smaller size.
+  - The reply says which one it did and why. Take profit is always re-set to at least 1:2 from the new stop.
+- If you give your own stop, size or risk ("risk 100 dollars"), JARVIS uses yours.
+- The JARVIS trader uses the same logic for its trades.
+
 ### New in v15
 - **JARVIS trader: one trade a day, only the strongest setup.** It now needs a setup score of 4 in London/New York hours and 5 outside them (before, 3 and 4). That means the bias plus both trends plus room to the next level, or a flip building. Fewer trades, better ones.
 - **Max $250 risk per trade.** Settings now asks for **"Most to risk on one trade ($)"**, default 250, instead of a percent. That number is not leverage: it's what you lose if the stop is hit. When you say "sell now" without a size, JARVIS picks the units so a stop-out costs about that much. A 16-dollar stop means 15 units, not 61. The JARVIS trader's trades are sized the same way.
