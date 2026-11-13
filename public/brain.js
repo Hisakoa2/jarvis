@@ -125,6 +125,8 @@ const Brain = (() => {
 
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
+  // trade-coach words the spell-fixer must leave alone ("bring" was turning into "being")
+  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses'.split(' ').forEach((w) => VOCAB.add(w));
   const STOP = new Set('water glass glasses drank drink drinking bottle bottles hydrate trade trades trading tonight night watch watching movie movies film films show shows book books read reading novel timer timers minute minutes seconds hour hours dollar dollars bucks spent spend spending food eat hungry dinner lunch breakfast snack habit habits streak streaks list todo todos task tasks check checked countdown countdowns days weeks christmas birthday trip remember forget locker vibe vibes wear jacket coat hoodie outfit outside feeling feel feels sleep slept bed bedtime wake woke awake morning routine bored tired great good okay mood moods partial partials contracts contract units half quarter challenge best worst biggest record stats your yours jarvis milk eggs trash money expense expenses quote motivate motivation the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
 
   function lev(a, b) {
@@ -404,10 +406,10 @@ const Brain = (() => {
     const g = k.g, b = g && g.bias;
     const lean = b && b.bias !== 'Neutral' ? (b.bias === 'Bullish' ? 'buys' : 'sells') : null;
     let v;
-    if (stops.length) v = { c: 'down', h: pick('tn-no', [`No${k.t} — probably not right now.`, `I'd sit this one out${k.t}.`, `Not right now${k.t}.`]) };
-    else if (cautions.length >= 2) v = { c: 'warn', h: pick('tn-meh', [`I'd hold off${k.t} — conditions aren't great.`, `Not ideal${k.t}. I'd be picky here, if anything.`]) };
-    else if (cautions.length === 1) v = { c: 'warn', h: `You can${k.t}, but be careful.` };
-    else v = { c: 'up', h: pick('tn-yes', [`Conditions look good${k.t}.`, `Yes${k.t} — this is a decent window.`, `Good time to be looking${k.t}.`]) };
+    if (stops.length) v = { c: 'down', h: pick('tn-no', [`No${k.t} — not right now.`, `No${k.t} — I'd sit this one out.`]) };
+    else if (cautions.length >= 2) v = { c: 'warn', h: pick('tn-meh', [`No${k.t} — conditions aren't great, I'd hold off.`, `No${k.t} — I'd be very picky here.`]) };
+    else if (cautions.length === 1) v = { c: 'warn', h: `Yes${k.t}, but be careful.` };
+    else v = { c: 'up', h: pick('tn-yes', [`Yes${k.t} — conditions look good.`, `Yes${k.t} — this is a decent window.`]) };
     const leanH = lean && !stops.length ? ` Bias is <b class="${cls(b.bias)}">${b.bias.toUpperCase()}</b>, so I'd only look for <b>${lean}</b> — say “should I ${lean === 'buys' ? 'buy' : 'sell'}” for the full check.` : '';
     const leanS = lean && !stops.length ? ` The bias is ${lc(b.bias)}, so I'd only look for ${lean}.` : '';
     const prime = inPrime(k) ? '' : `<br><span class="dim">Best window for gold: ${PRIME_HTML}.</span>`;
@@ -563,10 +565,10 @@ const Brain = (() => {
     const anchor = behind.find((l) => dist(l) + pad >= minStop && dist(l) + pad <= maxStop) || null;
     const stop = anchor ? anchor.price - dir * pad : entry - dir * unit * (swing ? 2 : 1.5);
     const risk = Math.abs(entry - stop);
-    const r1 = swing ? 1.5 : 1, r2 = swing ? 3 : 2;
+    const r1 = swing ? 2 : 2, r2 = swing ? 3 : 3;
     const front = unit * 0.1; // take profit just before the level, not on it
     const t1L = ahead.find((l) => dist(l) - front >= risk * r1) || null;
-    const tp1 = t1L ? t1L.price - dir * front : entry + dir * risk * (swing ? 2 : 1.5);
+    const tp1 = t1L ? t1L.price - dir * front : entry + dir * risk * 2;
     const t2L = ahead.find((l) => dist(l) - front >= Math.max(risk * r2, Math.abs(tp1 - entry) + unit * 0.5)) || null;
     const tp2 = t2L ? t2L.price - dir * front : entry + dir * Math.max(risk * r2 * 1.25, Math.abs(tp1 - entry) + risk);
     const notes = [];
@@ -954,11 +956,11 @@ const Brain = (() => {
     const extra = roundLevels(entry, swing ? 50 : 10, unit * 8).filter((r) => !base.some((l) => Math.abs(l.price - r.price) < unit * 0.15));
     const ahead = base.concat(extra).filter((l) => (dir > 0 ? l.price > entry + unit * 0.1 : l.price < entry - unit * 0.1)).sort((a, b) => Math.abs(a.price - entry) - Math.abs(b.price - entry));
     const d = (l) => Math.abs(l.price - entry) - front;
-    const t1L = ahead.find((l) => d(l) >= risk * (swing ? 1.5 : 1)) || null;
-    const tp1 = t1L ? t1L.price - dir * front : entry + dir * risk * 1.5;
-    const t2L = ahead.find((l) => d(l) >= Math.max(risk * (swing ? 3 : 2), Math.abs(tp1 - entry) + unit * 0.5)) || null;
+    const t1L = ahead.find((l) => d(l) >= risk * 2) || null;
+    const tp1 = t1L ? t1L.price - dir * front : entry + dir * risk * 2;
+    const t2L = ahead.find((l) => d(l) >= Math.max(risk * 3, Math.abs(tp1 - entry) + unit * 0.5)) || null;
     const tp2 = t2L ? t2L.price - dir * front : entry + dir * Math.max(risk * 2.5, Math.abs(tp1 - entry) + risk);
-    const first = ahead[0] && d(ahead[0]) < risk ? ahead[0] : null; // a level closer than 1R
+    const first = ahead[0] && d(ahead[0]) < Math.abs(tp1 - entry) - unit * 0.2 ? ahead[0] : null; // a level price meets before TP1
     return { tp1, t1L, tp2, t2L, rr1: Math.abs(tp1 - entry) / risk, rr2: Math.abs(tp2 - entry) / risk, risk, first, oneR: entry + dir * risk, twoR: entry + dir * risk * 2 };
   }
 
@@ -973,9 +975,234 @@ const Brain = (() => {
       `<li><span class="up">TP1</span> <b>${f2(s.tp1)}</b> — ${s.t1L ? `just in front of ${esc(s.t1L.name)}` : 'measured move'} · <b>${s.rr1.toFixed(1)}R</b></li>` +
       `<li><span class="up">TP2</span> <b>${f2(s.tp2)}</b> — ${s.t2L ? `just in front of ${esc(s.t2L.name)}` : 'measured move'} · <b>${s.rr2.toFixed(1)}R</b></li>` +
       `<li class="dim">1R = ${f2(s.oneR)} · 2R = ${f2(s.twoR)}</li></ul>` +
-      (s.first ? `<span class="warn">${esc(s.first.name)} at ${f2(s.first.price)} is closer than 1R — price may react there first; consider partials.</span><br>` : '') +
+      (s.first ? `<span class="warn">${esc(s.first.name)} at ${f2(s.first.price)} comes first — price may pause there, so that's your spot for partials.</span><br>` : '') +
       `Rules check: <b class="${sc.verdict.c}">${sc.verdict.w}</b>${fits}<br><span class="dim">Take partials at TP1 and move your stop to break-even. Not a guarantee — your call.</span>` + demoNote(g),
       `With your stop at ${sayPrice(stop)}${k.t}, I'd put the first take profit at ${sayPrice(s.tp1)}${s.t1L ? `, just in front of ${s.t1L.name}` : ''}, about ${s.rr1.toFixed(1)} R. Second target ${sayPrice(s.tp2)}, ${s.rr2.toFixed(1)} R. ${sc.verdict.s}.` + demoSay(g));
+  }
+
+  // ---- v13: trade coach — straight "Yes, sir" / "No, sir" answers about a trade you're in ----------
+  // Works on your open paper trade, or a trade you tell me about ("I'm in a sell at 4000").
+  let statedTrade = null;
+  const bdir = (k) => (k.g && k.g.bias.bias === 'Bullish' ? 1 : k.g && k.g.bias.bias === 'Bearish' ? -1 : 0);
+  const rrTxt = (r) => `1:${r >= 10 ? Math.round(r) : Math.round(r * 10) / 10}`;
+  const usd0 = (n) => `$${Math.round(Math.abs(n)).toLocaleString('en-US')}`;
+  const END_H = '<br><span class="dim">Not a guarantee — your call.</span>';
+  const END_S = ' Not a guarantee, your call.';
+  const PX_RE = '(\\d{3,5}(?:\\.\\d+)?)';
+  function parseSide(t) {
+    const b = /\b(buy|buying|bought|long|longs|longing|went long)\b/.test(t), s = /\b(sell|selling|sold|short|shorts|shorting|shorted|went short)\b/.test(t);
+    return b && !s ? 1 : s && !b ? -1 : 0;
+  }
+  const nearPx = (n, k) => (k.g ? Math.abs(n - k.g.price.bid) / k.g.price.bid < 0.25 : n >= 1000);
+  function numAfter(t, words, k) {
+    const m = t.match(new RegExp(`\\b(?:${words})\\b\\D{0,25}?${PX_RE}`)) || t.match(new RegExp(`${PX_RE}\\s+(?:(?:a|an|the|my|as|for|be|good|ok|okay|fine|decent|nice|solid|better|bad|safe|smart|new|great|reasonable)\\s+){0,4}(?:${words})\\b`));
+    return m && nearPx(+m[1], k) ? +m[1] : null;
+  }
+  const SL_W = 'stop loss|stoploss|stop|sl', TP_W = 'take profit|profit target|takeprofit|target|tp';
+  function unitsIn(t) {
+    const x = t.match(/(\d+(?:\.\d+)?)\s*(?:contracts?|units?|oz|ounces?)\b/); if (x) return +x[1];
+    const l = t.match(/(\d+(?:\.\d+)?)\s*lots?\b/); return l ? Math.round(+l[1] * 100) : null;
+  }
+  // "I'm in a sell at 4000 with my stop at 4010" → { side, entry, sl, tp, units }
+  function statedFrom(t, k) {
+    const t2 = t.replace(new RegExp(`\\b(?:${SL_W}|${TP_W}|break ?even)\\b\\D{0,25}?\\d{3,5}(?:\\.\\d+)?`, 'g'), ' ');
+    const m = t2.match(new RegExp(`\\b(?:in|entry|entered|enter|got in|opened|filled|from|at|bought|sold|shorted|longed)\\b(?:\\s+(?:a|an|my|the|at|on|was|is|of|around|about|near|it|trade|position|sell|buy|long|short|from))*\\s+${PX_RE}`));
+    if (!m || !nearPx(+m[1], k)) return null;
+    return { side: parseSide(t), entry: +m[1], sl: numAfter(t, SL_W, k), tp: numAfter(t, TP_W, k), units: unitsIn(t), stated: true, at: Date.now() };
+  }
+  function tradeOf(k, t) {
+    const s = statedFrom(t, k);
+    if (s) {
+      const same = statedTrade && Math.abs(statedTrade.entry - s.entry) < 0.01 ? statedTrade : null;
+      if (!s.side && same) s.side = same.side;
+      if (!s.side) { const b = bdir(k); if (b) { s.side = b; s.guessed = true; } }
+      if (same) { if (s.sl == null) s.sl = same.sl; if (s.tp == null) s.tp = same.tp; if (s.units == null) s.units = same.units; }
+      statedTrade = s;
+      return s;
+    }
+    const P = k.paper, pos = P ? P.positions() : [];
+    const p = pos.filter((x) => !x.bot).slice(-1)[0] || pos.slice(-1)[0];
+    if (p) return { side: p.side, entry: p.entry, sl: p.sl, tp: p.tp, units: p.units, paper: true, bot: !!p.bot, id: p.id, openedAt: p.openedAt };
+    if (statedTrade && Date.now() - statedTrade.at < 24 * 3600e3) {
+      const u = unitsIn(t); if (u) statedTrade.units = u;
+      return statedTrade;
+    }
+    return null;
+  }
+  function judge(k, tr) {
+    const g = k.g, b = g.bias, dir = tr.side, want = dir > 0 ? 'Bullish' : 'Bearish', other = dir > 0 ? 'Bearish' : 'Bullish';
+    const px = dir > 0 ? g.price.bid : g.price.ask;
+    const move = (px - tr.entry) * dir;                                  // + in profit, per contract
+    const risk = tr.sl != null ? (tr.entry - tr.sl) * dir : null;        // + normal stop, ≤0 profit locked
+    const R = risk > 0 ? move / risk : null;
+    const atr = b.atr || 3;
+    const T = moveTarget(k, dir, px);
+    const prog = tr.tp != null && (tr.tp - tr.entry) * dir > 0 ? move / ((tr.tp - tr.entry) * dir) : null;
+    const lead = b.bias === want ? 'with' : b.bias === other ? 'against' : 'neutral';
+    const wrong = lead === 'with' && biasAt(k, g.price.bid) !== want;
+    const neutralAt = lead === 'with' ? flipPoint(k, g.price.bid, -dir, ['Neutral', other]) : null;
+    const u = tr.units || null;
+    const cost = (perUnit) => (u ? usd0(perUnit * u) : `$${f2(Math.abs(perUnit))} a contract`);
+    return { g, b, dir, want, other, px, move, risk, R, atr, T, prog, lead, wrong, neutralAt, u, cost };
+  }
+  function tradeHead(k, tr, J) {
+    const side = tr.side > 0 ? 'buy' : 'sell', sg = J.move >= 0 ? '+' : '−';
+    return `<span class="dim">Your ${tr.bot ? 'JARVIS ' : ''}${side}${J.u ? ' ' + J.u : ''} from ${f2(tr.entry)} · now ${f2(J.px)} · ${sg}${f2(Math.abs(J.move))}${J.u ? ` (${sg}${usd0(J.move * J.u)})` : ''}${J.R != null ? ` · ${J.R >= 0 ? '+' : ''}${J.R.toFixed(1)}R` : ''}${tr.sl != null ? ` · SL ${f2(tr.sl)}` : ''}${tr.tp != null ? ` · TP ${f2(tr.tp)}` : ''}${tr.guessed ? ` · I assumed a ${side} (with the bias) — say “I'm in a ${tr.side > 0 ? 'sell' : 'buy'}” if not` : ''}</span><br>`;
+  }
+  function biasWhy(J) {
+    if (J.lead === 'with') return {
+      h: ` The 1H bias is still <b class="${cls(J.want)}">${lc(J.want)}</b>${J.neutralAt ? ` while candles close ${J.dir > 0 ? 'above' : 'below'} ${f2(J.neutralAt)}` : ''}.${J.wrong ? ' <span class="warn">Price is already on the wrong side of your rules, though.</span>' : ''}`,
+      s: ` The bias is still ${lc(J.want)}${J.neutralAt ? ` while hourly candles close ${J.dir > 0 ? 'above' : 'below'} ${sayPrice(J.neutralAt)}` : ''}.${J.wrong ? ' Price is on the wrong side of the rules, though.' : ''}` };
+    if (J.lead === 'against') return { h: ` The 1H bias is <b class="${cls(J.other)}">${lc(J.other)}</b> — against your trade.`, s: ` The bias is ${lc(J.other)}, against your trade.` };
+    return { h: ' The 1H bias is <b class="warn">neutral</b>, so your edge is gone.', s: ' The bias went neutral, so the edge is gone.' };
+  }
+  const nextTgt = (J) => (J.T ? { h: ` Next target <b>${f2(J.T.t1.price)}</b> (${esc(J.T.t1.name)})${J.T.t2 ? `, then ${f2(J.T.t2.price)}` : ''}.`, s: ` Next target ${sayPrice(J.T.t1.price)}.` } : { h: '', s: '' });
+
+  // Which trade question is this? (null = not one)
+  const COACH_Q = /\b(should|shall|can|could|may|would|will|do i|do we|is now|is this|do you think|is it|is that|would it|ok|okay|cool|fine|good|alright|all right|smart|wise|bad|worth|recommend|advise|advice|think|time to|better|wanna|want to|need to|have to|must|thoughts|idea|or not|yes or no)\b/;
+  const MINE = /\b(my|the|this|our|that|current|open)\s+(trade|position|sell|buy|short|long|entry|stop|stop loss|sl|tp|take profit|target|profits?|order|runner)\b|\b(i am|im|we are|were) (in|holding|still in)\b|\bin (a|the|my|this) (trade|sell|buy|short|long|position)\b/;
+  function coachKind(t, k) {
+    t = t.replace(/\bstop (going|being|rising|falling|dropping|moving|climbing|pumping|dumping|selling|buying|trending|running)\b/g, 'quit $1'); // "stop" the verb, not a stop loss
+    if (/\b(remind|reminder|habit|water|subscription|workout|gym|todo|to do|list|alarm|timer)\b/.test(t)) return null;
+    if (/\bhow many (contracts|units|lots|oz|ounces)\b|\bposition size\b|\blot size\b|\bhow (big|much) (should|can) i (size|trade)\b/.test(t)) return null;
+    const P = k.paper, hasTrade = !!((P && P.positions().length) || statedTrade || statedFrom(t, k));
+    const q = COACH_Q.test(t), mine = MINE.test(t) || /\b(it|this one)\b/.test(t);
+    if (/\b(bias|trend|uptrend|downtrend|support|resistance|level|levels|market|session|price)\b/.test(t) && !MINE.test(t)) return null;
+    const stopN = numAfter(t, SL_W, k) != null, tpN = numAfter(t, TP_W, k) != null;
+    const slW = new RegExp(`\\b(?:${SL_W})\\b`).test(t), tpW = new RegExp(`\\b(?:${TP_W})\\b`).test(t);
+    if (!stopN && !tpN && (slW || tpW) && /\b(where|what|which|how far|set|put|place)\b/.test(t) && (statedFrom(t, k) || (hasTrade && MINE.test(t)))) return 'where';
+    if (/\b(break ?even|breakeven|risk ?free|to (?:my )?entry)\b|\b(stop|sl)( loss)? (to|at|on) be\b|\bmove (it )?to be\b|\bbe (stop|sl)\b/.test(t) && (q || /\?/.test(t)) && (mine || hasTrade || slW)) return 'be';
+    if (stopN && !tpN && (q || /\b(how about|what about|instead)\b/.test(t))) return 'stopTo';
+    if (tpN && !stopN && (q || /\b(how about|what about|instead)\b/.test(t))) return 'tpTo';
+    if (/\bpartials?\b|\bpartial (profit|profits|close)\b|\btake (some|a little|a bit|part|half)( of)?( the)? (profit|profits|off|money)\b|\btake (some|a little|a bit of) profits?\b|\btake profits? (now|here|off|early)\b|\bscale (out|off)\b|\bsecure (some )?(profit|profits|gains)\b|\block in (some )?(profit|profits|gains)\b|\bpay (my ?self|yourself)\b|\bclose (half|part|some)\b|\btake half\b|\btake some off\b|\bhalf off\b/.test(t) && q) return 'partial';
+    if (tpW && !tpN && q && /\b(lower|raise|move|bring|extend|tighten|widen|change|adjust|push|pull|shrink|reduce|increase|cut|shorten|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'tpAdj';
+    if (slW && !stopN && q && /\b(lower|raise|move|bring|trail|trailing|tighten|widen|wide|wider|change|adjust|push|pull|shrink|reduce|increase|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'stopAdj';
+    if (q && /\b(close|exit|get out|cut|bail|take the (loss|win|profit|money|l|w)|bank it|secure it|end (it|the trade)|close out|cash out)\b/.test(t) && (mine || (hasTrade && /\b(close|exit|get out|bail|cut)\b( it| out| now| here| early| the trade| this)?$/.test(t)))) return 'close';
+    if (/\bhold(ing)?\b(?! on\b| up\b| that\b| please\b)|\bkeep (it|holding|riding|this|the|my|our)\b|\bstay in\b|\blet it (run|ride|play out|cook|breathe)\b|\bride (it|the|this|my|our)\b|\bleave (it|the trade) (open|running|alone|be)\b/.test(t) && (mine || hasTrade)) return 'hold';
+    if (statedFrom(t, k) && /\b(i am|im|we are|were) in\b|\b(i|we) (just )?(sold|bought|entered|shorted|longed|went long|went short|took|got in|jumped in|hopped in|opened)\b|\bmy entry\b|\bentered\b/.test(t)) return 'where';
+    return null;
+  }
+
+  // the first level price meets before a target (the same level "bearish until …" points to)
+  function J0(k, dir, entry, tp) {
+    const T = moveTarget(k, dir, k.g.price.bid);
+    if (!T || (tp - T.t1.price) * dir <= (k.g.bias.atr || 3) * 0.2 || (T.t1.price - entry) * dir <= 0) return '';
+    return `<span class="warn">Price meets ${esc(T.t1.name)} at ${f2(T.t1.price)} first — it may pause there, so that's your spot for partials.</span>`;
+  }
+  function whereA(k, tr) {
+    if (!tr) return tpA(k, 0, 'day');
+    if (!tr.side) return reply(`Is that a buy or a sell${k.t}? Say “I'm in a sell at ${f2(tr.entry)}”.`, `Is that a buy or a sell${k.t}?`);
+    const dir = tr.side, side = dir > 0 ? 'buy' : 'sell', g = k.g;
+    const p = buildPlan(k, dir, 'day', tr.entry);
+    const u = tr.units, $ = (d) => (u ? ` (${usd0(d * u)})` : '');
+    const px = dir > 0 ? g.price.bid : g.price.ask;
+    const passed = (px - p.stop) * dir <= 0;
+    if (tr.sl == null) tr.sl = Math.round(p.stop * 100) / 100;
+    if (tr.tp == null) tr.tp = Math.round(p.tp1 * 100) / 100;
+    if (tr.stated) statedTrade = tr;
+    const html = `For your <b>${side}</b>${u ? ` of ${u}` : ''} from <b>${f2(tr.entry)}</b>:<ul>` +
+      `<li><span class="down">Stop loss</span> <b>${f2(p.stop)}</b> — ${f2(p.risk)} away${$(p.risk)}${p.anchor ? `, just past ${esc(p.anchor.name)}` : ''}</li>` +
+      `<li><span class="up">TP1</span> <b>${f2(p.tp1)}</b> — <b>${rrTxt(p.rr1)}</b>${$(Math.abs(p.tp1 - tr.entry))}${p.t1L ? `, just in front of ${esc(p.t1L.name)}` : ''}</li>` +
+      `<li><span class="up">TP2</span> <b>${f2(p.tp2)}</b> — <b>${rrTxt(p.rr2)}</b>${$(Math.abs(p.tp2 - tr.entry))}${p.t2L ? `, just in front of ${esc(p.t2L.name)}` : ''}</li></ul>` +
+      (passed ? `<span class="warn">Price (${f2(px)}) is already past that stop — that trade would be closed.</span><br>` : '') +
+      (p.notes.length ? `<span class="warn">${p.notes.map(esc).join(' ')}</span><br>` : '') +
+      (p.t1L && J0(k, dir, tr.entry, p.tp1) ? `${J0(k, dir, tr.entry, p.tp1)}<br>` : '') +
+      `<span class="dim">Ask me “is it cool if I put my stop at …” to check your own levels.${u ? '' : ' Tell me your contracts and I\'ll show the dollar amounts.'}</span>` + END_H + demoNote(g);
+    return reply(html, `For your ${side} from ${sayPrice(tr.entry)}${k.t}, I'd put the stop at ${sayPrice(p.stop)}${u ? `, that's ${usd0(p.risk * u)} of risk` : ''}. First take profit ${sayPrice(p.tp1)}, that's ${rrTxt(p.rr1).replace(':', ' to ')}. Second ${sayPrice(p.tp2)}.` + END_S + demoSay(g));
+  }
+
+  function coachA(k, t, kind) {
+    const tr = tradeOf(k, t);
+    if (kind === 'where') return whereA(k, tr);
+    if (!tr) return reply(`Which trade${k.t}? I don't see an open paper trade. Tell me like “I'm in a sell at 4000” and ask me again.`, `Which trade${k.t}? Tell me something like, I'm in a sell at 4000, and ask again.`);
+    if (!tr.side) return reply(`Is that a buy or a sell${k.t}?`);
+    const J = judge(k, tr), bw = biasWhy(J), nt = nextTgt(J), dir = J.dir, g = J.g;
+    const Y = `Yes${k.t}`, N = `No${k.t}`;
+    let v = 'up', h = '', d = '', s = '';
+    const say = (x) => { s = x; };
+    const oneR = J.risk > 0 ? tr.entry + dir * J.risk : tr.entry + dir * J.atr;
+    const tpOr = () => (tr.tp != null ? tr.tp : buildPlan(k, dir, 'day', tr.entry).tp1);
+    if (kind === 'hold') {
+      if (J.lead === 'against') { v = 'down'; h = `${N} — I wouldn't hold it.`; d = bw.h + ' I\'d close it, or at least cut the size.'; say(`${N}, I wouldn't hold it.${bw.s} I'd close it or cut the size.`); }
+      else if (J.lead === 'neutral') { v = 'warn'; h = `Not with full size${k.t}.`; d = bw.h + ' I\'d take partials and tighten the stop.'; say(`Not with full size${k.t}.${bw.s} I'd take partials and tighten the stop.`); }
+      else if (J.wrong) { v = 'warn'; h = `${Y}, but carefully.`; d = bw.h + nt.h + ' If this 1H candle closes here, I\'d get out.'; say(`${Y}, but carefully.${bw.s} If this hour closes here, I'd get out.`); }
+      else { h = `${Y} — hold it.`; d = bw.h + nt.h + (J.prog != null && J.prog >= 0.8 ? ' You\'re almost at your target.' : ''); say(`${Y}, hold it.${bw.s}${nt.s}`); }
+    } else if (kind === 'close') {
+      if (J.lead === 'against') { v = 'down'; h = `${Y} — I'd close it.`; d = bw.h; say(`${Y}, I'd close it.${bw.s}`); }
+      else if (J.lead === 'neutral') { v = 'warn'; h = `I'd close part of it${k.t}.`; d = bw.h + ' Close half and tighten the stop on the rest.'; say(`I'd close part of it${k.t}.${bw.s}`); }
+      else if (J.prog != null && J.prog >= 0.9) { h = `${Y}, closing here is fine — you're basically at your target.`; d = bw.h; say(`${Y}, you're basically at your target, closing is fine.`); }
+      else { h = `${N} — I'd hold it.`; d = bw.h + nt.h + (J.wrong ? ' <span class="warn">If this 1H candle closes here, then I\'d close.</span>' : ''); say(`${N}, I'd hold it.${bw.s}${nt.s}`); }
+    } else if (kind === 'partial') {
+      const atLvl = J.T && Math.abs(J.T.t1.price - J.px) <= J.atr * 0.3;
+      if (J.move <= 0) { v = 'warn'; h = `${N} — you're not in profit yet.`; d = ' Partials are for banking a win.' + bw.h; say(`${N}, you're not in profit yet.${bw.s}`); }
+      else if ((J.R != null && J.R >= 1) || (J.prog != null && J.prog >= 0.5) || atLvl || J.lead !== 'with') {
+        h = `${Y} — taking partials here makes sense.`;
+        d = (J.R != null && J.R >= 1 ? ` You're +${J.R.toFixed(1)}R.` : '') + (atLvl ? ` Price is right at ${esc(J.T.t1.name)} (${f2(J.T.t1.price)}), where it may react.` : '') + (J.lead !== 'with' ? bw.h : '') + ` Close half (that banks about ${J.cost(J.move / 2)}) and move your stop to break even (${f2(tr.entry)}).`;
+        say(`${Y}, taking partials here makes sense. Close half and move your stop to break even.`);
+      } else { v = 'warn'; h = `Not yet${k.t}.`; d = ` You're only +${J.R != null ? J.R.toFixed(1) + 'R' : f2(J.move)}. A good spot for partials is ${f2(oneR)} (+1R)${J.T ? ` or ${esc(J.T.t1.name)} at ${f2(J.T.t1.price)}` : ''}.`; say(`Not yet${k.t}. A good spot for partials is ${sayPrice(oneR)}.`); }
+    } else if (kind === 'be') {
+      if (J.move <= 0) { v = 'down'; h = `${N} — you're in drawdown.`; d = ` Price is on the losing side of your entry, so a stop at ${f2(tr.entry)} would close you right away (${J.cost(J.move)} loss).` + bw.h; say(`${N}, you're in drawdown, so a stop at your entry would close you right away.`); }
+      else if ((J.R != null && J.R >= 1) || (J.R == null && J.move >= J.atr)) { h = `${Y} — move it to ${f2(tr.entry)}.`; d = ` You're +${J.R != null ? J.R.toFixed(1) + 'R' : f2(J.move)}, so the trade becomes risk-free.` + bw.h; say(`${Y}, move it to ${sayPrice(tr.entry)}. The trade becomes risk free.`); }
+      else { v = 'warn'; h = `Not yet${k.t}.`; d = ` You're only +${J.R != null ? J.R.toFixed(1) + 'R' : f2(J.move)}. A normal pullback could stop you out at break even. Wait until about <b>${f2(oneR)}</b> (+1R).`; say(`Not yet${k.t}. A normal pullback could stop you out. Wait until about ${sayPrice(oneR)}.`); }
+    } else if (kind === 'stopTo') {
+      const X = numAfter(t, SL_W, k);
+      const gap = (J.px - X) * dir, newRisk = (tr.entry - X) * dir, tp = tpOr();
+      const rr = newRisk > 0 ? ((tp - tr.entry) * dir) / newRisk : null;
+      const plan = buildPlan(k, dir, 'day', tr.entry), tighter = (plan.stop - X) * dir < -J.atr * 0.3;
+      const rrH = newRisk <= 0 ? ` That locks in ${J.cost(-newRisk)} of profit.` : ` If it's hit you lose ${J.cost(newRisk)}.` + (rr != null ? ` With the target at ${f2(tp)} that's <b>${rrTxt(rr)}</b>${rr >= 3 ? ' — excellent' : rr >= 2 ? ' — good' : ', under your 1:2 minimum'}.` : '');
+      if (gap <= 0) { v = 'down'; h = `${N} — ${f2(X)} is ${dir > 0 ? 'above' : 'below'} the price (${f2(J.px)}), so it would close you straight away.`; say(`${N}, that's on the wrong side of the price, it would close you straight away.`); }
+      else if (gap < J.atr * 0.5) { v = 'down'; h = `I'd advise against that${k.t}.`; d = ` It's only ${f2(gap)} from price, and gold moves about ${f2(J.atr)} an hour — normal noise could tag it.` + rrH; say(`I'd advise against that${k.t}. It's only ${money(gap)} from price, normal noise could tag it.`); }
+      else if (tighter && newRisk > 0) { v = 'warn'; h = `It's on the tight side${k.t}.`; d = ` My stop is ${f2(plan.stop)}${plan.anchor ? `, past ${esc(plan.anchor.name)}` : ''} — ${f2(X)} sits in front of that, so a retest could tag you before the move.` + rrH; say(`It's on the tight side${k.t}. My stop would be ${sayPrice(plan.stop)}, so a retest could tag you first.`); }
+      else if (rr != null && rr < 2) { v = 'warn'; h = `That's a wide stop${k.t}.`; d = rrH + ` I'd keep it closer to ${f2(plan.stop)}.`; say(`That's a wide stop${k.t}, it drops you under one to two. I'd keep it near ${sayPrice(plan.stop)}.`); }
+      else { h = `You're good for that${k.t}.`; d = rrH + (J.lead === 'against' ? ' <span class="warn">Heads up: the bias is against this trade.</span>' : ''); say(`You're good for that${k.t}.${newRisk <= 0 ? ' It locks in profit.' : rr != null ? ` That's ${rrTxt(rr).replace(':', ' to ')}.` : ''}`); }
+    } else if (kind === 'tpTo') {
+      const X = numAfter(t, TP_W, k), ahead = (X - J.px) * dir, reward = (X - tr.entry) * dir;
+      const rr = J.risk > 0 ? reward / J.risk : null, edge = adrEdge(k, dir);
+      const block = levelsToward(k, dir, J.px, 10, 4).find((l) => (X - l.price) * dir > J.atr * 0.2);
+      const rrH = `${rr != null ? ` That's <b>${rrTxt(rr)}</b>` : ''}${reward > 0 ? ` — ${J.cost(reward)} if it's hit` : ''}.`;
+      if (ahead <= 0) { v = 'warn'; h = `Price is already past ${f2(X)}${k.t}, so it would close right away${reward > 0 ? ' in profit' : ''}.`; say(`Price is already past that${k.t}, it would close right away.`); }
+      else if (rr != null && rr < 2 && J.lead === 'with') { v = 'down'; h = `I'd advise against that${k.t}.`; d = rrH + ` That's under your 1:2 minimum and the bias is still with you.` + nt.h; say(`I'd advise against that${k.t}. That's under one to two, and the bias is still with you.`); }
+      else if (edge && edge.room > 0 && ahead > edge.room) { v = 'warn'; h = `It's a stretch for today${k.t}.`; d = ` An average day only has about ${f2(edge.room)} left, ending near ${f2(edge.edge)}.` + rrH; say(`It's a stretch for today${k.t}. An average day only has about ${money(Math.round(edge.room))} left.`); }
+      else { h = `You're good for that${k.t}.`; d = rrH + (block ? ` Price may pause at ${esc(block.name)} (${f2(block.price)}) on the way — a spot for partials.` : '') + (J.lead !== 'with' ? bw.h : ''); say(`You're good for that${k.t}.${rr != null ? ` That's ${rrTxt(rr).replace(':', ' to ')}.` : ''}`); }
+    } else if (kind === 'tpAdj') {
+      const lower = /\b(lower|down|smaller)\b/.test(t), raise = /\b(raise|higher|up|bigger)\b/.test(t);
+      let closer = /\b(bring|tighten|shrink|reduce|closer|cut|shorten|pull|smaller)\b/.test(t) ? true : /\b(extend|widen|push|increase|further|farther|bigger)\b/.test(t) ? false : null;
+      if (closer == null) closer = lower ? dir > 0 : raise ? dir < 0 : true;
+      const lv = levelsToward(k, dir, J.px, 10, 4), front = J.atr * 0.1;
+      if (closer) {
+        const l = lv.find((x) => tr.tp == null || (tr.tp - x.price) * dir > J.atr * 0.2);
+        const nx = l ? l.price - dir * front : null, rr = nx != null && J.risk > 0 ? ((nx - tr.entry) * dir) / J.risk : null;
+        if (!l) { v = 'warn'; h = `There's no level before your target${k.t} — I'd leave it.`; say(h); }
+        else if (J.lead === 'with' && rr != null && rr < 2) { v = 'warn'; h = `I wouldn't${k.t}.`; d = ` The bias is still with you, and bringing it to ${f2(nx)} drops you to ${rrTxt(rr)}. Take partials there instead.`; say(`I wouldn't${k.t}. The bias is still with you. Take partials at ${sayPrice(nx)} instead.`); }
+        else { h = `${Y} — bring it to ${f2(nx)}.`; d = ` That's just in front of ${esc(l.name)}${rr != null ? `, ${rrTxt(rr)}` : ''}.` + (J.lead !== 'with' ? bw.h : ''); say(`${Y}, bring it to ${sayPrice(nx)}, just in front of ${l.name}.`); }
+      } else {
+        const l = lv.find((x) => tr.tp == null || (x.price - tr.tp) * dir > J.atr * 0.2);
+        const nx = l ? l.price - dir * front : null, rr = nx != null && J.risk > 0 ? ((nx - tr.entry) * dir) / J.risk : null;
+        if (J.lead === 'with' && l) { h = `${Y} — the bias is still with you. Push it to ${f2(nx)}.`; d = ` That's just in front of ${esc(l.name)}${rr != null ? `, ${rrTxt(rr)}` : ''}.`; say(`${Y}, the bias is still with you. Push it to ${sayPrice(nx)}.`); }
+        else { v = 'warn'; h = `I wouldn't${k.t}.`; d = (J.lead === 'with' ? ' There\'s no clear level past your target.' : bw.h) + ' I\'d keep the target where it is.'; say(`I wouldn't${k.t}. I'd keep the target where it is.`); }
+      }
+    } else if (kind === 'stopAdj') {
+      const widen = (/\b(widen|wide|wider|further|farther|bigger|more room|loosen)\b/.test(t)) || (/\b(lower)\b/.test(t) && dir > 0) || (/\b(raise|higher)\b/.test(t) && dir < 0);
+      if (widen) { v = 'down'; h = `I'd advise against widening your stop${k.t}.`; d = ' That adds risk to a trade that should be working by now. If it needs more room, the idea was probably wrong.'; say(`I'd advise against widening your stop${k.t}. That just adds risk.`); }
+      else if (J.R != null && J.R >= 1 || (J.R == null && J.move >= J.atr)) {
+        const lb = levelsToward(k, -dir, J.px, 10, 2).find((l) => (l.price - tr.entry) * dir > 0);
+        const to = lb ? lb.price - dir * J.atr * 0.25 : tr.entry;
+        h = `${Y} — trail it to ${f2(to)}.`; d = ` ${lb ? `That's just past ${esc(lb.name)}, and it locks in ${J.cost((to - tr.entry) * dir)}.` : 'That\'s break even — risk-free.'}`; say(`${Y}, trail it to ${sayPrice(to)}.`);
+      } else { v = 'warn'; h = `I'd leave it where it is${k.t}.`; d = ` You're only ${J.R != null ? (J.R >= 0 ? '+' : '') + J.R.toFixed(1) + 'R' : f2(J.move)} — tightening now just gets you stopped on noise. Trail once you're past ${f2(oneR)} (+1R).`; say(`I'd leave it where it is${k.t}. Trail once you're past ${sayPrice(oneR)}.`); }
+    }
+    const closed = k.market.open ? '' : ' <span class="dim">(The market is closed — this is based on the last price.)</span>';
+    return reply(tradeHead(k, tr, J) + `<b class="${v}">${h}</b>${d}${closed}` + END_H + demoNote(g), s + END_S + demoSay(g));
+  }
+
+  // "If I buy now and want to risk $100, how many contracts?"
+  function riskDollars(text, raw, k) {
+    const R = String(raw || '').toLowerCase().replace(/(\d),(?=\d{3}\b)/g, '$1');
+    const ok = (n) => n != null && n > 0 && !nearPx(n, k);
+    const m1 = R.match(/\$\s*(\d+(?:\.\d+)?)\s*(k)?\b/); if (m1 && ok(+m1[1])) return +m1[1] * (m1[2] ? 1000 : 1);
+    const m2 = text.match(/(\d+(?:\.\d+)?)\s*(?:dollars|dollar|bucks|usd)\b(?!\s*(?:stop|sl)\b)/); if (m2 && ok(+m2[1])) return +m2[1];
+    const m3 = text.match(/\b(?:risk(?:ing)?|lose|losing|loss|stop loss|stop|sl|risk amount)\b(?:\s+(?:to be|to|of|is|be|at|amount|amount of|would be|about|around|only|max|maximum|just|was|will be|set at|set to|equal|equals))*\s+(\d{1,5}(?:\.\d+)?)\b(?!\s*(?:percent|contracts?|units?|lots?|oz))/);
+    if (m3 && ok(+m3[1]) && (+m3[1] >= 30 || /\brisk/.test(text))) return +m3[1];
+    return null;
   }
 
   function tpA(k, dir, style) {
@@ -1001,7 +1228,7 @@ const Brain = (() => {
   }
   function parseUnits(text) {
     const m = text.match(/(\d+(?:\.\d+)?)\s*(lots?|contracts?|units?|oz|ounces?)\b/);
-    if (!m) return null;
+    if (!m) { const b = text.match(/\b(?:sell|buy|short|long)\s+(\d{1,3})\b(?!\s*(?:dollars?|bucks|percent|\.\d))/); return b ? +b[1] : null; } // "sell 40 now" = 40 contracts
     return /^lot/.test(m[2]) ? +m[1] * 100 : +m[1];
   }
   function parseEntryAt(text) {
@@ -1419,19 +1646,39 @@ const Brain = (() => {
   }
 
   // "risk 1% with a 6 dollar stop", "sell at 4060 stop 4070 target 4030", "lot size for a 5 point stop"
-  function sizeA(text, k) {
+  function sizeA(text, k, raw, dirOf) {
     const g = k.g, acct = g && g.account;
     const price = g ? g.price.bid : null;
     const get = (re) => { const m = text.match(re); return m ? +m[1] : null; };
+    const near = (n) => n != null && nearPx(n, k);
     const riskPct = get(/(\d+(?:\.\d+)?)\s*percent/);
-    const riskUsd = get(/risk(?:ing)?\s*(\d+(?:\.\d+)?)\s*(?:dollars|bucks|usd)/);
-    let entry = get(/(?:at|entry|enter|from|in at)\s*(\d{3,}(?:\.\d+)?)/) || price;
-    let stopPx = get(/(?:stop|sl|stop loss)\s*(?:at|of|is)?\s*(\d{3,}(?:\.\d+)?)/);
-    let stopDist = get(/(\d+(?:\.\d+)?)\s*(?:dollar|point|pip|buck)s?\s*(?:stop|sl)/) || get(/(?:stop|sl)\s*(?:of)?\s*(\d{1,2}(?:\.\d+)?)\b(?!\d)/);
-    const target = get(/(?:target|tp|take profit)\s*(?:at|of|is)?\s*(\d{3,}(?:\.\d+)?)/);
+    let stopDist = get(/(\d+(?:\.\d+)?)\s*(?:dollar|point|pip|buck)s?\s*(?:stop|sl)\b/) || get(/(?:stop|sl)\s*(?:of)?\s*(\d{1,2}(?:\.\d+)?)\b(?!\d)/);
+    let riskUsd = riskDollars(text, raw, k);
+    if (stopDist && stopDist >= 30 && !riskUsd) { riskUsd = stopDist; stopDist = null; }   // "a 100 dollar stop" = $100 of risk
+    if (riskUsd && stopDist && Math.abs(riskUsd - stopDist) < 0.001) { if (riskUsd >= 30) stopDist = null; else riskUsd = null; }
+    let entry = get(/(?:at|entry|enter|from|in at)\s*(\d{3,}(?:\.\d+)?)/); if (!near(entry)) entry = null;
+    let stopPx = get(/(?:stop loss|stop|sl)\s*(?:at|of|is|to)?\s*(\d{3,}(?:\.\d+)?)/); if (!near(stopPx)) stopPx = null;
+    let target = get(/(?:target|tp|take profit)\s*(?:at|of|is|to)?\s*(\d{3,}(?:\.\d+)?)/); if (!near(target)) target = null;
+    const said = parseSide(text);
+    const side = said || (stopPx && entry ? (stopPx > entry ? -1 : 1) : 0) || bdir(k) || 0;
+    if (!entry && g) entry = side < 0 ? g.price.bid : g.price.ask;
+    let auto = null;
     if (stopPx && entry) stopDist = Math.abs(entry - stopPx);
+    if (!stopDist && g && side) { auto = buildPlan(k, side, 'day', entry); stopPx = auto.stop; stopDist = auto.risk; }
     if (!stopDist) {
-      return reply('Tell me your stop and I’ll do the math — e.g. “risk 1% with a 6 dollar stop” or “sell at 4060, stop 4070, target 4030”.', `I need your stop${k.t}. Try: risk 1 percent with a 6 dollar stop.`);
+      return reply('Tell me your stop and I’ll do the math — e.g. “risk $100 with a 6 dollar stop” or “sell at 4060, stop 4070, target 4030”.', `I need your stop${k.t}. Try: risk 100 dollars with a 6 dollar stop.`);
+    }
+    if (riskUsd) {
+      const n = Math.floor(riskUsd / stopDist), sideW = side > 0 ? 'buy' : side < 0 ? 'sell' : 'trade';
+      const tp = target || (auto ? auto.tp1 : side ? entry + side * stopDist * 2 : null);
+      const rr = tp ? Math.abs(tp - entry) / stopDist : null;
+      const lines = [n >= 1
+        ? `To risk <b>$${f2(riskUsd)}</b> on a ${sideW}${entry ? ` from ${f2(entry)}` : ''} with the stop at ${stopPx ? `<b>${f2(stopPx)}</b> (${f2(stopDist)} away)` : `${f2(stopDist)} away`}${auto ? ' — my stop' + (auto.anchor ? `, just past ${esc(auto.anchor.name)}` : '') : ''}, use <b>${n} contracts</b>. If the stop is hit you lose $${f2(n * stopDist)}.`
+        : `A ${f2(stopDist)} stop costs $${f2(stopDist)} a contract, so $${f2(riskUsd)} can't cover even 1 contract. Use a tighter stop or risk more.`];
+      if (n >= 1 && tp) lines.push(`Take profit <b>${f2(tp)}</b> = <b>${rrTxt(rr)}</b> → <span class="up">+$${f2(n * Math.abs(tp - entry))}</span>.`);
+      if (n >= 1 && n < 40) lines.push(`<span class="dim">Heads up: at your usual 40 contracts this stop would risk $${f2(40 * stopDist)}.</span>`);
+      lines.push('<span class="dim">1 contract = 1 oz here, so a $1 move = $1 a contract.</span>');
+      return reply(lines.join('<br>') + demoNote(g), (n >= 1 ? `To risk ${money(riskUsd)}${k.t}, use ${n} contracts with the stop at ${stopPx ? sayPrice(stopPx) : money(stopDist) + ' away'}.${tp ? ` Take profit ${sayPrice(tp)}, that's ${rrTxt(rr).replace(':', ' to ')}, plus ${money(Math.round(n * Math.abs(tp - entry)))}.` : ''}` : `That stop is too wide to risk only ${money(riskUsd)}${k.t}.`) + demoSay(g));
     }
     const lines = [], says = [];
     const bal = acct && acct.balance;
@@ -1881,6 +2128,10 @@ const Brain = (() => {
     if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(text))) if (v > (S[i] || 0)) S[i] = v;
     if (typeof Extra !== 'undefined') for (const [i, v] of Object.entries(Extra.score(text))) if (v > (S[i] || 0)) S[i] = v;
     if (fixed !== text && typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(fixed))) if (v - 0.05 > (S[i] || 0)) S[i] = v - 0.05; // typo-fixed version, a hair weaker
+    const ck = coachKind(fixed, k);
+    if (ck) { S.coach = Math.max(S.coach || 0, 9.9); if (S['life:partial']) S['life:partial'] = 9; S.paperModify = Math.min(S.paperModify || 0, 9); S.paperClose = Math.min(S.paperClose || 0, 9); }
+    if (/\b(conditions?|market|markets|gold|it|now|today)\b.*\b(ok|okay|good|fine|safe|right|decent|great|alright|bad|ideal)\b.*\b(to trade|for trading|to be trading|for a trade|to take a trade|to get in)\b|\btrading conditions\b|\bmarket conditions\b|\bconditions (to|for) trad/.test(fixed) && !/\b(buy|sell|long|short|open|opens|reopen|close|closed)\b/.test(fixed)) S.tradenow = Math.max(S.tradenow || 0, 9.6);
+    if (/\bhow many (contracts|units|lots|oz|ounces)\b/.test(fixed) && !/\b(do i have|have i|did i|open|am i in|in my account)\b/.test(fixed)) S.size = Math.max(S.size || 0, 9.9);
     if (S.openBias && S.bias >= 9.9) S.openBias = 9.95; // "buy or sell at the open" — the open is the point
     const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
     let id = ranked.length ? ranked[0][0] : null;
@@ -2035,6 +2286,7 @@ const Brain = (() => {
       }
       case 'reach': return needGold(() => reachA(k, fixed));
       case 'manage': return needGold(() => manageA(k));
+      case 'coach': return needGold(() => coachA(k, fixed, coachKind(fixed, k) || 'hold'));
       case 'safe': return needGold(() => safeA(k, c.has('BUY') || c.has('SELL') ? dirOf() : biasDir(k)));
       case 'stall': return needGold(() => stallA(k, /\b(up|higher|rising|rise|climb|climbing|high|top|tops|ceiling|peak|pump|pumping|rally)\b/.test(fixed) ? 1 : /\b(down|lower|falling|fall|drop|dropping|low|bottom|bottoms|floor|dump|dumping)\b/.test(fixed) ? -1 : (typeof Lex !== 'undefined' && Lex.dir(text)) || biasDir(k) || 1));
       case 'tpq': {
@@ -2064,7 +2316,7 @@ const Brain = (() => {
       case 'dayplan': return wrap(dayPlanA(k));
       case 'workout': return wrap(workoutA(k));
       case 'weekend': return wrap(weekendA(k));
-      case 'size': return needGold(() => sizeA(fixed, k));
+      case 'size': return needGold(() => sizeA(fixed, k, raw, dirOf));
       case 'account': return needGold(() => accountA(k));
       case 'math': return wrap(mathA(fixed, k) || reply(`I couldn't work that sum out${k.t}. Try “4065 minus 4030”.`));
       case 'session': {
@@ -2173,8 +2425,8 @@ const Brain = (() => {
   // JARVIS's own daily trade: only when the setup is actually valid — never just to fill a quota.
   // Rules: 1H bias must point one way (no neutral), the trade score must agree, no high-impact news
   // in the next 30 min / last 15 min, not the dead zone 4:00–6:15 PM New York, and the target must be
-  // at least 1.5× the stop. Asia hours need a stronger score than London / New York hours.
-  function botCheck(ctx) {
+  // at least 2× the stop (1:2). Asia hours need a stronger score than London / New York hours.
+  function botCheck(ctx, opt = {}) {
     const k = context(ctx), g = k.g;
     if (!g || !g.price || !g.price.tradeable) return { ok: false, why: 'no live price' };
     if (!k.market.open) return { ok: false, why: 'market closed' };
@@ -2186,13 +2438,13 @@ const Brain = (() => {
     const news = timingFlags(k).find((x) => x.lvl === 'stop' && /High-impact/.test(x.html));
     if (news) return { ok: false, dir, score: sc.score, why: 'high-impact news is too close' };
     const prime = mins >= 3 * 60 && mins < 11 * 60 + 30;
-    const need = prime ? 3 : 4;
+    const need = (prime ? 3 : 4) + (opt.extra || 0);
     if (sc.score < need) return { ok: false, dir, score: sc.score, why: `setup score ${sc.score} (needs ${need}${prime ? '' : ' outside London/New York hours'})` };
     const pl = buildPlan(k, dir, 'day');
     const risk = Math.abs(pl.entry - pl.stop);
     if (!(risk > 0)) return { ok: false, dir, score: sc.score, why: 'no clean stop' };
     let tp = pl.tp1;
-    if (Math.abs(tp - pl.entry) < risk * 1.5) tp = pl.entry + dir * risk * 1.5; // always better than 1 to 1
+    if (Math.abs(tp - pl.entry) < risk * 2) tp = pl.entry + dir * risk * 2; // at least 1 to 2
     const why = `${lc(g.bias.bias)} bias, setup score ${sc.score}${prime ? ' in prime hours' : ''}: ${sc.f.filter((x) => x.pts > 0).map((x) => x.say).slice(0, 3).join(', ')}`;
     return { ok: true, dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why };
   }

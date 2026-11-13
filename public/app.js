@@ -110,8 +110,9 @@
         const labels = { demo: 'DEMO DATA', server: 'OANDA · PC KEY', direct: `OANDA ${String(gold.env).toUpperCase()}` };
         setLink(gold.mode === 'demo' ? 'demo' : 'ok', labels[gold.mode]);
         $('demoBanner').hidden = gold.mode !== 'demo';
-        $('lastUpdate').textContent = 'UPDATED ' + new Date().toLocaleTimeString('en-US', { timeZone: TZ(), hour12: false }) + ' ET';
+        $('lastUpdate').textContent = 'UPDATED ' + new Date().toLocaleTimeString('en-US', { timeZone: TZ(), hour: 'numeric', minute: '2-digit' }) + ' ET';
         detectDataCallouts(gold);
+        conditionsHeadsUp();
         paperTick(gold);
         return gold;
       } catch (e) {
@@ -268,11 +269,13 @@
         let prog = '';
         if (p.sl != null && p.tp != null && gold) { const f = Math.max(0, Math.min(1, (px - p.sl) / (p.tp - p.sl))); prog = `<div class="paper-prog"><i style="left:${(f * 100).toFixed(1)}%"></i><span>SL ${p.sl.toFixed(2)}</span><span>TP ${p.tp.toFixed(2)}</span></div>`; }
         const lv = `<span class="paper-lv">SL ${p.sl != null ? p.sl.toFixed(2) : '—'} · TP ${p.tp != null ? p.tp.toFixed(2) : '—'}</span>`;
+        const slD = p.sl != null ? (p.entry - p.sl) * p.side : null, tpD = p.tp != null ? (p.tp - p.entry) * p.side : null;
+        const amts = `<div class="paper-row paper-amts"><span>${tpD != null ? `TP <b class="up">+$${Math.round(Math.abs(tpD) * p.units).toLocaleString('en-US')}</b>` : 'TP —'} · ${slD != null ? (slD > 0 ? `SL <b class="down">−$${Math.round(slD * p.units).toLocaleString('en-US')}</b>` : `SL <b class="up">+$${Math.round(-slD * p.units).toLocaleString('en-US')} locked</b>`) : 'SL —'}${slD > 0 && tpD > 0 ? ` · <b>1:${(Math.round(tpD / slD * 10) / 10)}</b>` : ''}</span><span class="dim">opened ${p.openedAt ? fmtT(p.openedAt, false) : '—'}</span></div>`;
         return `<div class="paper-pos ${p.side > 0 ? 'buy' : 'sell'}${p.bot ? ' bot' : ''}"><div class="paper-row">${p.bot ? '<span class="bot-tag">JARVIS</span>' : ''}<b>${p.side > 0 ? 'BUY' : 'SELL'}</b> ${p.units} @ ${p.entry.toFixed(2)} <span class="paper-pl">${pl(v)}</span></div>` +
-          `<div class="paper-row">${lv}<span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-be="${p.id}" title="Move stop to break-even">BE</button><button type="button" class="ghost-btn paper-close" data-half="${p.id}" title="Close half">½</button><button type="button" class="ghost-btn paper-close" data-edit="${p.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-close="${p.id}">CLOSE</button></span></div>${prog}</div>`;
+          amts + `<div class="paper-row">${lv}<span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-be="${p.id}" title="Move stop to break-even">BE</button><button type="button" class="ghost-btn paper-close" data-half="${p.id}" title="Close half">½</button><button type="button" class="ghost-btn paper-close" data-edit="${p.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-close="${p.id}">CLOSE</button></span></div>${prog}</div>`;
       }).join('') + (pos.length > 1 ? `<div class="paper-row"><button type="button" class="ghost-btn paper-close danger" data-closeall="1">CLOSE ALL (${pos.length})</button></div>` : '') : `<div class="dim small paper-empty">No open paper trades. Use SELL / BUY above, or say “sell now”, “put a buy order at 3990”.</div>`) +
       (ord.length ? ord.map((o) => `<div class="paper-pos order ${o.side > 0 ? 'buy' : 'sell'}"><div class="paper-row"><b>${o.side > 0 ? 'BUY' : 'SELL'} ${o.type.toUpperCase()}</b> ${o.units} @ ${o.entry.toFixed(2)} <span class="paper-pl dim">PENDING</span></div><div class="paper-row"><span class="paper-lv">SL ${o.sl != null ? o.sl.toFixed(2) : '—'} · TP ${o.tp != null ? o.tp.toFixed(2) : '—'}</span><span class="paper-acts"><button type="button" class="ghost-btn paper-close" data-edit="${o.id}">EDIT</button><button type="button" class="ghost-btn paper-close danger" data-cancel="${o.id}">CANCEL</button></span></div></div>`).join('') : '') +
-      (hist.length ? `<div class="paper-hist">${hist.map((h) => `<span class="${h.bot ? 'bot' : ''}" title="${new Date(h.closedAt).toLocaleString()}${h.bot ? ' — JARVIS' : ''}">${h.bot ? 'J·' : ''}${h.side > 0 ? 'B' : 'S'} ${h.reason === 'tp' ? 'TP' : h.reason === 'manual' ? '✕' : h.reason === 'partial' ? '½' : h.reason === 'session_end' ? 'END' : 'SL'} ${pl(h.pl)}</span>`).join('')}</div>` : '') +
+      (hist.length ? `<div class="paper-hist">${hist.map((h) => `<span class="${h.bot ? 'bot' : ''}" title="${h.side > 0 ? 'Buy' : 'Sell'} ${h.units} @ ${h.entry.toFixed(2)} → ${h.exit.toFixed(2)}, opened ${new Date(h.openedAt || h.closedAt).toLocaleString('en-US', { timeZone: 'America/New_York' })} ET${h.bot ? ' — JARVIS' : ''}">${h.bot ? 'J·' : ''}${h.side > 0 ? 'B' : 'S'} ${h.reason === 'tp' ? 'TP' : h.reason === 'manual' ? '✕' : h.reason === 'partial' ? '½' : h.reason === 'session_end' ? 'END' : 'SL'} ${pl(h.pl)}</span>`).join('')}</div>` : '') +
       botLine();
   }
   // One line about JARVIS's own trade for today
@@ -282,7 +285,7 @@
     let txt;
     if (s.open) txt = `In a ${s.open.side > 0 ? 'BUY' : 'SELL'} today — ask “how’s your trade”`;
     else if (s.closed.length) { const v = s.closed.reduce((a, h) => a + h.pl, 0); txt = `Today’s trade done: <span class="${v >= 0 ? 'up' : 'down'}">${money2(v)}</span>`; }
-    else txt = 'Watching for a valid setup (max one a day, 40+ units, sits out if nothing qualifies)';
+    else txt = 'Watching for a valid setup (up to 2 a day, 1:2 or better, 40+ units, sits out if nothing qualifies)';
     const ci = Life.cloudInfo ? Life.cloudInfo() : null;
     if (ci && ci.live) txt += ' · <span class="dim">cloud on</span>';
     return `<div class="bot-line"><span class="bot-tag">JARVIS TRADER</span> ${txt}</div>`;
@@ -341,6 +344,8 @@
     ['tkEntry', 'tkSL', 'tkTP'].forEach((id) => { $(id).value = ''; });
   });
   Paper.onChange(() => renderPaper());
+  window.__jarvisGold = () => gold;
+  if (typeof TradeCal !== 'undefined') TradeCal.init();
 
   // ---------- news (US economic calendar) ----------
   function newsCard(now, tz) {
@@ -424,6 +429,21 @@
   $('bellBtn').addEventListener('click', (e) => { e.stopPropagation(); $('calloutTray').hidden = !$('calloutTray').hidden; unread = 0; renderBell(); });
   $('calloutList').addEventListener('click', (e) => { const it = e.target.closest('.co-item'); if (it) playCallout(callouts[+it.dataset.i]); });
   document.addEventListener('click', (e) => { if (!e.target.closest('#calloutTray, #bellBtn')) $('calloutTray').hidden = true; });
+
+  // "Is it a good time to trade?" — you don't have to ask: when the same rules JARVIS trades by line up,
+  // a silent pop-up says so (tap it to hear). Once per side per trading day.
+  function conditionsHeadsUp() {
+    try {
+      if (!gold || !gold.price || !gold.price.tradeable || typeof Brain === 'undefined' || !Brain.botCheck) return;
+      const c = Brain.botCheck(ctx());
+      if (!c.ok) return;
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' }).format(new Date(Date.now() + 6 * 3600e3));
+      const T = prefs.title ? `, ${prefs.title}` : '', side = c.dir > 0 ? 'buy' : 'sell';
+      const rr = (Math.abs(c.tp - c.entry) / c.risk).toFixed(1);
+      callout(`cond-${day}-${c.dir}`, `Conditions look good for a ${side.toUpperCase()} — stop ${c.sl.toFixed(2)}, target ${c.tp.toFixed(2)} (1:${rr}). Ask “should I ${side}” for the full check.`,
+        `Heads up${T}. Conditions look good for a ${side} right now. Stop ${Math.round(c.sl)}, target ${Math.round(c.tp)}. Not a guarantee, your call.`, 'TRADE ALERT');
+    } catch {}
+  }
 
   let prev = null;
   function detectDataCallouts(g) {

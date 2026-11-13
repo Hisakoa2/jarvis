@@ -53,7 +53,14 @@ const Paper = (() => {
     return position;
   }
   // Close at an exact price/time (used when the cloud trader already closed it)
-  function closeAt(id, px, reason = 'manual', at = Date.now()) { const h = close(id, px, reason, at); if (h) { st.history.sort((a, b) => b.closedAt - a.closedAt); save(); } return h; }
+  function closeAt(id, px, reason = 'manual', at = Date.now(), ex = {}) {
+    const p = st.positions.find((x) => x.id === id);
+    if (p && ex.worst != null) p.worst = p.worst == null ? ex.worst : (p.side > 0 ? Math.min(p.worst, ex.worst) : Math.max(p.worst, ex.worst));
+    if (p && ex.best != null) p.best = p.best == null ? ex.best : (p.side > 0 ? Math.max(p.best, ex.best) : Math.min(p.best, ex.best));
+    const h = close(id, px, reason, at); if (h) { st.history.sort((a, b) => b.closedAt - a.closedAt); save(); } return h;
+  }
+  // fill in drawdown / best price for an older trade (worked out from candles by the calendar)
+  function patchHistory(h, fields) { const x = st.history.find((y) => y === h || (y.id === h.id && y.closedAt === h.closedAt)); if (x) { Object.assign(x, fields); save(); } return x; }
 
   function fill(order, px, at) {
     st.orders = st.orders.filter((o) => o !== order);
@@ -63,13 +70,20 @@ const Paper = (() => {
     return position;
   }
 
+  // worst (most against you) / best (most in your favour) price seen, including the exit price
+  function extreme(v, px, p, way) { const w = way * p.side; return v == null ? r2(px) : r2(w > 0 ? Math.max(v, px) : Math.min(v, px)); }
+  function watch(p, bh, bl, ah, al) {
+    const adv = p.side > 0 ? bl : ah, fav = p.side > 0 ? bh : al;
+    p.worst = p.worst == null ? r2(p.side > 0 ? Math.min(p.entry, adv) : Math.max(p.entry, adv)) : r2(p.side > 0 ? Math.min(p.worst, adv) : Math.max(p.worst, adv));
+    p.best = p.best == null ? r2(p.side > 0 ? Math.max(p.entry, fav) : Math.min(p.entry, fav)) : r2(p.side > 0 ? Math.max(p.best, fav) : Math.min(p.best, fav));
+  }
   function close(id, px, reason = 'manual', at = Date.now()) {
     const p = st.positions.find((x) => x.id === id);
     if (!p) return null;
     const pl = pnlAt(p, px);
     st.positions = st.positions.filter((x) => x !== p);
     st.balance = r2(st.balance + pl);
-    const h = { id: p.id, side: p.side, units: p.units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason, openedAt: p.openedAt, closedAt: at, bot: !!p.bot };
+    const h = { id: p.id, side: p.side, units: p.units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason, openedAt: p.openedAt, closedAt: at, bot: !!p.bot, worst: extreme(p.worst, px, p, -1), best: extreme(p.best, px, p, 1) };
     st.history.unshift(h);
     if (st.history.length > 200) st.history.pop();
     if (reason !== 'manual') event(reason, h);
@@ -91,10 +105,10 @@ const Paper = (() => {
   }
 
   // Add a finished trade straight to history (JARVIS's catch-up trade worked out from candles)
-  function record({ side, units, entry, exit, sl, tp, reason, openedAt, closedAt, bot }) {
+  function record({ side, units, entry, exit, sl, tp, reason, openedAt, closedAt, bot, worst = null, best = null }) {
     const pl = r2(units * (exit - entry) * side);
     st.balance = r2(st.balance + pl);
-    const h = { id: st.nextId++, side, units, entry: r2(entry), exit: r2(exit), sl: r2(sl), tp: r2(tp), pl, reason, openedAt, closedAt, bot: !!bot };
+    const h = { id: st.nextId++, side, units, entry: r2(entry), exit: r2(exit), sl: r2(sl), tp: r2(tp), pl, reason, openedAt, closedAt, bot: !!bot, worst: worst == null ? null : r2(worst), best: best == null ? null : r2(best) };
     st.history.push(h);
     st.history.sort((a, b) => b.closedAt - a.closedAt);
     if (st.history.length > 200) st.history.pop();
@@ -111,7 +125,7 @@ const Paper = (() => {
     const px = closePx(p, bid, ask), pl = r2(units * (px - p.entry) * p.side);
     p.units -= units;
     st.balance = r2(st.balance + pl);
-    const h = { id: p.id, side: p.side, units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason: 'partial', openedAt: p.openedAt, closedAt: Date.now(), bot: !!p.bot, left: p.units };
+    const h = { id: p.id, side: p.side, units, entry: p.entry, exit: r2(px), sl: p.sl, tp: p.tp, pl, reason: 'partial', openedAt: p.openedAt, closedAt: Date.now(), bot: !!p.bot, left: p.units, worst: extreme(p.worst, px, p, -1), best: extreme(p.best, px, p, 1) };
     st.history.unshift(h);
     if (st.history.length > 200) st.history.pop();
     save();
@@ -143,6 +157,7 @@ const Paper = (() => {
     }
     for (const p of [...st.positions]) {
       if (at < p.openedAt) continue;
+      watch(p, bh, bl, ah, al);
       if (p.side > 0) {
         if (p.sl != null && bl <= p.sl) close(p.id, p.sl, p.sl >= p.entry ? 'stop_profit' : 'stop', at);
         else if (p.tp != null && bh >= p.tp) close(p.id, p.tp, 'tp', at);
@@ -194,7 +209,7 @@ const Paper = (() => {
   function markSeen() { st.events.forEach((e) => { e.seen = true; }); save(); }
 
   return {
-    place, closeAll, closeOne, partial, record, adopt, closeAt, modify, cancel, tick, replay, reset, stats, unseen, markSeen, pnlAt, closePx,
+    place, closeAll, closeOne, partial, record, adopt, closeAt, patchHistory, modify, cancel, tick, replay, reset, stats, unseen, markSeen, pnlAt, closePx,
     positions: () => st.positions, orders: () => st.orders, history: () => st.history,
     lastCheck: () => st.lastCheck, busy: () => st.positions.length > 0 || st.orders.length > 0,
     onChange: (f) => listeners.push(f),

@@ -116,3 +116,23 @@ x:define|what does {f o m c|c p i|n f p} mean
 weather|{wats|whats} the {wether|weather} {tmrw|tomorrow|tonight}
 life:water|{hw|how} much water did i drink {2day|today|}
 price|{xau usd|gold} price {rn|right now}
+# v13 trade coach: in-trade yes/no questions
+coach|{should i|do i|can i|is it smart to|is it a good idea to|would you} {hold|keep holding|stay in|ride} {my|this|the} {trade|position|sell|buy|short|long}
+coach|{should i|do i|would you|is it time to|is it smart to} {close|exit|get out of|cut} {my|this|the} {trade|position|sell|buy|short|long} {now|right now|early|}
+coach|{should|can|could} i take {partials|partial profits|some profit off|half off|some off} {now|here|on my trade|on this trade|}
+coach|{is it a good time|is now a good time|is it smart} to take partials
+coach|{should|can|could} i {move|put|set} my {stop|stop loss|sl} to {break even|breakeven|entry|my entry}
+coach|{is it time|is it ok|is it safe} to move {my stop|my sl|my stop loss} to {break even|breakeven}
+coach|{should|can|could} i {lower|raise|extend|tighten|bring in|push} my {take profit|tp|target}
+coach|{should|can|could} i {trail|tighten|move up|move down|widen} my {stop|stop loss|sl}
+coach|{is it cool|is it ok|is it okay|is it fine|would it be ok|can i} {if i put|to put|to move|if i move|to set} my {stop|stop loss|sl} {at|to} {3995|4005|4010}
+coach|{is|would} {3995|4005|4010} {be |}a good {stop|stop loss|take profit|target}
+coach|{what about|how about} {a stop|my stop|a stop loss|a take profit|a target} {at|of} {3995|4005|4010}
+coach|{can|should|could} i move my {take profit|tp|target} to {3950|3960|3980}
+coach|{i am in|im in|i entered|i got in} a {sell|buy|short|long|trade} at {4000|3990|4012} {where should my stop and target be|where do i put my stop|what should my stop loss be|}
+coach|my entry {is|was} {4000|3990} where should {my stop|my take profit|my sl and tp} be
+size|{if i buy|if i sell|if i were to buy|if i were to sell} {now|right now} {and|with} {risk|my risk at|a risk of} {100|200|50} {dollars|bucks|} how many contracts
+size|how many {contracts|units|lots} {should i use|do i use|would i need} {to risk|for} {100|250|500} {dollars|bucks}
+size|{i want to risk|i wanna risk|i only want to lose} {100|200} {dollars|bucks} how many contracts {should i use|do i need|}
+tradenow|{are|is} {market conditions|conditions|the market} {ok|okay|good|fine|safe} {to trade|for trading} {right now|today|}
+tradenow|{should i|can i|is it ok to} trade {right now|now|today}

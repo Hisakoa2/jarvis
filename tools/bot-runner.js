@@ -25,7 +25,7 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
 
 (async () => {
   const prev = readState();
-  const core = (s) => JSON.stringify({ e: s.enabled, d: s.days }, (k, v) => (k === 'lastCheck' ? undefined : v));
+  const core = (s) => JSON.stringify({ e: s.enabled, d: s.days }, (k, v) => (k === 'lastCheck' || k === 'worst' || k === 'best' ? undefined : v));
   const prevCore = core(prev);
   const key = process.env.OANDA_API_KEY, account = process.env.OANDA_ACCOUNT_ID, env = process.env.OANDA_ENV || 'practice';
   if (!key || !account) {
@@ -49,7 +49,7 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
   const now = Date.now();
   const dayKey = (ms) => new Intl.DateTimeFormat('en-CA', { timeZone: NY }).format(new Date(ms));
   const tradeDay = (ms) => dayKey(ms + 6 * 3600e3); // 6 PM → 5 PM New York, keyed by the date it ends on
-  const endOf = (day) => { const [y, m, d] = day.split('-').map(Number); return Sessions.zonedToUtc(y, m, d, 16, 50, NY); };
+  const endOf = (day) => { const [y, m, d] = day.slice(0, 10).split('-').map(Number); return Sessions.zonedToUtc(y, m, d, 16, 50, NY); };
 
   const st = { ...prev, enabled: true, heartbeat: now };
   try { await News.load(true); console.log('News events loaded:', News.ok()); } catch (e) { console.log('News not loaded:', e.message); }
@@ -72,6 +72,10 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
     for (const c of candles) {
       if (c.t + 300e3 <= (t.lastCheck || t.openedAt)) continue;
       if (c.t >= end) { t.exit = t.dir > 0 ? c.bc : c.ac; t.reason = 'session_end'; t.closedAt = end; break; }
+      // deepest drawdown / best profit price while the trade was open (for the calendar)
+      const adv = t.dir > 0 ? c.bl : c.ah, fav = t.dir > 0 ? c.bh : c.al;
+      t.worst = t.worst == null ? adv : t.dir > 0 ? Math.min(t.worst, adv) : Math.max(t.worst, adv);
+      t.best = t.best == null ? fav : t.dir > 0 ? Math.max(t.best, fav) : Math.min(t.best, fav);
       // if one 5-minute candle touches both, assume the stop (the cautious answer)
       if (t.dir > 0) { if (c.bl <= t.sl) { t.exit = t.sl; t.reason = 'stop'; } else if (c.bh >= t.tp) { t.exit = t.tp; t.reason = 'tp'; } }
       else { if (c.ah >= t.sl) { t.exit = t.sl; t.reason = 'stop'; } else if (c.al <= t.tp) { t.exit = t.tp; t.reason = 'tp'; } }
@@ -87,21 +91,26 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
     }
   }
 
-  // ---- 2. maybe take today's trade — only if it's valid ----
+  // ---- 2. maybe take a trade — only if it's valid. Up to 2 a day: the 2nd only after the 1st is
+  //         closed (30 min cool-off), and after a losing 1st it needs a stronger setup ----
   const day = tradeDay(now);
   const busy = Object.values(st.days).some((t) => t.status === 'open');
-  if (!st.days[day] && !busy) {
+  const first = st.days[day], second = st.days[day + '#2'];
+  let slot = null, extra = 0;
+  if (!first) slot = day;
+  else if (first.status === 'closed' && !second && now - (first.closedAt || 0) >= 30 * 60e3) { slot = day + '#2'; extra = first.result < 0 ? 1 : 0; }
+  if (slot && !busy) {
     const ctx = { tz: NY, title: '', sessions, projects: [], gold: () => g, riskPct: 1, news: News };
-    const c = Brain.botCheck(ctx);
+    const c = Brain.botCheck(ctx, { extra });
     st.check = { at: now, ok: c.ok, why: c.ok ? 'took the trade' : c.why };
     if (c.ok) {
       const entry = c.dir > 0 ? g.price.ask : g.price.bid;
       const risk = Math.abs(entry - c.sl);
       let tp = c.tp;
-      if (Math.abs(tp - entry) < risk * 1.5) tp = entry + c.dir * risk * 1.5; // still better than 1:1 after the spread
+      if (Math.abs(tp - entry) < risk * 2) tp = entry + c.dir * risk * 2; // at least 1:2 after the spread
       const r2 = (n) => Math.round(n * 100) / 100;
-      st.days[day] = { id: `${day}-${c.dir > 0 ? 'B' : 'S'}`, status: 'open', dir: c.dir, entry: r2(entry), sl: r2(c.sl), tp: r2(tp), risk: r2(risk), rr: r2(Math.abs(tp - entry) / risk), why: c.why, openedAt: now, lastCheck: now };
-      console.log(`Opened ${day}: ${c.dir > 0 ? 'BUY' : 'SELL'} @ ${r2(entry)} SL ${r2(c.sl)} TP ${r2(tp)} — ${c.why}`);
+      st.days[slot] = { id: `${day}-${c.dir > 0 ? 'B' : 'S'}${slot === day ? '' : '2'}`, status: 'open', dir: c.dir, entry: r2(entry), sl: r2(c.sl), tp: r2(tp), risk: r2(risk), rr: r2(Math.abs(tp - entry) / risk), why: c.why, openedAt: now, lastCheck: now };
+      console.log(`Opened ${slot}: ${c.dir > 0 ? 'BUY' : 'SELL'} @ ${r2(entry)} SL ${r2(c.sl)} TP ${r2(tp)} — ${c.why}`);
     } else console.log(`No trade: ${c.why}`);
   }
 

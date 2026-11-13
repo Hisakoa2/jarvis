@@ -185,6 +185,26 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v13
+- **Wins & losses calendar.** Tap **CALENDAR** in the paper trading panel. Each day shows green or red with its total. Tap a day to see its trades, then tap a trade to see:
+  - entry and exit (price and time)
+  - stop loss and take profit, as prices and in dollars
+  - the risk-to-reward, like 1:2.3
+  - the result, in dollars and in R
+  - the **deepest drawdown** (how far it went against you)
+  - the **best profit** (how far it went for you)
+- **Open trades show the money.** Each open trade shows "TP +$400 · SL −$150 · 1:2.7" and the time you opened it.
+- **Straight "Yes, sir / No, sir" trade answers.** Ask "should I hold?", "should I close?", "should I take partials?", "should I move my stop to break even?", "can I lower my take profit?" or "should I trail my stop?". JARVIS uses your open paper trade, or a trade you describe like "I'm in a sell at 4000".
+- **Check your own stop or target.** Say "is it cool if I put my stop loss at 4005?" or "is 3950 a good take profit?". JARVIS answers "You're good for that, sir", "It's on the tight side" or "I'd advise against that, sir", and gives the dollars and the 1:R.
+- **"Where should my stop and take profit be?"** Say "I'm in a trade at 4000, where should my stop loss and take profit be?" and JARVIS gives the stop, TP1 and TP2, with 1:R and dollars once it knows your contracts.
+- **Position size.** Say "If I buy now and want to risk $100, how many contracts?". JARVIS uses its own stop and tells you the contract count, the take profit and what you'd make.
+- **"Is it OK to trade right now?"** now starts with a plain yes or no. JARVIS also pops up a silent **TRADE ALERT** when its rules line up for a buy or sell, so you don't have to remember to ask. Tap it to hear it.
+- **1:2 is the new minimum.** Suggested take profits and JARVIS's own trades now aim for at least twice the risk.
+- **The bias and the targets agree.** When JARVIS says "bearish toward 3955", its hold and take-profit answers now point to 3955 as the first stop on the way (a spot for partials) instead of naming a different number.
+- **JARVIS can trade twice a day.** A second trade is only taken after the first one has closed, at least 30 minutes later, and only if the setup is valid. If the first trade lost, the second needs a stronger setup.
+- **The cloud trader saves its hourly "I'm alive" check** (this was broken before).
+- **"Sell 40 now"** opens 40 contracts.
+
 ### New in v12
 
 **Subscriptions understand you properly.** "My Claude subscription is due on December 1st" now saves Claude, due Dec 1, and asks how much it is (it used to read the "1" in "1st" as $1). Then "Claude is 20 dollars" fills in the price. "Netflix is now 17.99" / "change Netflix to 18.99" update the price instead of adding a new one. It also fixes common mishearings ("cloud" → Claude, "net flicks" → Netflix).

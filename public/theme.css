@@ -74,3 +74,38 @@ dialog.settings { border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.0
 .bot-line { margin-top: 10px; padding: 8px 10px; border-radius: 12px; font-size: 13px; background: rgba(139, 123, 255, 0.08); border: 1px solid rgba(139, 123, 255, 0.2); }
 
 @media (prefers-reduced-motion: reduce) { .core-svg * { animation: none !important; } }
+
+/* v13: trade calendar */
+.head-right { display: inline-flex; align-items: center; gap: 8px; }
+.cal-btn { display: inline-flex; align-items: center; gap: 5px; font-family: var(--disp); font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--cyan); background: rgba(62, 232, 255, 0.08); border: 1px solid rgba(62, 232, 255, 0.3); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.cal-btn:active { background: rgba(62, 232, 255, 0.18); }
+.cal-dlg { width: min(560px, calc(100vw - 24px)); }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; font-family: var(--disp); }
+.cal-nav .ghost-btn { padding: 6px 12px; border-radius: 999px; letter-spacing: 0.06em; }
+.cal-sum { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--dim); margin-bottom: 10px; }
+.cal-sum b { font-family: var(--disp); }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin-bottom: 10px; }
+.cal-dow { text-align: center; font-size: 10px; color: var(--dim); letter-spacing: 0.1em; padding: 2px 0; }
+.cal-cell { min-height: 54px; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding: 5px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.06); background: rgba(255, 255, 255, 0.02); color: var(--text); font: inherit; text-align: left; cursor: pointer; overflow: hidden; }
+.cal-cell.empty { border: 0; background: none; }
+.cal-cell:disabled { cursor: default; opacity: 0.55; }
+.cal-cell .cal-d { font-size: 11px; color: var(--dim); }
+.cal-cell b { font-family: var(--disp); font-size: 12px; line-height: 1.1; white-space: nowrap; }
+.cal-cell small { font-size: 9px; color: var(--dim); white-space: nowrap; }
+.cal-cell.win { background: rgba(47, 245, 166, 0.1); border-color: rgba(47, 245, 166, 0.35); }
+.cal-cell.win b { color: var(--bull); }
+.cal-cell.loss { background: rgba(255, 90, 122, 0.1); border-color: rgba(255, 90, 122, 0.35); }
+.cal-cell.loss b { color: var(--bear); }
+.cal-cell.today { box-shadow: inset 0 0 0 1px var(--cyan); }
+.cal-trade { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08); border-left: 3px solid var(--bull); background: rgba(255, 255, 255, 0.03); color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.cal-trade.sell { border-left-color: var(--bear); }
+.cal-trade small { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
+.cal-trade > span:last-child { font-family: var(--disp); font-weight: 600; white-space: nowrap; }
+.cal-detail { display: grid; gap: 6px; margin-bottom: 10px; }
+.cal-kv { display: grid; grid-template-columns: 9.5em 1fr; align-items: baseline; gap: 2px 10px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, 0.03); }
+.cal-kv span { font-size: 12px; color: var(--dim); }
+.cal-kv b { font-family: var(--disp); }
+.cal-kv small { grid-column: 2; font-size: 11px; color: var(--dim); }
+.paper-amts { font-size: 12px; color: var(--dim); }
+.paper-amts b { font-family: var(--disp); font-weight: 600; }
+@media (max-width: 420px) { .cal-cell { min-height: 46px; padding: 3px; } .cal-cell b { font-size: 10px; } .cal-cell small { display: none; } .cal-kv { grid-template-columns: 1fr; } .cal-kv small { grid-column: 1; } .cal-btn { padding: 4px 8px; } }

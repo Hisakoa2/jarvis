@@ -61,14 +61,20 @@ const Life = (() => {
       return;
     }
     if (cloud.live) return;          // the cloud trader is running — it takes the trade
-    if (rec || open) return;
-    const c = B().botCheck(ctx());
+    if (open) return;
+    let slot = day, extra = 0;
+    if (rec) {
+      const h1 = botHist().find((h) => h.id === rec.id);
+      if (!h1 || st.bot.days[day + '#2'] || now - h1.closedAt < 30 * 60e3) return;
+      slot = day + '#2'; extra = h1.pl < 0 ? 1 : 0;   // after a loss the 2nd needs a stronger setup
+    }
+    const c = B().botCheck(ctx(), { extra });
     lastCheck = { at: now, ...c };
     if (!c.ok) return;
     const units = botUnits(c.risk, ctx().riskPct);
     const res = Paper.place({ side: c.dir, units, sl: c.sl, tp: c.tp, bid: g.price.bid, ask: g.price.ask, bot: true, note: c.why });
     const pos = res.position || res.order;
-    st.bot.days[day] = { id: pos.id, at: now, dir: c.dir, units, entry: pos.entry, sl: c.sl, tp: c.tp, rr: Math.round(c.rr * 100) / 100, why: c.why };
+    st.bot.days[slot] = { id: pos.id, at: now, dir: c.dir, units, entry: pos.entry, sl: c.sl, tp: c.tp, rr: Math.round(c.rr * 100) / 100, why: c.why };
     trimBot(); save();
   }
   function trimBot() { const ks = Object.keys(st.bot.days).sort(); while (ks.length > 120) delete st.bot.days[ks.shift()]; }
@@ -103,7 +109,7 @@ const Life = (() => {
           const pos = Paper.adopt({ side: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, openedAt: c.openedAt, note: c.why, bot: true });
           r = st.bot.days[day] = { id: pos.id, at: c.openedAt, dir: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, rr: c.rr, why: c.why, cloud: true, sid: c.id };
         } else {
-          const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true });
+          const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true, worst: c.worst, best: c.best });
           st.bot.days[day] = { id: h.id, at: c.openedAt, dir: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, rr: c.rr, why: c.why, cloud: true, sid: c.id, synced: true };
           out.push(h);
         }
@@ -111,8 +117,8 @@ const Life = (() => {
       }
       if (c.status === 'closed') {
         const pos = Paper.positions().find((p) => p.id === r.id);
-        if (pos) { const h = Paper.closeAt(pos.id, c.exit, c.reason, c.closedAt); if (h) out.push(h); }
-        else if (!hist.some((h) => h.id === r.id)) { const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true }); r.id = h.id; out.push(h); }
+        if (pos) { const h = Paper.closeAt(pos.id, c.exit, c.reason, c.closedAt, { worst: c.worst, best: c.best }); if (h) out.push(h); }
+        else if (!hist.some((h) => h.id === r.id)) { const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true, worst: c.worst, best: c.best }); r.id = h.id; out.push(h); }
         r.synced = true;
       }
     }
@@ -124,9 +130,10 @@ const Life = (() => {
 
   const botHist = () => (typeof Paper === 'undefined' ? [] : Paper.history().filter((h) => h.bot));
   function botStatus(k) {
-    const day = tradeDay(k.now), rec = st.bot.days[day];
+    const day = tradeDay(k.now), rec = st.bot.days[day], rec2 = st.bot.days[day + '#2'];
     const open = Paper.positions().find((p) => p.bot), ord = Paper.orders().find((o) => o.bot);
-    return { day, rec, open, ord, closed: rec ? botHist().filter((h) => h.id === rec.id) : [] };
+    const ids = [rec, rec2].filter(Boolean).map((r) => r.id);
+    return { day, rec: rec2 && open && open.id === rec2.id ? rec2 : rec, rec2, open, ord, closed: botHist().filter((h) => ids.includes(h.id)) };
   }
   function botA(k) {
     const s = botStatus(k), side = (d) => (d > 0 ? 'buy' : 'sell');
@@ -148,7 +155,7 @@ const Life = (() => {
     const reason = chk && !chk.ok && chk.why ? ` Last check${chk.at ? ` (${clock(chk.at, k.tz)})` : ''}: ${chk.why}.` : '';
     const where = cloud.live ? ' My cloud copy is watching the market even when your phone is off.' : '';
     if (k.market.state === 'weekend' || !k.market.open) return R(`Market's closed${k.t}, so no trade right now. When it reopens I look for one valid setup per trading day — from 6:15 PM to 4 PM New York.${where}`);
-    return R(`No trade yet today${k.t}. I only take a trade when it's actually valid — bias pointing one way, the setup score agreeing, no big news about to hit, and a target at least 1.5× the stop. If nothing qualifies, I sit out. That's a win too.<span class="dim">${esc(reason)}${where}</span>`,
+    return R(`No trade yet today${k.t}. I only take a trade when it's actually valid — bias pointing one way, the setup score agreeing, no big news about to hit, and a target at least twice the stop (1:2). Up to 2 trades a day, never just to fill a quota. If nothing qualifies, I sit out. That's a win too.<span class="dim">${esc(reason)}${where}</span>`,
       `No trade yet today${k.t}. I only get in when the setup is actually valid, and if nothing qualifies, I sit out.${reason}`);
   }
   function botStatsA(k) {

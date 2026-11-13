@@ -159,7 +159,7 @@
     </section>
 
     <section class="panel paper-panel">
-      <div class="panel-head"><span>PAPER TRADING · SIMULATED</span><span class="tag" id="paperTag">$—</span></div>
+      <div class="panel-head"><span>PAPER TRADING · SIMULATED</span><span class="head-right"><button type="button" class="cal-btn" id="calBtn" aria-label="Trade calendar" title="Wins &amp; losses calendar"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>CALENDAR</button><span class="tag" id="paperTag">$—</span></span></div>
       <div class="ticket" id="ticket">
         <div class="ticket-fields">
           <label>Size<input id="tkSize" type="text" inputmode="decimal" placeholder="auto" autocomplete="off"></label>
@@ -194,7 +194,12 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v12 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v13 · NO AI · <span id="lastUpdate">--</span></footer>
+
+  <dialog id="calDlg" class="panel settings cal-dlg">
+    <div class="panel-head"><span>WINS &amp; LOSSES</span><button type="button" class="link-btn" id="calClose" aria-label="Close">✕</button></div>
+    <div id="calBody"></div>
+  </dialog>
 
   <dialog id="settings" class="panel settings">
     <form method="dialog" autocomplete="off">
@@ -265,6 +270,7 @@
   <script src="data.js"></script>
   <script src="news.js"></script>
   <script src="paper.js"></script>
+  <script src="calendar.js"></script>
   <script src="weather.js"></script>
   <script src="reminders.js"></script>
   <script src="voice.js"></script>

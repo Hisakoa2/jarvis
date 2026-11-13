@@ -193,7 +193,7 @@ const CASES = [
   ['bias', "{yo|bro|ok so|alright} {which way we going|what side we on|we buying or selling|we long or short} {today|rn|}", "{is gold|is price} {bullish|bearish} {or nah|or not|right now|}", "{what are your thoughts on|how do you feel about|what's your read on} gold {today|right now|}"],
   ['day', "{bro|yo|ok} {what is gold even doing|what's gold up to|how's gold moving} {rn|right now|today|}", "{how's the market treating us|how's gold been today|what's the market been like today}"],
   ['reach', "{do you think|you think|will|can} {gold|price|we|it} {hit|reach|get to|touch|see} {4000|4100|3950} {today|this week|tonight|}", "will {it|gold|price} {break|take out} {the high|the low|today's high|today's low}"],
-  ['manage', "should i {close|cut|hold|keep} my {trade|position|sell|buy}", "{should i hold or cut it|should i close it|should i let it run}"],
+  ['coach', "should i {close|cut|hold|keep} my {trade|position|sell|buy}", "{should i hold or cut it|should i close it|should i let it run}"],
   ['tradenow', "should i {sit out|stay out|take the day off|skip trading} today", "{is it a good day to trade|is today a good day to trade|good day to trade}"],
   ['biasUntil', "{when's|when is} {gold|price|it} {gonna|going to} {turn around|reverse|flip}", "how much longer {is|will} {this|the} {sell off|rally|downtrend|uptrend} {last|go on|continue}"],
   ['openBias', "{what's|what is} {gold|price} {gonna do|going to do} when {asia|london|new york} opens"],
