@@ -204,7 +204,7 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v16 · NO AI · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v17 · RULES FIRST · <span id="lastUpdate">--</span></footer>
 
   <dialog id="calDlg" class="panel settings cal-dlg">
     <div class="panel-head"><span>WINS &amp; LOSSES</span><button type="button" class="link-btn" id="calClose" aria-label="Close">✕</button></div>
@@ -259,6 +259,17 @@
       </div>
 
       <div class="set-block">
+        <div class="set-title">AI HELPER (OPTIONAL)</div>
+        <p class="dim small">Answers questions JARVIS's own rules don't understand. You can also start any question with “ask AI”. It uses your free Groq key, saved only on this device. Trade calls always stay with your rules. Don't send private info.</p>
+        <label>Groq API key<input id="setGroqKey" type="password" placeholder="gsk_…" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        <div class="set-actions">
+          <button type="button" class="cmd-go" id="aiSave">TEST &amp; SAVE</button>
+          <button type="button" class="ghost-btn" id="aiForget">REMOVE KEY</button>
+        </div>
+        <div class="set-msg" id="aiMsg"></div>
+      </div>
+
+      <div class="set-block">
         <div class="set-title">PAPER TRADING</div>
         <p class="dim small">Pretend money on this device only — nothing is sent to OANDA.</p>
         <label>Starting balance ($)<input id="setPaperBal" type="text" inputmode="numeric" placeholder="100000" spellcheck="false"></label>
@@ -295,6 +306,7 @@
   <script src="extras.js"></script>
   <script src="brain.js"></script>
   <script src="life.js"></script>
+  <script src="ai.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

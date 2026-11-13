@@ -123,3 +123,6 @@ dialog.settings { border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.0
 a.ghost-btn { text-decoration: none; display: inline-block; }
 .chart-dlg { width: min(1000px, calc(100vw - 16px)); }
 .tv-chart { height: min(70vh, 640px); height: min(70dvh, 640px); margin-top: 8px; border-radius: 14px; overflow: hidden; }
+
+/* ---------- v17: AI helper tag (kept tiny on purpose) ---------- */
+.ai-tag { display: inline-block; font-size: 8px; line-height: 1; letter-spacing: 0.08em; padding: 2px 3px; margin-left: 4px; border-radius: 3px; border: 1px solid rgba(255, 255, 255, 0.16); color: var(--dim); opacity: 0.7; vertical-align: middle; }

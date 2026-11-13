@@ -185,6 +185,16 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v17
+- **Optional AI helper (Groq, free).** Paste your own free Groq key in **Settings → AI helper** and tap **TEST & SAVE**. The key is saved only on that phone, never in the code. Then:
+  - Everyday questions JARVIS's rules don't cover ("why is the sky blue", "how tall is Everest", "write a short poem") get a real answer, spoken like everything else.
+  - Start anything with **"ask AI"** to send it straight to the helper.
+  - AI answers carry a tiny **AI** tag so you always know where they came from.
+  - **Trade calls never go to the AI.** Bias, buy/sell, stops, sizing and the bot stay on your rules, and the AI is told never to make trade calls.
+  - If the key is wrong, the daily limit is used up, or there's no connection, JARVIS says so in one line.
+- **Getting a free Groq key:** sign in at console.groq.com (Google sign-in works), open **API Keys**, tap **Create API Key**, copy it (it starts with `gsk_`), and paste it into Settings. Don't share the key with anyone.
+- What you ask the AI is sent to Groq, so don't send private info.
+
 ### New in v16
 - **JARVIS picks how to stay inside your $250 max.** When it chooses the stop for you (you say "sell now" without a size), it decides:
   - **Tighten the stop**, if there's a closer price level that's still far enough from normal noise (at least half the hourly range). You keep your usual 40+ units.

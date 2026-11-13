@@ -599,8 +599,22 @@
     if (!cmd.trim()) return;
     history.unshift(cmd); histIdx = -1;
     try {
-      const res = await Brain.interpret(cmd, ctx());
+      // "ask AI …" goes straight to the AI helper; otherwise JARVIS's own rules first, AI only if they're stumped
+      let direct = typeof AI !== 'undefined' ? AI.direct(cmd) : null;
+      // everyday-knowledge questions ("why is the sky blue") skip the rules when the helper is set up
+      if (!direct && typeof AI !== 'undefined' && AI.ready() && Brain.general && Brain.general(cmd, ctx())) direct = cmd;
+      let res = direct ? { unknown: true } : await Brain.interpret(cmd, ctx());
       if (!res) return;
+      if (res.unknown && typeof AI !== 'undefined' && (direct || AI.ready())) {
+        status('THINKING…');
+        try {
+          const a = await AI.ask(direct || cmd, { title: prefs.title });
+          res = { html: `${esc(a).replace(/\n/g, '<br>')} <span class="ai-tag" title="Answered by your AI helper (Groq)">AI</span>`, say: a };
+        } catch (e) {
+          const m = AI.why(e, prefs.title);
+          res = direct || e.code !== 'nokey' ? { html: `<span class="warn">${esc(m)}</span>`, say: m } : res;
+        } finally { status(hfOn ? 'SAY “JARVIS”' : ''); }
+      }
       const entry = log(cmd, res.html, viaVoice);
       if (ambientOn) $('ambCallout').textContent = '› ' + res.html.replace(/<[^>]+>/g, '').slice(0, 160);
       if (res.say) Voice.speak(res.say, { onStart: () => entry.classList.add('speaking'), onEnd: () => entry.classList.remove('speaking') });
@@ -702,6 +716,8 @@
     $('setCity').value = prefs.weatherCity || '';
     $('setPaperBal').value = Paper.stats().start;
     $('setRisk').value = prefs.maxRisk || 250;
+    $('setGroqKey').value = ''; $('setGroqKey').placeholder = AI.hasKey() ? 'key saved ✓ (paste a new one to replace)' : 'gsk_…';
+    $('aiMsg').textContent = '';
     $('setBoot').checked = prefs.boot !== false;
     $('setHandsFree').checked = !!Voice.prefs.handsFree;
     $('setRate').value = Voice.prefs.rate; $('setPitch').value = Voice.prefs.pitch;
@@ -750,6 +766,16 @@
       setTimeout(() => dlg.close(), 900);
     } catch (e) { msg.innerHTML = `<span class="err">✕ ${esc(e.message)}</span>`; }
   });
+  // ---------- AI helper key (Groq) ----------
+  $('aiSave').addEventListener('click', async () => {
+    const v = $('setGroqKey').value.trim(), msg = $('aiMsg');
+    if (!v) { msg.textContent = 'Paste your Groq key first (it starts with gsk_).'; return; }
+    AI.setKey(v);
+    msg.textContent = 'Testing…';
+    try { await AI.test(prefs.title); msg.textContent = '✓ AI helper is working. Ask me anything my rules don’t cover, or start with “ask AI”.'; }
+    catch (e) { msg.textContent = '✕ ' + AI.why(e, prefs.title) + (e.code === 401 || e.code === 403 ? ' Make sure you copied the whole key.' : ''); }
+  });
+  $('aiForget').addEventListener('click', () => { AI.setKey(''); $('setGroqKey').value = ''; $('aiMsg').textContent = 'Key removed from this device.'; });
   $('setForget').addEventListener('click', async () => {
     Data.clearCreds(); Data.resetCache();
     $('setKey').value = ''; $('setAccount').value = '';
@@ -797,7 +823,7 @@
     document.body.classList.add('booting');
     if (!fast) await wait(900); // core powers on
     await bootLine('CORE SYSTEMS', async () => 'ONLINE', fast);
-    await bootLine('CONFIG', async () => { await loadConfig(); return `${config.projects.length} PROJECTS`; }, fast);
+    await bootLine('CONFIG', async () => { await loadConfig(); return `${config.projects.length} APPS`; }, fast);
     await bootLine('MARKET LINK', async () => { const g = await fetchGold(); if (!g) throw new Error(); return g.mode === 'demo' ? 'DEMO' : 'OANDA ' + String(g.env).toUpperCase(); }, fast);
     await bootLine('BIAS ENGINE', async () => (gold ? gold.bias.bias.toUpperCase() : 'STANDBY'), fast);
     await bootLine('TIMEFRAMES', async () => (gold ? (gold.mtf.aligned ? 'ALIGNED' : 'TRACKING') : 'STANDBY'), fast);

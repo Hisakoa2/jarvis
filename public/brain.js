@@ -158,6 +158,27 @@ const Brain = (() => {
     }).join(' ');
   }
 
+  // Is this an everyday-knowledge question ("why do cats purr", "how tall is Everest") rather than something
+  // JARVIS's rules handle? Only used when you've set up the AI helper. A question form, no trading/life words,
+  // and at least one word JARVIS doesn't know at all.
+  const GQ = /^(?:why|how|what|whats|who|whos|where|when|which|is|are|was|were|does|do|did|can you|could you|would you|explain|tell me about|tell me why|tell me how|write|describe|define|whats the difference|give me (?:a |an |some )?(?:recipe|idea|summary|explanation|poem|story))\b/;
+  const DOMAIN = /\b(?:gold|xau|xauusd|trade|trades|trading|traded|bias|market|markets|price|prices|buy|sell|buying|selling|long|short|stop|stops|sl|tp|target|targets|entry|session|sessions|london|new york|ny|asia|asian|tokyo|news|cpi|fomc|nfp|fed|level|levels|support|resistance|trend|chart|charts|paper|position|positions|contract|contracts|units|lots|risk|pip|pips|points|candle|candles|range|weekly|daily|bot|calendar|profit|profits|loss|losses|drawdown|remind|reminder|reminders|alarm|timer|water|workout|gym|weather|rain|temperature|forecast|wear|subscription|subscriptions|bill|bills|budget|spent|spend|todo|birthday|jarvis|oanda|tradingview|time|today|tonight|tomorrow|morning|habit|habits|streak|goal|goals)\b/;
+  let GVOCAB = null;
+
+  function general(text, ctx) {
+    const t = clean(stripWake(String(text)));
+    if (/^(?:write|make|compose|create)\b.*\b(?:poem|story|song|essay|haiku|rap|letter|speech|caption)\b/.test(t)) return true;
+    if (!GQ.test(t) || DOMAIN.test(t)) return false;
+    // everyday nouns that JARVIS also knows as trading slang ("to the moon") — still a general question
+    if (/\b(?:moon|sun|earth|planet|planets|space|stars?|ocean|sky)\b/.test(t)) return true;
+    if (!GVOCAB) GVOCAB = new Set([...VOCAB, ...(typeof Lex !== 'undefined' ? Lex.vocab : []), ...(typeof Extra !== 'undefined' ? Extra.vocab : [])]);
+    const odd = t.split(' ').filter((w) => w.length >= 4 && !/\d/.test(w) && !GVOCAB.has(w) && !STOP.has(w));
+    if (!odd.length) return false;
+    // a typo of a JARVIS word ("bais" → bias, "subs") is still a JARVIS question
+    if (DOMAIN.test(correct(odd.join(' '), [])) || odd.some((w) => /^subs?$/.test(w))) return false;
+    return true;
+  }
+
   function concepts(text) {
     const c = new Set();
     for (const [k, re] of COMPILED) if (re.test(text)) c.add(k);
@@ -2437,8 +2458,9 @@ const Brain = (() => {
           if (r) return r.then ? r.then(wrap) : wrap(r);
         }
         const sug = suggestions(fixed);
-        return reply(`${pick('unk', ['I didn’t quite catch that', 'Not sure I follow', 'I’m not sure what you mean'])}${k.t}. Maybe:<br>${chips(sug)}<br><span class="dim">Say “help” for ideas.</span>`,
-          `${pick('unk2', ["Sorry, I didn't catch that", "I'm not sure I follow", 'Could you say that another way'])}${k.t}? You could ask ${sug.slice(0, 2).join(', or ')}.`);
+        // `unknown` lets the app hand this to the optional AI helper (your own Groq key) instead
+        return Object.assign(reply(`${pick('unk', ['I didn’t quite catch that', 'Not sure I follow', 'I’m not sure what you mean'])}${k.t}. Maybe:<br>${chips(sug)}<br><span class="dim">Say “help” for ideas.</span>`,
+          `${pick('unk2', ["Sorry, I didn't catch that", "I'm not sure I follow", 'Could you say that another way'])}${k.t}? You could ask ${sug.slice(0, 2).join(', or ')}.`), { unknown: true });
       }
     }
   }
@@ -2528,5 +2550,5 @@ const Brain = (() => {
   }
   function botPlan(ctx) { const c = botCheck(ctx); return c.ok ? c : null; }
 
-  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf, fitRisk };
+  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf, fitRisk, general };
 })();
