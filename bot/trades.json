@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794592639891,
+ "heartbeat": 1794595991449,
  "check": {
-  "at": 1794532078747,
-  "ok": true,
-  "why": "took the trade"
+  "at": 1794595991449,
+  "ok": false,
+  "why": "could not reach OANDA"
  },
  "days": {
   "2026-11-12": {
