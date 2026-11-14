@@ -1,0 +1,87 @@
+# v21: everyday talk — every way to say it. "a/b|..." means either answer is right (both reply well).
+# well-wishes
+t:wishWeekend|{|hey |yo |ok |okay |alright |well |anyway |ight |aight }{have|enjoy|try to have|hope you have|you have} a {good|great|nice|awesome|fun|relaxing|safe|chill|lovely|} weekend{| jarvis| sir| man| bro| buddy}
+t:wishWeekend|{|hey |ok |alright }{happy|good} weekend{| jarvis| sir| man}
+t:wishWeekend|{|ok |alright |well }enjoy {the|your} weekend{| jarvis| sir| bro| man}
+t:wishDay|{|hey |ok |okay |alright |well |anyway }{have|enjoy|hope you have} a {good|great|nice|awesome|amazing|blessed|productive|lovely|} {day|one}{| jarvis| sir| man| bro}
+t:wishNight/x:about|{|ok |alright |well }{have|hope you have} a {good|great|nice|peaceful|restful|lovely} {night|evening}{| jarvis| sir| man}
+t:wishNight/x:about/life:sleep/bye|{good night|goodnight|nighty night|sweet dreams|sleep well|sleep tight}{| jarvis| sir| man| bro}
+t:wishMorning/hello|{good morning|gm|morning jarvis|good morning jarvis|great morning}{| sir| man| bro}
+t:wishAfternoon|{|hey |well }good afternoon{| jarvis| sir}
+t:wishEvening|{|hey |well }good evening{| jarvis| sir}
+t:wishWeek|{|ok |alright }{have|enjoy} a {good|great|nice|productive|blessed|} week{| jarvis| sir| man}
+t:wishWeek|{|hey }happy {monday|tuesday|wednesday|thursday|friday|saturday|sunday}{| jarvis| sir| man}
+t:takeCare|{take care|stay safe|be safe|drive safe}{| jarvis| sir| man| bro}
+t:holiday|{merry christmas|happy holidays|happy new year|happy thanksgiving|happy easter|happy halloween}{| jarvis| sir| man}
+# checking in
+t:youThere|{you there|are you there|you awake|are you awake|you up|are you listening|can you hear me|mic check}{| sir}
+t:howDay/life:myday|{|hey |so }how{ was| is|s} your {day|night|weekend|morning|evening|week}{| jarvis| sir| man}
+t:howDay|{how did your day go|did you have a good day|did you have a good weekend|how did your weekend go}{| jarvis| sir}
+t:missMe|{did you miss me|i missed you|missed you}{| jarvis| sir}
+t:whatDoing|what {have you been|were you} {doing|up to}{| today| all day| tonight}
+# quick reactions
+t:ack|{ok|okay|alright|cool|bet|got it|gotcha|understood|roger that|copy that|noted|sounds good|fair enough|makes sense|i see|word|facts|nice|perfect|awesome|sweet|dope|solid|love it|wow|interesting|yep|yup|sure|exactly}{| sir| bro| man}
+t:laugh/joke|{lol|lmao|haha|hahaha|hehe|thats funny|that was funny|so funny|hilarious|youre funny|good one}{| jarvis| sir}
+t:neverMind/stopspeak|{never mind|nevermind|nvm|forget it|scratch that|disregard|ignore that|cancel that|no worries|dont worry about it}{| jarvis| sir}
+t:sorry/life:t:sorry|{sorry|my apologies|i apologize}{| jarvis| for that| about that| man}
+# praise & insults
+t:praise/x:about|{you are|you're} {so |really |pretty |}{smart|awesome|amazing|great|the best|the goat|a genius|cool|helpful|brilliant}{| jarvis| bro| man}
+t:praise/x:about|{good|great|nice|amazing} {job|work}{| jarvis| sir| bro}
+t:praise/x:about/x:rps|{i love you|love you|you rock|i appreciate you|appreciate you|proud of you}{| jarvis| bro| man}
+t:insult/x:about|{you are|you're} {so |really |}{dumb|stupid|useless|trash|annoying|slow|terrible|broken}{| jarvis| bro}
+t:insult/x:about|{you suck|shut up|i hate you|you're the worst}{| jarvis| bro}
+# about JARVIS
+t:areYouReal/x:about|are you {real|human|a person|alive|conscious|a robot|a bot|an ai|chatgpt|siri|alexa}{| jarvis}
+t:areYouReal/x:about|do you {dream|sleep|eat|breathe|get tired|get bored|have feelings|have a soul|have a brain}{| jarvis}
+t:areYouReal/x:about|can you {think|feel|learn|dream}
+t:whereLive/x:about|where {do you live|are you from|are you located}
+t:jarvisMeans|{what does jarvis stand for|what does jarvis mean|why are you called jarvis|what is jarvis short for|what does your name mean}
+t:purpose/x:about|{what is your purpose|what's your purpose|what is your job|why do you exist|what are you for|what were you made for}
+t:howSmart|{how smart are you|what's your iq|how much do you know|how many sentences do you understand}
+t:remember/life:memory|{do you remember me|do you remember what i said|will you remember that|do you remember our conversation}
+t:jarvisMood/x:about/howareyou|are you {ok|okay|alright|happy|good}
+t:favorite|{what's|what is|whats} your {favorite|favourite|fav} {color|food|movie|song|team|car|sport|animal|number|drink|show|game|book|season|metal|session|timeframe|strategy|place|day}{| jarvis| sir}
+# how you feel
+t:feelTired/life:mood/x:well|{i'm|i am|i feel} {so |really |super |kinda |pretty |}{exhausted|drained|worn out|burnt out|wiped|tired|sleepy}{| jarvis| sir| man| today}
+t:feelBored/life:t:bored|{i'm so bored|i'm bored as hell|i'm bored|entertain me}{| jarvis| sir}
+t:feelBored|nothing to do{| jarvis| today}
+t:feelBad/life:mood|{i'm|i am|i feel} {so |really |kinda |super |}{upset|heartbroken|anxious|nervous|worried|scared|overwhelmed|frustrated|defeated|unmotivated|stuck|sad|down|stressed|angry|mad|annoyed}{| jarvis| sir| man| today| right now}
+t:badDay/life:mood|{i had a|it was a|today was a|this was a} {bad|rough|terrible|awful|long|hard|tough} day{| jarvis| sir| man}
+t:feelGood/life:mood/x:chat|{i'm|i am|i feel} {so |really |super |}{blessed|grateful|thankful|motivated|confident|unstoppable|productive|relaxed|focused|good|great|amazing|happy}{| jarvis| sir| man| today}
+t:goodDay/life:mood|{i had a|it was a|today was a} {good|great|amazing|productive|perfect} day{| jarvis| sir}
+t:feelBody/weather/life:water|{i'm|i am} {so |really |}{starving|thirsty|freezing|sore|full|stuffed|dehydrated|cold|hot}{| jarvis| sir| man}
+# what you're doing
+life:sleep/life:sleepQ/t:goingBed|{i'm about to|i'm gonna|i'm going to|time to|about to|ready to} {go to bed|go to sleep|hit the sack|hit the hay|sleep}{| jarvis| sir| man}
+life:sleep/x:chat|{going to bed|going to sleep|calling it a night|i'm out for the night|heading to bed}{| jarvis| sir| man}
+t:doingStuff/life:movies|{i'm about to|i'm gonna|i'm going to|about to|gonna} {shower|cook|clean|do laundry|go shopping|go for a run|go for a walk|walk the dog|play video games|watch a movie|watch tv|watch netflix|read|study|do homework|go to class|go to church|hang out|take a nap|meditate|call my mom|call my dad|drive|go to the store}{| jarvis| sir}
+# trading & money events
+t:tradeLoss/x:coach|i {just |}{lost a trade|took a loss|got stopped out|hit my stop|lost money|blew my account|failed my challenge|lost my funded account}{| jarvis| sir| today}
+t:tradeLoss/x:coach|i had a losing {day|week|trade}{| jarvis| sir}
+t:tradeWin|i {just |}{hit my tp|hit my take profit|hit my target|made money|made a profit|took profit|banked}{| jarvis| sir| today}
+t:tradeWin|i had a green {day|week}{| jarvis| sir}
+t:broke|{i'm broke|i'm so broke|i am out of money|i'm in debt|i have no money}{| jarvis| sir| man}
+t:advice/x:coach/life:sleepQ/life:habit/x:define|how {do|can|should} i {get rich|make money|be successful|get better at trading|stop overtrading|stop revenge trading|control my emotions|be more disciplined|stay motivated|stay focused|be consistent|pass my challenge|get funded|save money|wake up early|sleep better|build habits|reduce stress|get in shape|get stronger}
+t:motivate|{motivate me|give me motivation|pep talk|inspire me|give me a quote|motivational quote|i need motivation|hype me up}{| jarvis| sir| please}
+t:deep|{what is the meaning of life|why are we here|are we in a simulation|are aliens real|what is love|what is happiness}{| jarvis}
+# things JARVIS can't do
+t:cantDo|{|can you |please }{call|text|message|facetime} my {mom|dad|girlfriend|boyfriend|friend|brother|boss}
+t:cantDo|{|can you |please }{order|get me} {food|pizza|an uber|doordash}
+t:cantDo/life:subs|{|can you |please }{play|put on} {some music|a song|spotify|my playlist}
+t:cantDo|{|can you |please }{take a picture|take a selfie|turn on the lights|turn off the tv|open instagram|open tiktok|open youtube|book me a flight}
+# the world (no internet)
+t:worldNews|{did you see the game|who won the game|who won the super bowl|what's the score|any sports news|who is the president|what's trending}
+# fun
+t:story/x:fact|{tell me a story|tell me a bedtime story|sing me a song|sing something|rap for me|tell me something cool|tell me something random}{| jarvis| please}
+# time & day
+t:isWeekend|{is it the weekend|is it the weekend yet|how long until the weekend|how long till friday|is it friday yet|tgif|thank god it's friday}{| jarvis| sir}
+t:isLate|{is it late|is it too late|it's so late|it's really late|is it early|why am i still up|why am i still awake}{| jarvis| sir}
+t:whatDay/openTrade/dayplan|{what's the plan for tonight|what should i do tonight|what should i do this weekend|what's the move this weekend}
+workoutChallenge|{give me|i want|got} a {workout|fitness|} challenge{| jarvis| sir}
+# wrapped questions — the same question inside everyday words
+bias|{can you tell me|could you tell me|do you know|i wanna know|i want to know|tell me|let me know|quick question|real quick|be honest|any idea|i was wondering|remind me|so|um|hey so} {what the bias is|what the bias is today|which way gold is leaning|if gold is bullish or bearish|whether we're bullish or bearish}{| jarvis| sir| please}
+price/day|{can you tell me|could you tell me|do you know|i wanna know|tell me|quick question|real quick|any idea|i was wondering|hey so} {where gold is trading|what gold is at|what the price of gold is|how much gold is right now}{| jarvis| sir| please}
+trade|{quick question|real quick|be honest|honestly|let me know|tell me|i was wondering|so|hey so} {should i buy|should i sell|should i buy now|should i sell now|if i should buy|if i should sell}{| jarvis| sir| right now}
+tradenow|{quick question|real quick|be honest|let me know|tell me|i was wondering|do you know} {if it's a good time to trade|is it a good time to trade|if i should trade today|if there are any setups today}{| jarvis| sir}
+news|{can you|could you|please|quick question|real quick} {check the news|tell me the news|check if there's news today|tell me when cpi is}{| for me| jarvis| sir}
+session|{any idea|do you know|can you tell me|quick question|real quick} {when london opens|when new york opens|when asia opens|when london closes}{| jarvis| sir}
+day/price|{hey so|so|um|real quick|quick question|tell me} {what's gold doing|how's the market looking|what's going on with gold|how's gold today}{| jarvis| sir}

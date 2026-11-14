@@ -94,7 +94,7 @@ const Brain = (() => {
   ];
   const CONTRACTIONS = [
     [/\b(what|where|how|who|when|it|that|there|here|gold|today)'?s\b/g, '$1 is'],
-    [/\bhow'?d\b/g, 'how did'], [/\bi'?m\b/g, 'i am'], [/\b(you|we|they)'?re\b/g, '$1 are'], [/\b(i|you|we|they)'?ve\b/g, '$1 have'],
+    [/\bhow'?d\b/g, 'how did'], [/\bi'?m\b/g, 'i am'], [/\b(you|they)'?re\b/g, '$1 are'], [/\bwe're\b/g, 'we are'], [/\b(i|you|we|they)'?ve\b/g, '$1 have'],
     [/\b(you|they)'?ll\b/g, '$1 will'], [/\b(i|we|it)'ll\b/g, '$1 will'], [/\b(you|they)'?d\b/g, '$1 would'], [/\b(i|we)'d\b/g, '$1 would'],
     [/\bcan'?t\b/g, 'can not'], [/\bwon'?t\b/g, 'will not'], [/\b(do|does|did|is|are|was|were|should|would|could|have|has|had|need|must)n'?t\b/g, '$1 not'], [/\bain'?t\b/g, 'is not'],
     [/\bwhats\b/g, 'what is'], [/\bhows\b/g, 'how is'], [/\bwheres\b/g, 'where is'], [/\bwanna\b/g, 'want to'], [/\bgonna\b/g, 'going to'],
@@ -1549,17 +1549,25 @@ const Brain = (() => {
   }
 
   // ---- free time, workout plan, challenges ---------------------------------------------
+  // [challenge, latest hour it still makes sense to start (29 = up to 5 AM), earliest hour]
+  // so at 10 PM you never get "10,000 steps before 8 PM"
   const CHALLENGES = [
-    '100 push-ups today — as many sets as you need.', '5 minutes of plank in total — break it up however you want.', '200 bodyweight squats before the end of the day.',
-    '50 burpees for time. Write the time down and beat it next week.', '10,000 steps before 8 PM.', 'Wall sit: 3 rounds of 1 minute, 1 minute rest between.',
-    'Run one mile as fast as you can. That\'s your number to beat.', 'Drink a gallon of water today.', 'No phone for the first hour after you wake up tomorrow.',
-    '2-minute cold shower. Mind over body.', '30 days: start at 10 push-ups and add 5 every day.', 'Stretch for 10 minutes before bed tonight.',
-    '7 rounds: 10 push-ups, 15 squats, 20 mountain climbers. Rest 1 minute between rounds.', 'Hold a dead hang from a bar for as long as you can, 3 times.',
+    ['100 push-ups today — as many sets as you need.', 20], ['5 minutes of plank in total — break it up however you want.', 23], ['200 bodyweight squats before the end of the day.', 20],
+    ['50 burpees for time. Write the time down and beat it next week.', 21], ['10,000 steps before 8 PM.', 13], ['Wall sit: 3 rounds of 1 minute, 1 minute rest between.', 23],
+    ['Run one mile as fast as you can. That\'s your number to beat.', 20, 5], ['Drink a gallon of water today.', 12], ['No phone for the first hour after you wake up tomorrow.', 29],
+    ['2-minute cold shower. Mind over body.', 23], ['30 days: start at 10 push-ups and add 5 every day.', 29], ['Stretch for 10 minutes before bed tonight.', 29, 17],
+    ['7 rounds: 10 push-ups, 15 squats, 20 mountain climbers. Rest 1 minute between rounds.', 21], ['Hold a dead hang from a bar for as long as you can, 3 times.', 21],
+    ['50 push-ups before you go to sleep — any number of sets.', 29, 18], ['3 sets of 20 squats right now, then straight to bed.', 29, 20], ['Tomorrow: 10,000 steps before 8 PM. Start the day with a walk.', 29, 19],
+    ['1 minute plank right now. Just one. Go.', 29], ['20 push-ups every hour you\'re awake today.', 14], ['No sugar for the rest of today.', 18],
   ];
   function workoutChallengeA(k) {
-    const c = pick('chal', CHALLENGES);
-    return reply(`Challenge for you${k.t}: <b>${c}</b><br><span class="dim">Tell me when it's done. Warm up first and drink water.</span>`, `Here's your challenge${k.t}: ${c}`);
+    const h = k.hour, hh = h < 5 ? h + 24 : h; // 1 AM counts as "25" — still tonight
+    const ok = CHALLENGES.filter(([, until, from = 0]) => hh >= from && hh < until);
+    const c = pick('chal-' + Math.floor(h / 3), (ok.length ? ok : CHALLENGES.filter((x) => x[1] === 29)).map((x) => x[0]));
+    const note = h >= 21 || h < 5 ? `It's ${fmtClock(k)}, so I kept it short.` : 'Tell me when it\'s done. Warm up first and drink water.';
+    return reply(`Challenge for you${k.t}: <b>${c}</b><br><span class="dim">${note}</span>`, `Here's your challenge${k.t}: ${c}`);
   }
+  function fmtClock(k) { const h12 = k.hour % 12 || 12; return `${h12}${k.mi ? ':' + String(k.mi).padStart(2, '0') : ''} ${k.hour < 12 ? 'AM' : 'PM'}`; }
   function workoutPlanA(k, text) {
     const home = /\b(home|no gym|no equipment|bodyweight|body weight)\b/.test(text);
     const plan = home ? [['Monday', 'Push-ups 5×max, pike push-ups 3×10, dips on a chair 3×12'], ['Tuesday', '20-min run or brisk walk + core (plank 3×60s)'], ['Wednesday', 'Squats 4×20, lunges 3×12 each, glute bridges 3×15'], ['Thursday', 'HIIT 20 min: burpees, mountain climbers, jump squats (40s on / 20s off)'], ['Friday', 'Full body circuit ×4: 15 push-ups, 20 squats, 10 burpees, 30s plank'], ['Saturday', 'Long walk, hike or a sport'], ['Sunday', 'Rest + 15 minutes of stretching']]
@@ -2224,6 +2232,10 @@ const Brain = (() => {
     const up = (id, v) => { if (v > (S[id] || 0)) S[id] = v; };
     const WS = '(?:what s|whats|what is|where s|wheres|where is)';
     if (/\byes or no\b|\byay or nay\b/.test(t) && /\b(buy|sell|long|short|go long|go short)\b/.test(t) && !ck) up('trade', 9.9);
+    // "remind me what the bias is" is a question, not a new reminder
+    if (/^remind me (what|where|how|which|who|why|whats|what is|if|whether|weather)\b/.test(t) && !/\b(at|in|on|every|tomorrow|tonight)\b \d|\bevery\b/.test(t)) S.remindAdd = 0;
+    if (S.weather && /\b(bullish|bearish|bias)\b/.test(t)) S.weather = 0; // "whether we're bullish" is not the weather
+    if (/\bwhat (gold|price) is (at|trading at)\b|\bwhat the (price of gold|gold price|price) is\b/.test(t)) up('price', 9.6);
     if (ck || /\b(open|monday|tomorrow|next week|sunday)\b/.test(t)) return;
     if (/\b(are we|is (?:gold|price|the market|it))\s+(?:leaning|looking|trending)\s+(?:bullish|bearish|up|down|long|short|higher|lower)\b/.test(t) ||
       /\b(am i|should i be|are we|do i|should we be)\s+(?:looking for|hunting|thinking|looking at)\s+(?:buys|sells|longs|shorts)\b/.test(t) ||
@@ -2246,6 +2258,7 @@ const Brain = (() => {
     if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
     if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(text))) if (v > (S[i] || 0)) S[i] = v;
     if (typeof Extra !== 'undefined') for (const [i, v] of Object.entries(Extra.score(text))) if (v > (S[i] || 0)) S[i] = v;
+    if (typeof Talk !== 'undefined') for (const [i, v] of Object.entries(Talk.score(text))) if (v > (S[i] || 0)) S[i] = v;
     if (fixed !== text && typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(fixed))) if (v - 0.05 > (S[i] || 0)) S[i] = v - 0.05; // typo-fixed version, a hair weaker
     const ck = coachKind(fixed, k);
     if (ck) { S.coach = Math.max(S.coach || 0, 9.9); if (S['life:partial']) S['life:partial'] = 9; S.paperModify = Math.min(S.paperModify || 0, 9); S.paperClose = Math.min(S.paperClose || 0, 9); }
@@ -2477,11 +2490,14 @@ const Brain = (() => {
           const r = Extra.NEEDS_GOLD.has(xid) && !k.g ? ctx.refresh().then((g) => { k.g = g; return go(); }) : go();
           if (r) return r;
         }
+        if (id && id.startsWith('t:') && typeof Talk !== 'undefined') { const r = Talk.run(id.slice(2), k, text); if (r) return wrap(r); }
         if (id && id.startsWith('life:') && typeof Life !== 'undefined') {
           k.raw = String(raw || '').toLowerCase();
           const r = Life.run(id.slice(5), text, fixed, k, ctx);
           if (r) return r.then ? r.then(wrap) : wrap(r);
         }
+        // nothing matched: answer like a person (Talk.fallback) — still flagged unknown so an optional AI key could take it
+        if (typeof Talk !== 'undefined') return Object.assign(wrap(Talk.fallback(k, text)), { unknown: true });
         const sug = suggestions(fixed);
         // `unknown` lets the app hand this to the optional AI helper (your own Groq key) instead
         return Object.assign(reply(`${pick('unk', ['I didn’t quite catch that', 'Not sure I follow', 'I’m not sure what you mean'])}${k.t}. Maybe:<br>${chips(sug)}<br><span class="dim">Say “help” for ideas.</span>`,
@@ -2536,6 +2552,7 @@ const Brain = (() => {
       if (typeof Life !== 'undefined') Object.assign(S, Life.score(t, fixed, S, kk));
       if (typeof Lex !== 'undefined') for (const [i, v] of Object.entries(Lex.score(t))) if (v > (S[i] || 0)) S[i] = v;
       if (typeof Extra !== 'undefined') for (const [i, v] of Object.entries(Extra.score(t))) if (v > (S[i] || 0)) S[i] = v;
+      if (typeof Talk !== 'undefined') for (const [i, v] of Object.entries(Talk.score(t))) if (v > (S[i] || 0)) S[i] = v;
       let top = Math.max(0, ...Object.values(S));
       if (top < 3 && bankMatch(fixed)) top = 3;
       const tw = t.split(' ');

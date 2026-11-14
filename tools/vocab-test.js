@@ -11,7 +11,7 @@ const sb = {
   document: { hidden: true }, window: {},
 };
 vm.createContext(sb);
-for (const f of ['sessions.js', 'bias-rules.js', 'paper.js', 'reminders.js', 'lexicon.js', 'extras.js', 'brain.js', 'life.js']) {
+for (const f of ['sessions.js', 'bias-rules.js', 'paper.js', 'reminders.js', 'lexicon.js', 'extras.js', 'talk.js', 'brain.js', 'life.js']) {
   vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8') + `\n;globalThis.__x = 1;`, sb, { filename: f });
 }
 // expose the IIFE consts
@@ -205,7 +205,7 @@ const CASES = [
 ];
 
 // extra patterns kept in a plain text file: intent|template
-for (const line of fs.readFileSync(path.join(__dirname, 'vocab-more.txt'), 'utf8').split(String.fromCharCode(10)).map((x) => x.trim())) { const i = line.indexOf('|'); if (i > 0 && !line.startsWith('#')) CASES.push([line.slice(0, i), line.slice(i + 1)]); }
+for (const line of ['vocab-more.txt', 'vocab-talk.txt'].map((f) => fs.readFileSync(path.join(__dirname, f), 'utf8')).join(String.fromCharCode(10)).split(String.fromCharCode(10)).map((x) => x.trim())) { const i = line.indexOf('|'); if (i > 0 && !line.startsWith('#')) CASES.push([line.slice(0, i), line.slice(i + 1)]); }
 
 const verbose = process.argv.includes('-v');
 let total = 0, pass = 0;
@@ -216,7 +216,7 @@ for (const [want, ...tpls] of CASES) {
     let r;
     try { r = B.Brain.routeOf(s, ctx); } catch (e) { r = { id: 'ERROR ' + e.message }; }
     const got = r && r.id;
-    if (got === want) pass++;
+    if (want.split('/').includes(got)) pass++; // "a/b" = either answer is right
     else (fails[want] = fails[want] || []).push(`${s}  →  ${got}`);
   }
 }

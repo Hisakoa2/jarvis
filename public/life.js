@@ -448,7 +448,7 @@ const Life = (() => {
       st.sleep.push({ bed, wake }); st.sleep = st.sleep.slice(-60); st.bedAt = null; save();
       return R(`Logged <b>${Math.round(hrs * 10) / 10} hours</b> of sleep${k.t}. ${hrs >= 7 ? 'Solid.' : hrs >= 6 ? 'Not bad — aim for 7+.' : 'That\'s short. Go easy today, and trade smaller if you trade.'}`);
     }
-    if (/\b(going to bed|going to sleep|heading to bed|off to bed|bed time|bedtime now|hitting the hay|about to sleep|time for bed|good ?night)\b/.test(t) && !/\bwhat time|when should\b/.test(t)) {
+    if (/\b(going to bed|going to sleep|heading to bed|off to bed|bed time|bedtime now|hitting the hay|about to sleep|time for bed|good ?night|(?:about to|gonna|going to|time to|ready to|bout to) (?:go to |head to )?(?:bed|sleep)|hit(?:ting)? the (?:sack|hay)|calling it a night|out for the night)\b/.test(t) && !/\bwhat time|when should\b/.test(t)) {
       st.bedAt = k.now; save();
       const rems = (k.reminders ? k.reminders.all() : []).filter((r) => r.due && r.due - k.now < 14 * 3600e3);
       const line = pick('gn', [`Good night${k.t}. Sleep well.`, `Rest up${k.t}. I'll keep an eye on gold.`, `Night${k.t}. Big day tomorrow.`]);
@@ -458,7 +458,7 @@ const Life = (() => {
       if (st.bedAt && k.now - st.bedAt < 16 * 3600e3 && k.now - st.bedAt > 2 * 3600e3) {
         const hrs = (k.now - st.bedAt) / 3600e3;
         st.sleep.push({ bed: st.bedAt, wake: k.now }); st.sleep = st.sleep.slice(-60); st.bedAt = null; save();
-        return R(`Morning${k.t}! You slept about <b>${Math.round(hrs * 10) / 10} hours</b>. ${hrs >= 7 ? 'Nicely done.' : 'A little short — keep that in mind today.'} Say “morning routine” for your rundown.`, `Good morning${k.t}. You slept about ${Math.round(hrs)} hours. Say morning routine for your rundown.`);
+        return R(`${k.hour < 12 ? "Morning" : k.hour < 17 ? "Good afternoon" : "Hey"}${k.t}! You slept about <b>${Math.round(hrs * 10) / 10} hours</b>. ${hrs >= 7 ? 'Nicely done.' : 'A little short — keep that in mind today.'} Say “morning routine” for your rundown.`, `Good morning${k.t}. You slept about ${Math.round(hrs)} hours. Say morning routine for your rundown.`);
       }
       return null;
     }
@@ -1110,7 +1110,7 @@ const Life = (() => {
     if (/\b(what time|when) should i (go to (bed|sleep)|sleep|head to bed)\b|\bwhat time (to|should i) (go to )?(bed|sleep)\b|\bwhen to (go to )?(bed|sleep)\b|\bif i (wake|get) up at\b|\bbed ?time\b.*\b(wake|tonight|should)\b|\bsleep calculator\b/.test(t)) set('sleepQ', 9.6);
     if (/\b(how did i sleep|how much (did i )?sleep|sleep (stats|tracker|log|average|history)|my sleep)\b/.test(t)) set('sleep', 9.4);
     if (/\bslept\b.*\b(from|hours?)\b|\b(got|had) \S+ hours? of sleep\b/.test(t)) set('sleep', 9.5);
-    if (/\b(going to bed|going to sleep|heading to bed|off to bed|hitting the hay|about to sleep|time for bed|good ?night)\b/.test(t) && !/\b(what time|when should|remind)\b/.test(t)) set('sleep', 5.5);
+    if (/\b(going to bed|going to sleep|heading to bed|off to bed|hitting the hay|about to sleep|time for bed|good ?night|(?:about to|gonna|going to|time to|ready to|bout to) (?:go to |head to )?(?:bed|sleep)|hit(?:ting)? the (?:sack|hay)|calling it a night|out for the night)\b/.test(t) && !/\b(what time|when should|remind)\b/.test(t)) set('sleep', 5.5);
     if (/\b(i'?m up|i am up|just woke up|i woke up|i'?m awake)\b/.test(t) && st.bedAt) set('sleep', 8);
     // money
     if ((/\b(i )?(spent|paid|dropped|blew|wasted)\s+\$?\d|\$\d+(\.\d+)? (on|for|at)\b|\b(bought|got|grabbed|ordered)\b.+\bfor\s+\$?\d/.test(t) || parseSpend(t.trim())) && !/\bremind\b|\b(every|a month|monthly|per month|a year|yearly|subscription|due on)\b/.test(t)) set('money', 9.5);

@@ -76,7 +76,7 @@ const MODELS = { data: [{ id: 'whisper-large-v3' }, { id: 'llama-3.3-70b-versati
     localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
     fetch: async () => { throw new Error('offline'); } };
   vm.createContext(sb);
-  for (const f of ['sessions.js', 'bias-rules.js', 'data.js', 'paper.js', 'reminders.js', 'lexicon.js', 'extras.js', 'brain.js', 'life.js']) vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8'), sb, { filename: f });
+  for (const f of ['sessions.js', 'bias-rules.js', 'data.js', 'paper.js', 'reminders.js', 'lexicon.js', 'extras.js', 'talk.js', 'brain.js', 'life.js']) vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8'), sb, { filename: f });
   const { Brain, Data, Paper } = vm.runInContext('({ Brain, Data, Paper })', sb);
   const sessions = JSON.parse(fs.readFileSync(path.join(PUB, 'config', 'sessions.json'), 'utf8'));
   const g = await Data.snapshot({ sessions });

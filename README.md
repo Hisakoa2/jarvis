@@ -185,6 +185,31 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v21
+- **JARVIS knows what time it is.**
+  - Workout challenges fit the hour. At 10 PM you get "1 minute plank right now" or "50 push-ups before bed", never "10,000 steps before 8 PM".
+  - "Good morning" at 10 PM gets "Morning? It's 10:44 PM — good evening to you."
+  - "Have a good weekend" on a Tuesday gets "it's only Tuesday". On a Friday night it says markets are closed until Sunday 6 PM.
+  - "Happy Friday" on the wrong day gets corrected, and "is it the weekend" counts the days to Friday.
+- **Everyday talk (new `talk.js`).** JARVIS now answers:
+  - well-wishes (good night, take care, happy holidays) and check-ins ("you there?", "did you miss me")
+  - quick reactions (ok, bet, lol, never mind, sorry)
+  - praise and insults, and questions about himself (are you real, what does JARVIS stand for, his favourite things)
+  - how you feel (tired, bored, stressed, a rough or great day, hungry, cold) and what you're doing (bed, nap, shower, gym, movie, driving)
+  - trading wins and losses, being broke, advice (discipline, saving, sleep, habits, getting funded) and motivation
+  - things he can't do (calls, music, photos), plus sports and world news (no internet, so he says so)
+- **No more "not sure I follow".** Anything still not understood gets a real reply:
+  - a question → he says honestly that it's outside what he knows;
+  - something bad → support;
+  - something good → he's happy for you;
+  - anything else → an acknowledgement.
+- **Wrapped questions work:** "can you tell me what the bias is", "real quick, should I sell", "remind me what the bias is" (that one used to set a reminder).
+- Fixes:
+  - "were" was being read as "we are".
+  - "whether we're bullish" was being read as weather.
+  - Overtrading advice now matches your one-trade-a-day rule.
+- **Tests:** 35,472 sentences, plus a new time test (`tools/talk-test.js`) that pins the clock to Friday night and Tuesday morning.
+
 ### New in v20
 - **Easy way out of Trading mode.** There's a big red **✕ EXIT** button in the top corner and an **EXIT TRADING MODE** button at the bottom of the coach.
 - **JARVIS MAP.** A new chart tab where JARVIS draws his ideal trade on live 15-minute or 1-hour candles:
