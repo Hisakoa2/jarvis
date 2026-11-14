@@ -185,6 +185,16 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v20
+- **Easy way out of Trading mode.** There's a big red **✕ EXIT** button in the top corner and an **EXIT TRADING MODE** button at the bottom of the coach.
+- **JARVIS MAP.** A new chart tab where JARVIS draws his ideal trade on live 15-minute or 1-hour candles:
+  - **JARVIS SELL ZONE** (or BUY ZONE): the nearest level on the bias side. For sells that's above price, so you wait for price to come up to it.
+  - **STOP** just past the zone, and **TARGET** at the next level that pays at least 1:2.
+  - Faint lines for the key levels (yesterday's high/low, round numbers, session highs and lows).
+  - When the light is green it shows **SELL NOW** with the real plan instead.
+- The **TRADINGVIEW** tab still has the full TradingView chart. TradingView's free chart can't be drawn on by an app, so JARVIS draws on the map, which uses TradingView's own free open-source chart library.
+- The coach also writes out the ideal zone, stop and target. The bias rules are unchanged.
+
 ### New in v19
 - **Trading light, always on.** A strip under the top bar tells you without asking:
   - **GOOD · SELL / BUY** (green): the strongest kind of setup, with the stop and target. This is the same strict check the JARVIS trader uses: score 4 in London/New York hours, 5 outside, a clear bias and no big news close.

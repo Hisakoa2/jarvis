@@ -150,7 +150,15 @@
       const what = s.cls === 'grey' ? 'No trade while the market is closed.' : s.cls === 'red' ? 'Stay flat for now.' : 'No trade yet — the setup isn’t strong enough.';
       $('tmPlan').innerHTML = `<div><b>${what}</b></div><div>Bias: <b class="${dir > 0 ? 'bull' : dir < 0 ? 'bear' : ''}">${esc(bias.toUpperCase())}</b>${c && c.score != null ? ` · setup score ${c.score}` : ''}</div>
         <div class="dim small">${dir ? `I only trade ${dir > 0 ? 'buys' : 'sells'} today. I'll turn the light green when it's strong enough.` : 'No side has the edge right now.'}</div>`;
+      const m = mapPlan();
+      if (m && m.dir && !m.now) {
+        const w = m.dir < 0 ? 'SELL' : 'BUY';
+        $('tmPlan').innerHTML += `<div style="margin-top:6px">Ideal ${w.toLowerCase()}: <b class="${m.dir < 0 ? 'bear' : 'bull'}">${f(m.zoneLo)}–${f(m.zoneHi)}</b> (${esc(m.name)}, ${m.away.toFixed(2)} away)</div>
+          <div>Stop <b>${f(m.sl)}</b> · Target <b>${f(m.tp)}</b> · 1:${(Math.abs(m.tp - m.entry) / Math.abs(m.entry - m.sl)).toFixed(1)}</div>
+          <div class="dim small">Drawn on the JARVIS MAP. Wait for price to reach the zone, and the light should be green before you take it.</div>`;
+      }
     }
+    if (mapChart && !$('mapWrap').hidden) drawMap(false);
     // zones: where selling makes sense (above price) and where buying makes sense (below price)
     const lv = ((g.levels && g.levels.list) || []).filter((l) => l && isFinite(l.price));
     const above = lv.filter((l) => l.price > px).sort((a, b) => a.price - b.price).slice(0, 2);
@@ -177,10 +185,95 @@
     $('tmAnswer').innerHTML = first ? first.innerHTML : '';
   });
 
+  // ---------- JARVIS MAP: JARVIS draws where he'd ideally sell (or buy) on a live candle chart ----------
+  // The free TradingView embed can't be drawn on, so the map uses TradingView's free open-source chart library.
+  // Ideal plan: wait for price to come back to the nearest level on the bias side, stop just past that zone, target the next level (at least 1:2).
+  function mapPlan() {
+    const g = gold; if (!g || !g.price || !g.bias) return null;
+    const px = g.price.bid, atr = g.bias.atr || 5, spr = g.price.spread || 0.3;
+    const lv = ((g.levels && g.levels.list) || []).filter((l) => l && isFinite(l.price));
+    let c = null; try { c = Brain.botCheck(ctx()); } catch {}
+    if (c && c.ok) return { now: true, dir: c.dir, entry: c.entry, sl: c.sl, tp: c.tp, zoneHi: c.entry + atr * 0.15, zoneLo: c.entry - atr * 0.15, name: 'right here' };
+    const dir = g.bias.bias === 'Bullish' ? 1 : g.bias.bias === 'Bearish' ? -1 : 0;
+    if (!dir) return { dir: 0 };
+    const pad = atr * 0.2, minGap = atr * 0.3;
+    // sells: the nearest level ABOVE price; buys: the nearest level BELOW price
+    const side = lv.filter((l) => (l.price - px) * -dir >= minGap).sort((a, b) => (a.price - b.price) * -dir);
+    const z = side[0] || { price: px - dir * atr * 0.6, short: 'pullback' };
+    const entry = z.price, sl = entry - dir * (pad + Math.max(atr * 0.5, spr * 4)), risk = Math.abs(entry - sl);
+    const tgt = lv.filter((l) => (entry - l.price) * -dir >= risk * 2).sort((a, b) => (b.price - a.price) * -dir)[0];
+    const tp = tgt ? tgt.price : entry + dir * risk * 2;
+    return { now: false, dir, entry, sl, tp, zoneHi: entry + pad, zoneLo: entry - pad, name: z.short || z.name || '', away: Math.abs(entry - px) };
+  }
+  let mapChart = null, mapSeries = null, mapLines = [], mapTf = 'M15', mapLib = null, mapTimer = null;
+  function loadMapLib() {
+    if (mapLib) return mapLib;
+    mapLib = new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+      s.onload = () => res(window.LightweightCharts); s.onerror = () => { mapLib = null; rej(new Error('no chart library')); };
+      document.head.appendChild(s);
+    });
+    return mapLib;
+  }
+  async function drawMap(refetch = true) {
+    const box = $('mapChart');
+    try {
+      const LC = await loadMapLib();
+      if (!mapChart) {
+        box.innerHTML = '';
+        mapChart = LC.createChart(box, { autoSize: true, layout: { background: { color: '#041420' }, textColor: '#7fb5c2', fontSize: 11 },
+          grid: { vertLines: { color: 'rgba(0,229,255,0.05)' }, horzLines: { color: 'rgba(0,229,255,0.05)' } },
+          rightPriceScale: { borderColor: 'rgba(0,229,255,0.25)' }, timeScale: { borderColor: 'rgba(0,229,255,0.25)', timeVisible: true },
+          localization: { timeFormatter: (t) => new Date(t * 1000).toLocaleTimeString('en-US', { timeZone: TZ(), hour: 'numeric', minute: '2-digit' }) } });
+        mapSeries = mapChart.addCandlestickSeries({ upColor: '#22ff9a', downColor: '#ff4d6d', borderVisible: false, wickUpColor: '#22ff9a', wickDownColor: '#ff4d6d' });
+      }
+      if (refetch) {
+        const bars = await Data.bars(mapTf, mapTf === 'M15' ? 192 : 168);
+        if (!bars.length) { $('mapNote').textContent = 'No live candles (demo mode or no connection).'; }
+        mapSeries.setData(bars);
+      }
+      for (const l of mapLines) mapSeries.removePriceLine(l);
+      mapLines = [];
+      const line = (price, color, title, style = 0, width = 1) => mapLines.push(mapSeries.createPriceLine({ price, color, title, lineStyle: style, lineWidth: width, axisLabelVisible: true }));
+      // faint key levels
+      for (const l of ((gold && gold.levels && gold.levels.list) || [])) if (l && isFinite(l.price)) line(l.price, 'rgba(127,181,194,0.35)', l.short || '', 1, 1);
+      const m = mapPlan();
+      if (m && m.dir) {
+        const word = m.dir < 0 ? 'SELL' : 'BUY', zc = m.dir < 0 ? '#ff4d6d' : '#22ff9a';
+        line(m.zoneHi, zc, m.now ? `${word} NOW` : `JARVIS ${word} ZONE`, 0, 2);
+        line(m.zoneLo, zc, '', 0, 2);
+        line(m.sl, '#ffc94d', 'STOP', 2, 2);
+        line(m.tp, '#00e5ff', 'TARGET', 2, 2);
+        $('mapNote').textContent = m.now ? `${word} now · stop ${m.sl.toFixed(2)} · target ${m.tp.toFixed(2)}`
+          : `Ideal ${word.toLowerCase()}: ${m.zoneLo.toFixed(2)}–${m.zoneHi.toFixed(2)} (${m.name}) · ${m.away.toFixed(2)} away`;
+      } else if (m) $('mapNote').textContent = 'No clear direction — no zone to trade today.';
+    } catch (e) {
+      box.innerHTML = '<div class="dim" style="padding:12px">Couldn’t load the JARVIS map — check your connection and reopen.</div>';
+      mapChart = null; mapSeries = null; mapLines = [];
+    }
+  }
+  function showView(v) {
+    document.querySelectorAll('.tm-tab').forEach((b) => b.classList.toggle('on', b.dataset.view === v));
+    $('mapWrap').hidden = v !== 'map'; $('tvChart').hidden = v !== 'tv';
+    if (v === 'tv') loadTV(); else drawMap(!mapChart);
+  }
+  document.querySelector('.tm-tabs').addEventListener('click', (e) => { const b = e.target.closest('.tm-tab'); if (b) showView(b.dataset.view); });
+  document.querySelector('.map-bar').addEventListener('click', (e) => {
+    const b = e.target.closest('.tm-tf'); if (!b) return;
+    mapTf = b.dataset.tf; document.querySelectorAll('.tm-tf').forEach((x) => x.classList.toggle('on', x === b)); drawMap(true);
+  });
+  function closeChart() { $('chartDlg').close(); }
+  $('chartDlg').addEventListener('close', () => { clearInterval(mapTimer); mapTimer = null; });
+
   let tvLoaded = false;
   function openChart() {
     const d = $('chartDlg'); if (!d.open) d.showModal();
     renderTradeMode();
+    showView($('tvChart').hidden ? 'map' : 'tv');
+    clearInterval(mapTimer); mapTimer = setInterval(() => { if (!$('mapWrap').hidden) drawMap(true); }, 60000);
+  }
+  function loadTV() {
     if (tvLoaded) return;
     tvLoaded = true;
     const s = document.createElement('script');
@@ -195,7 +288,8 @@
     document.head.appendChild(s);
   }
   $('chartBtn').addEventListener('click', openChart);
-  $('chartClose').addEventListener('click', () => $('chartDlg').close());
+  $('chartClose').addEventListener('click', closeChart);
+  $('chartClose2').addEventListener('click', closeChart);
   function openProject(p) {
     const i = config.projects.indexOf(p);
     const tile = document.querySelector(`.tile[data-i="${i}"]`);

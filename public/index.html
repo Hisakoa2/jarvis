@@ -208,7 +208,7 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v19 · RULES FIRST · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v20 · RULES FIRST · <span id="lastUpdate">--</span></footer>
 
   <dialog id="calDlg" class="panel settings cal-dlg">
     <div class="panel-head"><span>WINS &amp; LOSSES</span><button type="button" class="link-btn" id="calClose" aria-label="Close">✕</button></div>
@@ -216,9 +216,21 @@
   </dialog>
 
   <dialog id="chartDlg" class="panel trade-mode">
-    <div class="panel-head"><span>TRADING MODE · XAU/USD</span><button type="button" class="link-btn" id="chartClose" aria-label="Close">✕</button></div>
+    <div class="tm-head">
+      <div class="tm-tabs">
+        <button type="button" class="tm-tab on" data-view="map">JARVIS MAP</button>
+        <button type="button" class="tm-tab" data-view="tv">TRADINGVIEW</button>
+      </div>
+      <button type="button" class="tm-exit" id="chartClose" aria-label="Exit trading mode">✕ EXIT</button>
+    </div>
     <div class="tm-grid">
-      <div id="tvChart" class="tv-chart"><div class="dim">Loading TradingView…</div></div>
+      <div class="tm-charts">
+        <div id="mapWrap" class="map-wrap">
+          <div class="map-bar"><button type="button" class="tm-tf on" data-tf="M15">15M</button><button type="button" class="tm-tf" data-tf="H1">1H</button><span class="map-note" id="mapNote"></span></div>
+          <div id="mapChart" class="tv-chart"><div class="dim">Loading JARVIS map…</div></div>
+        </div>
+        <div id="tvChart" class="tv-chart" hidden><div class="dim">Loading TradingView…</div></div>
+      </div>
       <aside class="tm-coach">
         <div id="tmLight" class="tm-light grey"><span class="tl-dot"></span><div><div class="tm-word" id="tmWord">—</div><div class="tm-why" id="tmWhy"></div></div></div>
         <div class="tm-title">THE COACH</div>
@@ -232,6 +244,7 @@
           <button type="button" class="ghost-btn" data-q="is my trade still good">MY TRADE OK?</button>
         </div>
         <div id="tmAnswer" class="tm-answer"></div>
+        <button type="button" class="tm-exit-big" id="chartClose2">EXIT TRADING MODE</button>
       </aside>
     </div>
   </dialog>

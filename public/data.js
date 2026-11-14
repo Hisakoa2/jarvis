@@ -258,5 +258,11 @@ const Data = (() => {
     return (r.candles || []).filter((c) => c.bid && c.ask).map((c) => ({ t: Date.parse(c.time), bh: +c.bid.h, bl: +c.bid.l, ah: +c.ask.h, al: +c.ask.l, bc: +c.bid.c, ac: +c.ask.c }));
   }
 
-  return { candlesSince, snapshot, mode, loadCreds, saveCreds, clearCreds, testCreds, detectServer, resetCache: () => { candleCache = null; } };
+  // v20: candles for the JARVIS MAP chart (bid prices)
+  async function bars(gran = "M15", count = 200) {
+    if ((await mode()) === "demo") return [];
+    const r = await oanda("candles", { granularity: gran, count, price: "B" });
+    return (r.candles || []).filter((c) => c.bid).map((c) => ({ time: Math.floor(Date.parse(c.time) / 1000), open: +c.bid.o, high: +c.bid.h, low: +c.bid.l, close: +c.bid.c }));
+  }
+  return { bars, candlesSince, snapshot, mode, loadCreds, saveCreds, clearCreds, testCreds, detectServer, resetCache: () => { candleCache = null; } };
 })();
