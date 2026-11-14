@@ -3,7 +3,13 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const PUB = path.join(__dirname, '..', 'public');
 const store = new Map();
-const sb = { console, Intl, Date, Math, JSON, setTimeout, clearTimeout, URLSearchParams, Promise, location: { protocol: 'https:', href: 'https://x/' },
+// Pin the clock to a weekday in London/NY hours so results don't change when tests run on a weekend.
+const T0 = Date.UTC(2026, 10, 11, 15, 0, 0), REAL0 = Date.now();
+class FakeDate extends Date {
+  constructor(...a) { super(...(a.length ? a : [T0 + (Date.now() - REAL0)])); }
+  static now() { return T0 + (Date.now() - REAL0); }
+}
+const sb = { console, Intl, Date: FakeDate, Math, JSON, setTimeout, clearTimeout, URLSearchParams, Promise, location: { protocol: 'https:', href: 'https://x/' },
   localStorage: { getItem: (k) => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: (k) => store.delete(k) },
   fetch: async () => { throw new Error('offline'); } };
 vm.createContext(sb);
