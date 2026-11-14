@@ -100,10 +100,87 @@
     $('appName').value = ''; $('appUrl').value = ''; $('appForm').hidden = true;
     syncApps();
   });
-  // ---------- live TradingView chart (TradingView's own free embed) ----------
+  // ---------- trading light: "is it a good time to trade?" without asking ----------
+  // Uses the exact same strict check the JARVIS trader uses (score 4 in London/NY hours, 5 outside, no news, clear bias).
+  function lightState() {
+    const g = gold;
+    if (!g || !g.price) return { cls: 'grey', word: 'NO DATA', why: 'waiting for prices' };
+    if (typeof Brain === 'undefined' || !Brain.botCheck) return { cls: 'grey', word: '—', why: '' };
+    try {
+      const m = Brain.context(ctx()).market;
+      if (m && !m.open) return { cls: 'grey', word: 'CLOSED', why: m.opensAt ? `market opens ${Sessions.fmtTime(m.opensAt, TZ(), true)} ET` : 'market is closed' };
+    } catch {}
+    let c; try { c = Brain.botCheck(ctx()); } catch { return { cls: 'grey', word: '—', why: '' }; }
+    const lean = c.dir > 0 ? 'leaning BUY' : c.dir < 0 ? 'leaning SELL' : '';
+    if (c.ok) {
+      const side = c.dir > 0 ? 'BUY' : 'SELL';
+      return { cls: 'green', word: `GOOD · ${side}`, why: `strong ${side.toLowerCase()} setup · stop ${c.sl.toFixed(2)} · target ${c.tp.toFixed(2)}`, c };
+    }
+    if (c.why === 'no live price') return { cls: 'grey', word: 'NO DATA', why: 'no live price right now' };
+    if (c.why === 'market closed') return { cls: 'grey', word: 'CLOSED', why: 'market is closed' };
+    if (/news/.test(c.why)) return { cls: 'red', word: 'STAY OUT', why: 'big news is close', c };
+    if (/window/.test(c.why)) return { cls: 'red', word: 'STAY OUT', why: 'daily break · back after 6:15 PM NY', c };
+    if (/neutral/.test(c.why)) return { cls: 'red', word: 'STAY OUT', why: 'no clear direction', c };
+    if (/score/.test(c.why)) return { cls: 'yellow', word: 'WAIT', why: `${lean} · ${c.why}`, c };
+    return { cls: 'yellow', word: 'WAIT', why: c.why || '', c };
+  }
+  function renderLight() {
+    const s = lightState();
+    const el = $('tradeLight'); el.className = 'trade-light ' + s.cls;
+    $('tlWord').textContent = s.word; $('tlWhy').textContent = s.why;
+    if ($('chartDlg').open) renderTradeMode(s);
+  }
+  $('tradeLight').addEventListener('click', () => openChart());
+
+  // ---------- trading mode: live TradingView chart + the coach beside it ----------
+  function renderTradeMode(s = lightState()) {
+    $('tmLight').className = 'tm-light ' + s.cls;
+    $('tmWord').textContent = s.word; $('tmWhy').textContent = s.why;
+    const g = gold, f = (n) => Number(n).toFixed(2);
+    if (!g || !g.price || !g.bias) { $('tmPlan').innerHTML = '<div class="dim">Waiting for prices…</div>'; $('tmZones').innerHTML = ''; return; }
+    const px = g.price.bid, c = s.c;
+    if (s.cls === 'green') {
+      const side = c.dir > 0 ? 'BUY' : 'SELL';
+      $('tmPlan').innerHTML = `<div><b class="${c.dir > 0 ? 'bull' : 'bear'}">${side} NOW</b> around ${f(c.entry)}</div>
+        <div>Stop <b>${f(c.sl)}</b> · Target <b>${f(c.tp)}</b> · 1:${c.rr.toFixed(1)}</div>
+        <div>Size: <b>${c.units} units</b> keeps you inside $${prefs.maxRisk || 250}</div>
+        <div class="dim small">${esc(c.why)}</div><div class="dim small">Not a guarantee — your call.</div>`;
+    } else {
+      const bias = g.bias.bias, dir = bias === 'Bullish' ? 1 : bias === 'Bearish' ? -1 : 0;
+      const what = s.cls === 'grey' ? 'No trade while the market is closed.' : s.cls === 'red' ? 'Stay flat for now.' : 'No trade yet — the setup isn’t strong enough.';
+      $('tmPlan').innerHTML = `<div><b>${what}</b></div><div>Bias: <b class="${dir > 0 ? 'bull' : dir < 0 ? 'bear' : ''}">${esc(bias.toUpperCase())}</b>${c && c.score != null ? ` · setup score ${c.score}` : ''}</div>
+        <div class="dim small">${dir ? `I only trade ${dir > 0 ? 'buys' : 'sells'} today. I'll turn the light green when it's strong enough.` : 'No side has the edge right now.'}</div>`;
+    }
+    // zones: where selling makes sense (above price) and where buying makes sense (below price)
+    const lv = ((g.levels && g.levels.list) || []).filter((l) => l && isFinite(l.price));
+    const above = lv.filter((l) => l.price > px).sort((a, b) => a.price - b.price).slice(0, 2);
+    const below = lv.filter((l) => l.price < px).sort((a, b) => b.price - a.price).slice(0, 2);
+    const row = (l, cls, label) => `<div class="tm-zone ${cls}"><span>${label}</span><b>${f(l.price)}</b><span class="dim">${esc(l.short || l.name)} · ${Math.abs(l.price - px).toFixed(2)} away</span></div>`;
+    const bear = g.bias.bias === 'Bearish', bull = g.bias.bias === 'Bullish';
+    $('tmZones').innerHTML = [...above.reverse().map((l) => row(l, 'bear', bear ? 'SELL ZONE' : 'RESISTANCE')),
+      `<div class="tm-zone now"><span>PRICE</span><b>${f(px)}</b><span></span></div>`,
+      ...below.map((l) => row(l, 'bull', bull ? 'BUY ZONE' : 'SUPPORT'))].join('');
+    // your open trade
+    const ps = typeof Paper !== 'undefined' ? Paper.positions() : [];
+    $('tmTradeBox').hidden = !ps.length;
+    if (ps.length) $('tmTrade').innerHTML = ps.map((p) => {
+      const cur = p.side > 0 ? g.price.bid : g.price.ask, pl = (cur - p.entry) * p.side * p.units;
+      return `<div><b class="${p.side > 0 ? 'bull' : 'bear'}">${p.side > 0 ? 'BUY' : 'SELL'} ${p.units}</b> from ${f(p.entry)} · <b class="${pl >= 0 ? 'bull' : 'bear'}">${pl >= 0 ? '+' : '−'}$${Math.abs(pl).toFixed(2)}</b></div>
+        <div class="dim small">${p.sl != null ? `stop ${f(p.sl)} (${Math.abs(cur - p.sl).toFixed(2)} away)` : 'no stop'} · ${p.tp != null ? `target ${f(p.tp)} (${Math.abs(p.tp - cur).toFixed(2)} away)` : 'no target'}</div>`;
+    }).join('');
+  }
+  document.querySelector('.tm-ask').addEventListener('click', async (e) => {
+    const b = e.target.closest('button[data-q]'); if (!b) return;
+    $('tmAnswer').innerHTML = '<div class="dim">Thinking…</div>';
+    await run(b.dataset.q);
+    const first = $('cmdOutput').firstElementChild;
+    $('tmAnswer').innerHTML = first ? first.innerHTML : '';
+  });
+
   let tvLoaded = false;
   function openChart() {
     const d = $('chartDlg'); if (!d.open) d.showModal();
+    renderTradeMode();
     if (tvLoaded) return;
     tvLoaded = true;
     const s = document.createElement('script');
@@ -112,9 +189,9 @@
       try {
         $('tvChart').innerHTML = '';
         new window.TradingView.widget({ autosize: true, symbol: 'OANDA:XAUUSD', interval: '15', timezone: 'America/New_York', theme: 'dark', style: '1', locale: 'en', allow_symbol_change: true, withdateranges: true, container_id: 'tvChart' });
-      } catch { $('tvChart').innerHTML = '<div class="dim">Couldn’t load the chart — tap OPEN IN TRADINGVIEW.</div>'; }
+      } catch { $('tvChart').innerHTML = '<div class="dim">Couldn’t load the chart. Close this and try again in a moment.</div>'; }
     };
-    s.onerror = () => { tvLoaded = false; $('tvChart').innerHTML = '<div class="dim">Couldn’t reach TradingView — check your connection, or tap OPEN IN TRADINGVIEW.</div>'; };
+    s.onerror = () => { tvLoaded = false; $('tvChart').innerHTML = '<div class="dim">Couldn’t reach TradingView — check your connection, then close and reopen.</div>'; };
     document.head.appendChild(s);
   }
   $('chartBtn').addEventListener('click', openChart);
@@ -155,6 +232,7 @@
         $('lastUpdate').textContent = 'UPDATED ' + new Date().toLocaleTimeString('en-US', { timeZone: TZ(), hour: 'numeric', minute: '2-digit' }) + ' ET';
         detectDataCallouts(gold);
         conditionsHeadsUp();
+        renderLight();
         paperTick(gold);
         return gold;
       } catch (e) {
@@ -286,6 +364,30 @@
     paperAnnounce(Paper.tick(g.price.bid, g.price.ask));
     try { Life.botTick(ctx, g); } catch (e) { console.warn('bot', e); }
     renderPaper();
+    tradeWarnings(g);
+  }
+  // Warnings about your open trade: near your stop, one full risk in profit, big news coming. JARVIS never moves your stop.
+  function tradeWarnings(g) {
+    try {
+      const T = prefs.title ? `, ${prefs.title}` : '';
+      for (const p of Paper.positions()) {
+        const cur = p.side > 0 ? g.price.bid : g.price.ask, side = p.side > 0 ? 'buy' : 'sell';
+        const pl = (cur - p.entry) * p.side * p.units;
+        if (p.sl == null) continue;
+        const risk = Math.abs(p.entry - p.sl), toStop = (cur - p.sl) * p.side;
+        if (!(risk > 0)) continue;
+        if (toStop > 0 && toStop <= risk * 0.25) {
+          callout(`nearsl-${p.id}-${p.sl}`, `Price is ${toStop.toFixed(2)} from your stop at ${p.sl.toFixed(2)} on your ${side.toUpperCase()}.`,
+            `Warning${T}. Price is ${toStop.toFixed(1)} dollars from your stop on your ${side}. Down ${Math.abs(pl).toFixed(0)} dollars right now.`, 'WARNING');
+          chime();
+        }
+        if ((cur - p.entry) * p.side >= risk) {
+          callout(`oner-${p.id}`, `Your ${side.toUpperCase()} is up one full risk (+$${pl.toFixed(2)}). Many traders take partials or move the stop to break even here — your call.`,
+            `Sir, your ${side} is up one full risk. Plus ${pl.toFixed(0)} dollars. Partials or break even are options. Your call.`.replace('Sir', prefs.title ? cap(prefs.title) : 'Hey'), 'WARNING');
+          chime();
+        }
+      }
+    } catch (e) { console.warn('warn', e); }
   }
   // Catch up on what happened while the app was closed (5-minute candles)
   async function paperCatchUp() {
@@ -409,6 +511,8 @@
     for (const e of News.relevant()) {
       if (!News.isHigh(e)) continue;
       const mins = (e.at - now) / 60000;
+      if (mins <= 10 && mins > 9 && Paper.positions().length) { callout(`news10-${e.title}-${e.at}`, `${e.title} is out in 10 minutes and you're in a trade. Big news can jump past stops — I'd think about closing or tightening up. Your call.`, `Warning${T}. ${e.title} is out in 10 minutes and you're in a trade. I'd think about closing or tightening up. Your call.`, 'WARNING'); chime(); }
+      else if (mins <= 10 && mins > 9) callout(`news10-${e.title}-${e.at}`, `${e.title} in 10 minutes — I'd stay flat until it's out.`, `Heads up${T}. ${e.title} is out in 10 minutes. I'd stay flat until it's out.`, 'WARNING');
       if (mins <= 15 && mins > 14) callout(`news15-${e.title}-${e.at}`, `High-impact news in 15 minutes: ${e.title}.`, `Heads up${T}. ${e.title.replace(/\bm\/m\b/i, 'month over month').replace(/\by\/y\b/i, 'year over year')} is out in 15 minutes. High impact.`);
     }
   }
@@ -429,6 +533,7 @@
     }).join('') + newsCard(now.getTime(), tz);
     detectTimeCallouts(now.getTime());
     detectNewsCallouts(now.getTime());
+    if (now.getSeconds() % 30 === 0) renderLight();
     if (ambientOn) tickAmbient(now);
   }
 

@@ -346,3 +346,53 @@ dialog.settings::backdrop { background: rgba(0, 4, 8, 0.75); backdrop-filter: bl
   .help-grid { grid-template-columns: 1fr; }
   .help-grid span { margin-bottom: 6px; }
 }
+
+/* v19: trading light — always shows if now is a good time to trade */
+.trade-light { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 24px; border: 0; border-bottom: 1px solid var(--cyan-dim);
+  background: rgba(4, 22, 34, 0.6); color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.tl-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--dim); }
+.tl-word { font-family: var(--disp); font-weight: 700; letter-spacing: 0.18em; white-space: nowrap; }
+.tl-why { color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.tl-go { color: var(--cyan); font-size: 11px; letter-spacing: 0.15em; white-space: nowrap; }
+.green .tl-dot { background: var(--bull); box-shadow: 0 0 10px var(--bull); animation: pulse 1.6s ease-in-out infinite; }
+.green .tl-word, .green .tm-word { color: var(--bull); }
+.yellow .tl-dot { background: var(--neutral); box-shadow: 0 0 8px var(--neutral); }
+.yellow .tl-word, .yellow .tm-word { color: var(--neutral); }
+.red .tl-dot { background: var(--bear); box-shadow: 0 0 8px var(--bear); }
+.red .tl-word, .red .tm-word { color: var(--bear); }
+.trade-light.green { background: rgba(34, 255, 154, 0.08); }
+.trade-light.red { background: rgba(255, 77, 109, 0.07); }
+
+/* v19: trading mode — chart + coach side by side (stacked on phones) */
+dialog.trade-mode { position: fixed; inset: 0; margin: 0; width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none;
+  padding: 12px 16px; color: var(--text); background: #041420; border: 0; display: none; flex-direction: column; }
+dialog.trade-mode[open] { display: flex; }
+dialog.trade-mode::backdrop { background: #02070d; }
+.tm-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 14px; }
+.trade-mode .tv-chart { min-height: 0; height: 100%; border: 1px solid var(--cyan-dim); }
+.tm-coach { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.tm-light { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--cyan-dim); }
+.tm-light .tl-dot { width: 16px; height: 16px; }
+.tm-word { font-family: var(--disp); font-weight: 700; font-size: 22px; letter-spacing: 0.15em; }
+.tm-why { color: var(--dim); font-size: 12px; }
+.tm-title { font-size: 11px; letter-spacing: 0.25em; color: var(--cyan); margin-top: 6px; }
+.tm-plan { display: flex; flex-direction: column; gap: 4px; line-height: 1.4; }
+.tm-plan .bull, .tm-trade .bull { color: var(--bull); } .tm-plan .bear { color: var(--bear); }
+.tm-zones { display: flex; flex-direction: column; gap: 4px; }
+.tm-zone { display: grid; grid-template-columns: 96px 76px 1fr; gap: 8px; align-items: center; padding: 5px 8px; font-size: 13px; border-left: 3px solid var(--dim); background: rgba(0, 229, 255, 0.04); }
+.tm-zone.bear { border-color: var(--bear); } .tm-zone.bear span:first-child { color: var(--bear); }
+.tm-zone.bull { border-color: var(--bull); } .tm-zone.bull span:first-child { color: var(--bull); }
+.tm-zone.now { border-color: var(--cyan); } .tm-zone.now span:first-child { color: var(--cyan); }
+.tm-zone span:last-child { font-size: 11px; }
+.tm-ask { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.tm-ask .ghost-btn { flex: 1 1 auto; }
+.tm-answer { font-size: 13px; line-height: 1.45; }
+.tm-answer:empty { display: none; }
+@media (max-width: 760px) {
+  .trade-light { padding: 8px 16px; }
+  .tl-go { display: none; }
+  dialog.trade-mode { padding: 10px 12px; overflow-y: auto; }
+  .tm-grid { display: flex; flex-direction: column; }
+  .trade-mode .tv-chart { flex: none; height: 52vh; height: 52dvh; }
+  .tm-coach { overflow: visible; }
+}

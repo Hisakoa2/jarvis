@@ -185,6 +185,24 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v19
+- **Trading light, always on.** A strip under the top bar tells you without asking:
+  - **GOOD · SELL / BUY** (green): the strongest kind of setup, with the stop and target. This is the same strict check the JARVIS trader uses: score 4 in London/New York hours, 5 outside, a clear bias and no big news close.
+  - **WAIT** (yellow): there is a side, but the setup isn't strong enough yet.
+  - **STAY OUT** (red): big news is close, it's the daily break, or there's no clear direction.
+  - **CLOSED** (grey): the market is shut, and the strip says when it opens.
+  - Tap it to open Trading mode.
+- **Trading mode.** The live TradingView chart now opens inside JARVIS, not as a link. The coach sits next to it (under it on a phone) with:
+  - the light and the plan: side, stop, target, and a size that stays inside your max risk;
+  - **zones**: the nearest sell zones above price and buy zones below, with how far away each one is;
+  - your open trade: profit/loss and how far it is from the stop and target;
+  - quick buttons: **Should I sell? / Should I buy? / My trade OK?**
+- **Warnings** (pop-up plus a chime):
+  - price is close to your stop (a quarter of your risk left);
+  - your trade is up one full risk (partials or break even are options — JARVIS never moves your stop);
+  - big news in 10 minutes. If you're in a trade, JARVIS suggests closing or tightening up. If not, it says to stay flat.
+- Green means the rules line up as strongly as they can. It is still not a guarantee.
+
 ### New in v18
 - **JARVIS now understands about 22,900 test sentences (up from 11,850).** New ways to ask that now work:
   - Bias: "are we leaning bullish today", "should I be looking for sells", "longs or shorts", "which side should I be on".

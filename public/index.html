@@ -89,6 +89,10 @@
     </div>
   </header>
 
+  <button type="button" id="tradeLight" class="trade-light grey" aria-label="Is it a good time to trade? Tap for trading mode">
+    <span class="tl-dot"></span><span class="tl-word" id="tlWord">CHECKING…</span><span class="tl-why" id="tlWhy"></span><span class="tl-go">TRADING MODE ›</span>
+  </button>
+
   <div id="toasts" class="toasts" aria-live="polite"></div>
 
   <div class="banner" id="demoBanner" hidden>
@@ -192,7 +196,7 @@
       <div class="panel-head"><span>APPS</span><span class="tag" id="projCount">0</span></div>
       <div id="projects" class="projects"></div>
       <div class="apps-bar">
-        <button type="button" class="ghost-btn" id="chartBtn">LIVE CHART</button>
+        <button type="button" class="ghost-btn" id="chartBtn">TRADING MODE</button>
         <button type="button" class="ghost-btn" id="appAddBtn">+ ADD APP</button>
       </div>
       <form id="appForm" class="app-form" hidden autocomplete="off">
@@ -204,17 +208,32 @@
     </section>
   </main>
 
-  <footer class="footer dim">JARVIS v18 · RULES FIRST · <span id="lastUpdate">--</span></footer>
+  <footer class="footer dim">JARVIS v19 · RULES FIRST · <span id="lastUpdate">--</span></footer>
 
   <dialog id="calDlg" class="panel settings cal-dlg">
     <div class="panel-head"><span>WINS &amp; LOSSES</span><button type="button" class="link-btn" id="calClose" aria-label="Close">✕</button></div>
     <div id="calBody"></div>
   </dialog>
 
-  <dialog id="chartDlg" class="panel settings chart-dlg">
-    <div class="panel-head"><span>XAU/USD · LIVE CHART</span><button type="button" class="link-btn" id="chartClose" aria-label="Close">✕</button></div>
-    <div id="tvChart" class="tv-chart"><div class="dim">Loading TradingView…</div></div>
-    <div class="set-actions"><a class="ghost-btn" href="https://www.tradingview.com/chart/?symbol=OANDA%3AXAUUSD" target="_blank" rel="noopener">OPEN IN TRADINGVIEW</a></div>
+  <dialog id="chartDlg" class="panel trade-mode">
+    <div class="panel-head"><span>TRADING MODE · XAU/USD</span><button type="button" class="link-btn" id="chartClose" aria-label="Close">✕</button></div>
+    <div class="tm-grid">
+      <div id="tvChart" class="tv-chart"><div class="dim">Loading TradingView…</div></div>
+      <aside class="tm-coach">
+        <div id="tmLight" class="tm-light grey"><span class="tl-dot"></span><div><div class="tm-word" id="tmWord">—</div><div class="tm-why" id="tmWhy"></div></div></div>
+        <div class="tm-title">THE COACH</div>
+        <div id="tmPlan" class="tm-plan"></div>
+        <div class="tm-title">ZONES</div>
+        <div id="tmZones" class="tm-zones"></div>
+        <div id="tmTradeBox" hidden><div class="tm-title">YOUR TRADE</div><div id="tmTrade" class="tm-plan"></div></div>
+        <div class="tm-ask">
+          <button type="button" class="ghost-btn" data-q="should I sell right now">SHOULD I SELL?</button>
+          <button type="button" class="ghost-btn" data-q="should I buy right now">SHOULD I BUY?</button>
+          <button type="button" class="ghost-btn" data-q="is my trade still good">MY TRADE OK?</button>
+        </div>
+        <div id="tmAnswer" class="tm-answer"></div>
+      </aside>
+    </div>
   </dialog>
 
   <dialog id="settings" class="panel settings">
