@@ -88,7 +88,7 @@ const MODELS = { data: [{ id: 'whisper-large-v3' }, { id: 'llama-3.3-70b-versati
   // everyday questions go to the AI; JARVIS's own commands never do
   for (const q of ['why do cats purr so much', 'how far away is the moon', 'why is the sky blue', 'how many ounces in a pound', 'write a short poem about gold', 'tell me about the roman empire', 'what is compound interest', 'who was the first president'])
     check('general → AI: ' + q, Brain.general(q, ctx));
-  for (const q of ['what is the bias', 'why is gold bullish', 'should I sell right now', 'how far is the weekly open', 'what time is it', 'remind me to drink water at 5', 'what is the weather', 'how are you', 'how is my trade', 'is the market open', 'where is resistance', 'what should I eat', 'tell me a joke', 'what is a pip', 'how many contracts for a 100 dollar stop', 'should I hold my trade', 'sell now', 'is it cool if I put my stop at 4005', 'add netflix 15.99 a month', 'how much did I spend this week'])
+  for (const q of ['do i lock in gains now', 'do i bank gains', 'define liquidity', 'what is 10 kg to pounds', 'are we leaning bullish today', 'should i let my winner run', 'what is the bias', 'why is gold bullish', 'should I sell right now', 'how far is the weekly open', 'what time is it', 'remind me to drink water at 5', 'what is the weather', 'how are you', 'how is my trade', 'is the market open', 'where is resistance', 'what should I eat', 'tell me a joke', 'what is a pip', 'how many contracts for a 100 dollar stop', 'should I hold my trade', 'sell now', 'is it cool if I put my stop at 4005', 'add netflix 15.99 a month', 'how much did I spend this week'])
     check('rules keep: ' + q, !Brain.general(q, ctx));
 
   console.log(`\n${ok}/${n} AI helper checks passed`);

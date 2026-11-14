@@ -143,3 +143,63 @@ coach|{should i|do i} {stay in|hold|keep it} or {get out|close|exit|cut it}
 coach|{should i|is it time to|do i} {cut my losses|take the win|take the loss|take the l|bank it|cash out}
 coach|{is|are} {my|this|the} {trade|position|sell|buy} still {good|valid|ok|okay|alive|safe|on track}
 coach|what {should|do|would} i do {with|about} {my|this|the} {trade|position|sell|buy}
+# v18: push to ~20,000 — more ways to ask everything
+bias|{yo|hey|ok|okay|alright} jarvis {what's|what is|whats} the {bias|direction|trend|read} {on gold|for gold|today|right now|}
+bias|{tell me|let me know|give me} {which way|what direction} {gold|price|the market} {is leaning|is going|is heading|wants to go} {today|right now|}
+bias|{are we|is gold|is price|is the market} {leaning|looking|trending} {bullish|bearish|up|down|long|short} {today|right now|}
+bias|{do you think|you think|would you say} {gold|price|the market} {is|looks} {bullish|bearish} {today|right now|}
+bias|{am i|should i be} {looking for|hunting|thinking} {buys|sells|longs|shorts} {today|right now|}
+bias|{buys or sells|longs or shorts|bulls or bears} {today|right now|on gold|}
+bias|{which side|what side} {should i be on|am i on|are we on|do i trade} {today|right now|}
+biasUntil|{when|what time} {will|does|is} the {bias|trend|direction} {going to|gonna} {change|flip|switch}
+biasUntil|{what would|what will|what does it take to} {flip|change|switch} the {bias|trend|direction}
+biasUntil|{how long|until when} {will|does} {gold|price|the market} {stay|keep} {bullish|bearish|going up|going down|up|down}
+openBias|{what's|what is} {the|your} {bias|read|call} {for|on} {monday|tomorrow|the open|sunday night|next week}
+openBias|{which way|what direction} {at|on|for} {the open|monday|tomorrow} {jarvis|sir|}
+day|{give me|what's|run me through} {a|the} {rundown|recap|summary|update} {on gold|for today|of the market|}
+day|{how's|how is} {the market|gold|price} {treating us|been doing|been like} {today|this morning|tonight|}
+day|{anything|what's} {new|happening|moving} {with|on|in} {gold|the market} {today|right now|}
+price|{where's|where is|what's} {gold|price|xau|xauusd} {at|sitting|trading} {right now|now|today|currently|}
+price|{tell me|give me|what's} {the|} {gold|current|live} price {real quick|please|now|}
+trade|{should|would|could} i {buy|sell|go long|go short|long|short} {gold|xau|it} {right now|here|now|today|at this price}
+trade|{is it|would it be} {smart|wise|a good idea|okay|safe} to {buy|sell|go long|go short} {right now|here|now|today}
+trade|{yes or no|yay or nay} {should i|do i} {buy|sell} {now|right now|here|}
+trade|{would you|do you} {buy|sell|long|short} {this|here|right now|gold right now}
+tradenow|{is it|is today} a good {day|time} to {trade|take a trade|be trading}
+tradenow|{are there|got|do we have|any} {good|clean|valid|} {trades|setups|entries} {right now|today|out there|}
+tradenow|{should i|can i|do i} {sit out|stay out|trade|take a trade} {today|right now|now}
+tradenow|{is the market|are conditions|is gold} {good|okay|decent|safe} {to trade|for trading} {today|right now|}
+timing|{when|what time} {is the best time|should i} {to trade|trade|get in|look for trades} {today|}
+levels|{what are|show me|give me} {the|today's|} {key levels|levels|support and resistance|support|resistance} {for gold|today|right now|}
+levels|{where's|where is} {the|} {next|nearest|closest} {support|resistance|level} {on gold|for gold|}
+news|{is there|any|got any} {news|red folder|high impact news|big news|economic news} {today|tomorrow|this week|coming up}
+news|{when's|when is|what time is} {cpi|nfp|fomc|the fed|powell|the jobs report|unemployment claims} {today|this week|}
+session|{is|has} {london|new york|ny|asia|tokyo} {opened|open|started|closed} {yet|already|right now|}
+session|{what time|when} {does|will} {london|new york|ny|asia|tokyo} {open|start|close|end} {today|tonight|}
+market|{is|are} {the market|gold|markets|forex} {open|closed} {right now|today|yet|}
+reach|{could|can|will|do you think} {gold|price|it} {get to|reach|hit|touch|see} {4000|4100|3950|4050} {today|this week|tonight|by friday|}
+size|how many {contracts|units|ounces} {should i|can i|do i} {use|trade|buy|sell} {with|to risk|for} {50|100|150|250} {dollars|bucks}
+size|{what size|what position size|how big} should i {trade|go|use} {with|to risk|for} {100|250} {dollars|bucks} {of risk|risk|}
+coach|{should i|do i|is it smart to|is it time to} {close|exit|cut|get out of|bail on} {my|this|the} {trade|position|sell|buy|short|long} {or hold it|or let it run|or stay in|}
+coach|{should i|can i|do i} {let|keep letting} {my|this|the} {trade|position|sell|buy|winner} {run|ride|play out|breathe}
+coach|{should i|do i|is it time to} {lock in|secure|bank|take} {profit|profits|some profit|my profit|gains} {now|here|on my trade|}
+paperStatus|{how is|how's} {my|the} {trade|position} {doing|looking}
+coach|{is|are} {my|this|the} {trade|position|sell|buy} {in trouble|in danger|going to work|gonna work|still worth holding}
+coach|{should i|do i} {move|put|set|bring} {my|the} {stop|stop loss|sl} {to|at|up to|down to} {break even|breakeven|entry|my entry|be}
+coach|{should i|can i|do i} {not|not even} {move|touch} {my|the} {stop|stop loss|sl|take profit|tp}
+coach|{should i|do i|is it smart to} {hold|keep|stay in} {my|this|the} {trade|position|sell|buy} {over the weekend|overnight|through the news|into new york|into london}
+life:water|i {drank|had|just drank|just had} {a|one|two|another} {glass|bottle|cup} of water
+life:water|{how much water|how many glasses} {have i|did i} {drunk|drank|had} {today|so far|so far today|}
+life:money|i {spent|paid|dropped|used} {10|25|40|8.50} {dollars|bucks|} {on|for} {food|gas|coffee|groceries|lunch|dinner|uber}
+life:money|how much {have i|did i} {spent|spend} {on food|on gas|on coffee|today|this week|this month|so far}
+life:todo|{add|put} {milk|eggs|bread|gym|call mom|laundry} {to|on} my {list|to do list|todo list|to-do list}
+life:todo|{what's on|show me|read me|what's in} my {list|to do list|todo list|to-do list}
+life:timer|{set|start} a {timer|countdown} for {1|2|5|10|15|20|30|45} {minutes|mins|minute}
+life:sleep|{how did i sleep|how much did i sleep|how much sleep did i get} {last night|yesterday|this week|}
+x:chat|{i'm going to the gym|i'm home|i'm back|i got paid|i'm about to trade} {jarvis|sir|}
+remindList|{what are|show|list|read me} {my|all my|any} reminders {for today|today|}
+help|{what can you do|what do you do|how do i use you|what are your commands|what can i ask you} {jarvis|}
+joke|{tell me|give me|say} {a joke|something funny|a funny joke} {jarvis|please|}
+why|why is {gold|price|the market} {bearish|bullish|dropping|going up|falling|rallying|selling off|pumping} {today|right now|}
+weekly|{how did|how'd} {we|i} do this week
+weather|{what's|how's} the weather {today|tomorrow|tonight|outside|right now|}

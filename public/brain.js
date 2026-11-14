@@ -94,7 +94,7 @@ const Brain = (() => {
   ];
   const CONTRACTIONS = [
     [/\b(what|where|how|who|when|it|that|there|here|gold|today)'?s\b/g, '$1 is'],
-    [/\bi'?m\b/g, 'i am'], [/\b(you|we|they)'?re\b/g, '$1 are'], [/\b(i|you|we|they)'?ve\b/g, '$1 have'],
+    [/\bhow'?d\b/g, 'how did'], [/\bi'?m\b/g, 'i am'], [/\b(you|we|they)'?re\b/g, '$1 are'], [/\b(i|you|we|they)'?ve\b/g, '$1 have'],
     [/\b(you|they)'?ll\b/g, '$1 will'], [/\b(i|we|it)'ll\b/g, '$1 will'], [/\b(you|they)'?d\b/g, '$1 would'], [/\b(i|we)'d\b/g, '$1 would'],
     [/\bcan'?t\b/g, 'can not'], [/\bwon'?t\b/g, 'will not'], [/\b(do|does|did|is|are|was|were|should|would|could|have|has|had|need|must)n'?t\b/g, '$1 not'], [/\bain'?t\b/g, 'is not'],
     [/\bwhats\b/g, 'what is'], [/\bhows\b/g, 'how is'], [/\bwheres\b/g, 'where is'], [/\bwanna\b/g, 'want to'], [/\bgonna\b/g, 'going to'],
@@ -126,7 +126,7 @@ const Brain = (() => {
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
   // trade-coach words the spell-fixer must leave alone ("bring" was turning into "being")
-  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses early premature dumb stupid mistake avoid skip exit exiting closing cash bank'.split(' ').forEach((w) => VOCAB.add(w));
+  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses early premature dumb stupid mistake avoid skip exit exiting closing cash bank winner winners letting touch lock secure thinking closest nearest trouble danger leaning hunting rundown recap entries setups xau xauusd gains'.split(' ').forEach((w) => VOCAB.add(w));
   const STOP = new Set('water glass glasses drank drink drinking bottle bottles hydrate trade trades trading tonight night watch watching movie movies film films show shows book books read reading novel timer timers minute minutes seconds hour hours dollar dollars bucks spent spend spending food eat hungry dinner lunch breakfast snack habit habits streak streaks list todo todos task tasks check checked countdown countdowns days weeks christmas birthday trip remember forget locker vibe vibes wear jacket coat hoodie outfit outside feeling feel feels sleep slept bed bedtime wake woke awake morning routine bored tired great good okay mood moods partial partials contracts contract units half quarter challenge best worst biggest record stats your yours jarvis milk eggs trash money expense expenses quote motivate motivation the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
 
   function lev(a, b) {
@@ -176,6 +176,8 @@ const Brain = (() => {
     if (!odd.length) return false;
     // a typo of a JARVIS word ("bais" → bias, "subs") is still a JARVIS question
     if (DOMAIN.test(correct(odd.join(' '), [])) || odd.some((w) => /^subs?$/.test(w))) return false;
+    // the rules already have a confident answer (a definition, a conversion, a trade-coach question) — keep it on the rules
+    try { const r = ctx && routeOf(text, ctx); if (r && r.ranked.length && r.ranked[0][1] >= 9) return false; } catch (e) { /* fall through */ }
     return true;
   }
 
@@ -1147,21 +1149,21 @@ const Brain = (() => {
     if (/\bhow many (contracts|units|lots|oz|ounces)\b|\bposition size\b|\blot size\b|\bhow (big|much) (should|can) i (size|trade)\b/.test(t)) return null;
     const P = k.paper, hasTrade = !!((P && P.positions().length) || statedTrade || statedFrom(t, k));
     const q = COACH_Q.test(t), mine = MINE.test(t) || /\b(it|this one)\b/.test(t);
-    if (/\b(bias|trend|uptrend|downtrend|support|resistance|level|levels|market|session|price)\b/.test(t) && !MINE.test(t)) return null;
+    if (/\b(bias|trend|uptrend|downtrend|support|resistance|level|levels|market|session|price|london|new york|ny|asia|asian|tokyo|sydney)\b/.test(t) && !MINE.test(t)) return null;
     const stopN = numAfter(t, SL_W, k) != null, tpN = numAfter(t, TP_W, k) != null;
     const slW = new RegExp(`\\b(?:${SL_W})\\b`).test(t), tpW = new RegExp(`\\b(?:${TP_W})\\b`).test(t);
     if (!stopN && !tpN && (slW || tpW) && /\b(where|what|which|how far|set|put|place)\b/.test(t) && (statedFrom(t, k) || (hasTrade && MINE.test(t)))) return 'where';
     if (/\b(break ?even|breakeven|risk ?free|to (?:my )?entry)\b|\b(stop|sl)( loss)? (to|at|on) be\b|\bmove (it )?to be\b|\bbe (stop|sl)\b/.test(t) && (q || /\?/.test(t)) && (mine || hasTrade || slW)) return 'be';
     if (stopN && !tpN && (q || /\b(how about|what about|instead)\b/.test(t))) return 'stopTo';
     if (tpN && !stopN && (q || /\b(how about|what about|instead)\b/.test(t))) return 'tpTo';
-    if (/\bpartials?\b|\bpartial (profit|profits|close)\b|\btake (some|a little|a bit|part|half)( of)?( the)? (profit|profits|off|money)\b|\btake (some|a little|a bit of) profits?\b|\btake profits? (now|here|off|early)\b|\bscale (out|off)\b|\bsecure (some )?(profit|profits|gains)\b|\block in (some )?(profit|profits|gains)\b|\bpay (my ?self|yourself)\b|\bclose (half|part|some)\b|\btake half\b|\btake some off\b|\bhalf off\b/.test(t) && q) return 'partial';
-    if (tpW && !tpN && q && /\b(lower|raise|move|bring|extend|tighten|widen|change|adjust|push|pull|shrink|reduce|increase|cut|shorten|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'tpAdj';
-    if (slW && !stopN && q && /\b(lower|raise|move|bring|trail|trailing|tighten|widen|wide|wider|change|adjust|push|pull|shrink|reduce|increase|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'stopAdj';
+    if (/\bpartials?\b|\bpartial (profit|profits|close)\b|\btake (some|a little|a bit|part|half)( of)?( the)? (profit|profits|off|money)\b|\btake (some|a little|a bit of) profits?\b|\btake profits? (now|here|off|early)\b|\bscale (out|off)\b|\bsecure (some )?(profit|profits|gains)\b|\block in (some |my |the |our )?(profit|profits|gains)\b|\b(?:secure|bank) (?:my |our |the |some )?(?:profit|profits|gains)\b|\btake (?:my|our) (?:profit|profits|gains)\b|\btake gains\b|\btake profits?(?: on (?:my|this|the|our) (?:trade|position))?$|\bpay (my ?self|yourself)\b|\bclose (half|part|some)\b|\btake half\b|\btake some off\b|\bhalf off\b/.test(t) && q) return 'partial';
+    if (tpW && !tpN && q && /\b(touch|lower|raise|move|bring|extend|tighten|widen|change|adjust|push|pull|shrink|reduce|increase|cut|shorten|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'tpAdj';
+    if (slW && !stopN && q && /\b(touch|lower|raise|move|bring|trail|trailing|tighten|widen|wide|wider|change|adjust|push|pull|shrink|reduce|increase|closer|further|farther|bigger|smaller|higher|up|down)\b/.test(t)) return 'stopAdj';
     if (hasTrade && q && /\bcut (?:my |the |our )?loss(?:es)?\b|\btake (?:the|my) (?:l|loss|hit|win|w|profit|profits|money|gains?)\b|\bbank (?:it|the (?:win|profit|money))\b|\bcash out\b|\bcall it\b/.test(t)) return 'close';
-    if (hasTrade && /\b(?:is|are) (?:my|the|this|our) (?:trade|position|buy|sell|long|short|entry) (?:still )?(?:good|valid|ok|okay|alive|safe|fine|working|healthy|in play|on track|solid|looking good)\b/.test(t)) return 'hold';
+    if (hasTrade && /\b(?:is|are) (?:my|the|this|our) (?:trade|position|buy|sell|long|short|entry) (?:still )?(?:good|valid|ok|okay|alive|safe|fine|working|healthy|in play|on track|solid|looking good|in trouble|in danger|going to work|gonna work|worth holding|worth keeping)\b/.test(t)) return 'hold';
     if (hasTrade && /\bwhat (?:should|do|would|can|shall) (?:i|we) do (?:with|about|on|here with) (?:my|the|this|our|it)\b|\bwhat (?:now|next) (?:with|for) (?:my|the|this) (?:trade|position)\b|\bwhat do you (?:think|suggest|recommend) (?:about|for|on) (?:my|the|this) (?:trade|position)\b/.test(t)) return 'hold';
     if (q && /\b(close|exit|get out|cut|bail|take the (loss|win|profit|money|l|w)|bank it|secure it|end (it|the trade)|close out|cash out)\b/.test(t) && (mine || (hasTrade && /\b(close|exit|get out|bail|cut)\b( it| out| now| here| early| the trade| this)?$/.test(t)))) return 'close';
-    if (/\bhold(ing)?\b(?! on\b| up\b| that\b| please\b)|\bkeep (it|holding|riding|this|the|my|our)\b|\bstay in\b|\blet it (run|ride|play out|cook|breathe)\b|\bride (it|the|this|my|our)\b|\bleave (it|the trade) (open|running|alone|be)\b/.test(t) && (mine || hasTrade)) return 'hold';
+    if (/\bhold(ing)?\b(?! on\b| up\b| that\b| please\b)|\bkeep (it|holding|riding|this|the|my|our)\b|\bstay in\b|\b(?:keep )?let(?:ting)? (?:it|(?:my|the|this|our) (?:trade|position|sell|buy|short|long|winner|runner)) (run|ride|play out|cook|breathe)\b|\bride (it|the|this|my|our)\b|\bleave (it|the trade) (open|running|alone|be)\b/.test(t) && (mine || hasTrade)) return 'hold';
     if (statedFrom(t, k) && /\b(i am|im|we are|were) in\b|\b(i|we) (just )?(sold|bought|entered|shorted|longed|went long|went short|took|got in|jumped in|hopped in|opened)\b|\bmy entry\b|\bentered\b/.test(t)) return 'where';
     return null;
   }
@@ -2217,6 +2219,28 @@ const Brain = (() => {
   // ctx: { gold(), refresh(force), projects, sessions, openProject(p), clear(), setMuted(b), stopSpeaking(), tz, title,
   //        ambient(on), isAmbient(), callouts() }
   // Every scorer votes; the highest score wins. Keyword rules + life tools + the big word library (lexicon.js).
+  // v18: more everyday ways to ask (each rule is a plain pattern → answer)
+  function v18Rules(t, S, ck, hasNums) {
+    const up = (id, v) => { if (v > (S[id] || 0)) S[id] = v; };
+    const WS = '(?:what s|whats|what is|where s|wheres|where is)';
+    if (/\byes or no\b|\byay or nay\b/.test(t) && /\b(buy|sell|long|short|go long|go short)\b/.test(t) && !ck) up('trade', 9.9);
+    if (ck || /\b(open|monday|tomorrow|next week|sunday)\b/.test(t)) return;
+    if (/\b(are we|is (?:gold|price|the market|it))\s+(?:leaning|looking|trending)\s+(?:bullish|bearish|up|down|long|short|higher|lower)\b/.test(t) ||
+      /\b(am i|should i be|are we|do i|should we be)\s+(?:looking for|hunting|thinking|looking at)\s+(?:buys|sells|longs|shorts)\b/.test(t) ||
+      /\b(buys or sells|sells or buys|longs or shorts|shorts or longs|bulls or bears|bears or bulls)\b/.test(t) ||
+      /\b(which|what) side (should (?:i|we) be on|am i on|are we on|do (?:i|we) trade)\b/.test(t) ||
+      /\b(tell me|let me know|give me) (which way|what direction)\b/.test(t)) up('bias', 9.95);
+    if (/\bwhat (would|will|does it take to|could) (flip|change|switch|turn) the (bias|trend|direction)\b/.test(t) ||
+      /\b(how long|how much time|until when|till when)\b.*\b(stay|keep|remain)\b.*\b(bullish|bearish|going up|going down|up|down|higher|lower)\b/.test(t) ||
+      /\b(when|what time)\b.*\b(bias|trend|direction)\b.*\b(change|flip|switch)\b/.test(t)) up('biasUntil', 9.96);
+    if (!/\bweek/.test(t) && (/\b(rundown|recap|summary|update)\b.*\b(gold|market|today)\b|^(give me|run me through|what s|whats|what is) (a|an|the) (rundown|recap|summary|update)$/.test(t) ||
+      /\bhow(?: s| is|s) (the market|gold|price) (treating us|been doing|been like)\b|\b(what s|whats|what is) (the market|gold|price) been (doing|like)\b/.test(t) ||
+      /\b(anything|what s|whats|what is) (new|happening|moving) (with|on|in) (gold|the market)\b/.test(t))) up('day', 9.5);
+    if (new RegExp(`\\b${WS} (gold|price|xau|xauusd|the gold price) (at|sitting|trading)\\b`).test(t) || /\b(gold|current|live) price (real quick|please|now)\b|\b(tell me|give me) the (gold|current|live) price\b/.test(t)) up('price', 9.5);
+    if (!/\btonight\b/.test(t) && /^(got|any|are there|do we have|got any)\b.*\b(trades|setups|entries)\b/.test(t) || /\bis (it|today) a good (day|time) to (trade|take a trade|be trading)\b/.test(t) || /\b(sit|stay) out\b.*\b(today|now)\b/.test(t)) up('tradenow', 9.5);
+    if (!/\b(about|teach|explain|mean|means|meaning|define|definition)\b/.test(t) && /\b(key levels|support and resistance)\b/.test(t) || new RegExp(`\\b(?:${WS}|what are|show me|give me) (?:the )?(?:next |nearest |closest |today s |todays )?(?:key levels|levels|support|resistance|level)\\b`).test(t)) up('levels', 9.5);
+    if (hasNums && /\b(what|which) (position )?size\b|\bhow big should i (trade|go)\b/.test(t)) up('size', 9.9);
+  }
   function pickIntent(c, text, fixed, hasNums, k, ctx) {
     const S = scoreIntents(c, fixed, hasNums, k, ctx);
     if (typeof Life !== 'undefined') Object.assign(S, Life.score(text, fixed, S, k));
@@ -2226,8 +2250,9 @@ const Brain = (() => {
     const ck = coachKind(fixed, k);
     if (ck) { S.coach = Math.max(S.coach || 0, 9.9); if (S['life:partial']) S['life:partial'] = 9; S.paperModify = Math.min(S.paperModify || 0, 9); S.paperClose = Math.min(S.paperClose || 0, 9); }
     if (/\b(conditions?|market|markets|gold|it|now|today)\b.*\b(ok|okay|good|fine|safe|right|decent|great|alright|bad|ideal)\b.*\b(to trade|for trading|to be trading|for a trade|to take a trade|to get in)\b|\btrading conditions\b|\bmarket conditions\b|\bconditions (to|for) trad/.test(fixed) && !/\b(buy|sell|long|short|open|opens|reopen|close|closed)\b/.test(fixed)) S.tradenow = Math.max(S.tradenow || 0, 9.6);
-    if (/\bhow many (contracts|units|lots|oz|ounces)\b/.test(fixed) && !/\b(do i have|have i|did i|open|am i in|in my account)\b/.test(fixed)) S.size = Math.max(S.size || 0, 9.9);
+    if (/\bhow many (contracts|units|lots|oz|ounces)\b/.test(fixed) && !/\b(do i have|have i|did i|open|am i in|in my account)\b|\bin (?:a|an|one) (?:pound|round|kilo|kilogram|kg|ton|gram|bar)\b/.test(fixed)) S.size = Math.max(S.size || 0, 9.9);
     if (S.openBias && S.bias >= 9.9) S.openBias = 9.95; // "buy or sell at the open" — the open is the point
+    v18Rules(fixed, S, ck, hasNums);
     const ranked = Object.entries(S).sort((a, b) => b[1] - a[1]);
     let id = ranked.length ? ranked[0][0] : null;
     if (!id || ranked[0][1] < 3) { const b = bankMatch(fixed); if (b) id = b; }
@@ -2550,5 +2575,5 @@ const Brain = (() => {
   }
   function botPlan(ctx) { const c = botCheck(ctx); return c.ok ? c : null; }
 
-  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf, fitRisk, general };
+  return { interpret, greeting, score, esc, clean, stripWake, WAKE, paperEventLine, botPlan, botCheck, context, reply, pick, routeOf, fitRisk, general, fix: (s) => correct(stripWake(clean(s)), []) };
 })();

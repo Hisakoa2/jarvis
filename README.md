@@ -185,6 +185,17 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v18
+- **JARVIS now understands about 22,900 test sentences (up from 11,850).** New ways to ask that now work:
+  - Bias: "are we leaning bullish today", "should I be looking for sells", "longs or shorts", "which side should I be on".
+  - When it flips: "what would flip the bias", "how long will gold stay up".
+  - The market: "give me a rundown on gold", "how's the market treating us", "where's gold trading", "where's the nearest support", "got any setups".
+  - Your trade: "should I let my winner run", "should I lock in my profit", "is my trade in trouble", "should I not touch my stop", "yes or no, should I buy".
+  - Size: "what size should I trade with 250 dollars of risk".
+  - "When will London close" now gives the session time. Before, it was read as a question about closing your trade.
+- **Rules come first, even with an AI key.** If JARVIS's own rules already have a confident answer, the question never goes to the AI. That includes definitions, conversions and trade questions.
+- Words the spell-fixer was getting wrong ("winner" → dinner, "thinking" → tanking, "closest" → closes) are now left alone.
+
 ### New in v17
 - **Optional AI helper (Groq, free).** Paste your own free Groq key in **Settings → AI helper** and tap **TEST & SAVE**. The key is saved only on that phone, never in the code. Then:
   - Everyday questions JARVIS's rules don't cover ("why is the sky blue", "how tall is Everest", "write a short poem") get a real answer, spoken like everything else.
