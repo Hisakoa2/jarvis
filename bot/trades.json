@@ -1,11 +1,12 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794814421691,
+ "heartbeat": 1794815024172,
  "check": {
-  "at": 1794814421691,
+  "at": 1794815024172,
   "ok": false,
-  "why": "setup score 4 (needs 5 outside London/New York hours)"
+  "why": "could not reach OANDA",
+  "err": "Insufficient authorization to perform request. — check the API key, and that Practice/Live matches the account"
  },
  "days": {
   "2026-11-12": {
