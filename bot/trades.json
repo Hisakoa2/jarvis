@@ -1,11 +1,12 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794817759666,
+ "heartbeat": 1794818663673,
  "check": {
-  "at": 1794817759666,
+  "at": 1794818663673,
   "ok": false,
-  "why": "prices are back"
+  "why": "could not reach OANDA",
+  "err": "Insufficient authorization to perform request. — check the API key, and that Practice/Live matches the account"
  },
  "days": {
   "2026-11-12": {
@@ -53,9 +54,9 @@
    "rr": 2.07,
    "why": "bearish bias, setup score 4 in prime hours: the bias is bearish, which is with you, the four hour trend agrees, the daily trend agrees",
    "openedAt": 1794817150799,
-   "lastCheck": 1794817500000,
+   "lastCheck": 1794818100000,
    "worst": 3862.16,
-   "best": 3854.63
+   "best": 3854.46
   }
  }
 }
