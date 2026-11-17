@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794928404334,
+ "heartbeat": 1794931723454,
  "check": {
-  "at": 1794928404334,
+  "at": 1794931723454,
   "ok": false,
-  "why": "setup score 3 (needs 4)"
+  "why": "setup score 2 (needs 4)"
  },
  "days": {
   "2026-11-12": {
