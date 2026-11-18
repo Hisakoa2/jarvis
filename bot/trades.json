@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795023562792,
+ "heartbeat": 1795026874483,
  "check": {
-  "at": 1795023562792,
+  "at": 1795026874483,
   "ok": false,
-  "why": "setup score 2 (needs 5 outside London/New York hours)"
+  "why": "high-impact news is too close"
  },
  "days": {
   "2026-11-12": {
