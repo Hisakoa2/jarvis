@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794990258218,
+ "heartbeat": 1794993571711,
  "check": {
-  "at": 1794990258218,
+  "at": 1794993571711,
   "ok": false,
   "why": "setup score 2 (needs 4)"
  },
