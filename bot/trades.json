@@ -1,12 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795035622154,
+ "heartbeat": 1795035930033,
  "check": {
-  "at": 1795035622154,
+  "at": 1795035930033,
   "ok": false,
-  "why": "could not reach OANDA",
-  "err": "Insufficient authorization to perform request. — check the API key, and that Practice/Live matches the account"
+  "why": "outside the trading window (6:15 PM to 4 PM New York)"
  },
  "days": {
   "2026-11-12": {
