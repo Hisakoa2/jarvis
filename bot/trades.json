@@ -1,12 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795016614644,
+ "heartbeat": 1795016928140,
  "check": {
-  "at": 1795016614644,
+  "at": 1795016928140,
   "ok": false,
-  "why": "could not reach OANDA",
-  "err": "HTTP 504"
+  "why": "setup score 2 (needs 4)"
  },
  "days": {
   "2026-11-12": {
