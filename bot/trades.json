@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794974560979,
+ "heartbeat": 1794977886001,
  "check": {
-  "at": 1794974560979,
+  "at": 1794977886001,
   "ok": false,
   "why": "setup score 3 (needs 5 outside London/New York hours)"
  },
