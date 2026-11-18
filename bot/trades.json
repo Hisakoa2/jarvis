@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1794977886001,
+ "heartbeat": 1794981204672,
  "check": {
-  "at": 1794977886001,
+  "at": 1794981204672,
   "ok": false,
-  "why": "setup score 3 (needs 5 outside London/New York hours)"
+  "why": "setup score 4 (needs 5 outside London/New York hours)"
  },
  "days": {
   "2026-11-12": {
