@@ -1,7 +1,7 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795081719668,
+ "heartbeat": 1795085030115,
  "check": {
   "at": 1795081719668,
   "ok": true,
@@ -72,7 +72,9 @@
    "rr": 2.29,
    "why": "bearish bias, setup score 4 in prime hours: the bias is bearish, which is with you, the four hour trend agrees, the daily trend agrees",
    "openedAt": 1795081719668,
-   "lastCheck": 1795081719668
+   "lastCheck": 1795084800000,
+   "worst": 3735.38,
+   "best": 3725.41
   }
  }
 }
