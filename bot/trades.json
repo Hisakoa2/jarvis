@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795128737823,
+ "heartbeat": 1795132065401,
  "check": {
-  "at": 1795081719668,
-  "ok": true,
-  "why": "took the trade"
+  "at": 1795132065401,
+  "ok": false,
+  "why": "setup score 3 (needs 5 outside London/New York hours)"
  },
  "days": {
   "2026-11-12": {
