@@ -150,6 +150,10 @@ const target = { x: 0, y: 0, s: 1, front: false };
 function layout() {
   const r = visible('bootCore') || visible('ambCore');
   if (r) { Object.assign(target, place(r.left + r.width / 2, r.top + r.height / 2, Math.max(r.width, r.height) * 0.8), { front: true }); return; }
+  // its own clear space at the top of the dashboard (scrolls with the page)
+  const hero = document.getElementById('heroCore'), hr = hero && hero.getBoundingClientRect();
+  if (hr && hr.width && hr.bottom > -hr.height) { Object.assign(target, place(hr.left + hr.width / 2, hr.top + hr.height / 2, hr.height * 1.35), { front: false, hero: true }); return; }
+  target.hero = false;
   // behind the HUD: right side on PC, top-centre on phones
   const t = phone ? place(W / 2, H * 0.3, W * 1.25) : place(W * 0.74, H * 0.46, Math.min(W, H) * 1.05);
   Object.assign(target, t, { front: false });
@@ -173,7 +177,7 @@ function frame() {
   core.position.x += (target.x - core.position.x) * k; core.position.y += (target.y - core.position.y) * k;
   const sc = core.scale.x + (target.s - core.scale.x) * k; core.scale.setScalar(sc);
   cv.classList.toggle('front', target.front);
-  cv.style.opacity = target.front ? '1' : (phone ? '0.4' : '0.6');
+  cv.style.opacity = target.front || target.hero ? '1' : (phone ? '0.4' : '0.6');
 
   const s = state();
   uni.uColor.value.lerp(COL[s], 1 - Math.pow(0.02, dt));

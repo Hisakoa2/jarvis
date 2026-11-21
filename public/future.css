@@ -196,3 +196,9 @@ body.core3d .boot-core::before, body.core3d .boot-core::after, body.core3d .amb-
 @keyframes orb { 50% { filter: brightness(1.25); box-shadow: 0 0 26px rgba(92, 236, 255, 0.75), inset 0 0 12px rgba(92, 236, 255, 0.6); } }
 body.v-listening .header-core, body.v-awake .header-core { filter: hue-rotate(-40deg) saturate(1.3); animation-duration: 1s; }
 body.v-speaking .header-core { filter: hue-rotate(60deg); animation-duration: 0.5s; }
+
+/* the core's own space at the top of the dashboard */
+.hero-core { grid-column: 1 / -1; height: clamp(230px, 38vh, 380px); position: relative; pointer-events: none; }
+.hero-ver { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-family: var(--disp); font-weight: 300; font-size: 10px; letter-spacing: 0.5em; color: rgba(200, 235, 255, 0.45); }
+body:not(.core3d) .hero-core { display: none; }
+.brand-sub .ver { color: var(--cyan); opacity: 1; }
