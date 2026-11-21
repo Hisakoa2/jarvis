@@ -1,0 +1,157 @@
+/* v22 "2070" layer — loads last, restyles on top of style.css / hud.css / theme.css.
+   Idea: deep space black, a live 3D globe behind (future.js), floating glass panels with light-catching
+   edges that tilt in 3D, thin clean type, and colour only where it means something. */
+:root {
+  --bg: #010309;
+  --text: #eef8ff;
+  --dim: #7f93a8;
+  --cyan: #5cecff;
+  --violet: #9d8cff;
+  --r: 22px;
+  --disp: 'Sora', 'Inter', system-ui, sans-serif;
+  --edge: linear-gradient(135deg, rgba(120, 240, 255, 0.55), rgba(157, 140, 255, 0.18) 40%, rgba(255, 255, 255, 0.04) 60%, rgba(92, 236, 255, 0.35));
+}
+html { background: var(--bg); }
+body {
+  background:
+    radial-gradient(1200px 700px at 75% 30%, rgba(40, 110, 200, 0.10), transparent 60%),
+    radial-gradient(900px 600px at 10% 90%, rgba(120, 90, 255, 0.07), transparent 60%),
+    var(--bg) !important;
+  background-attachment: fixed;
+  font-family: 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.005em;
+}
+#holo { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; }
+.scanlines { display: none !important; }
+.topbar, .trade-light, .toasts, .banner, main.grid { position: relative; z-index: 1; }
+
+/* ---------- floating glass panels ---------- */
+main.grid { perspective: 1600px; }
+.panel {
+  position: relative;
+  background:
+    radial-gradient(600px circle at var(--mx, 50%) var(--my, 0%), rgba(92, 236, 255, 0.07), transparent 45%),
+    linear-gradient(180deg, rgba(14, 24, 40, 0.40), rgba(6, 10, 20, 0.34)) !important;
+  border: 0 !important;
+  border-radius: var(--r) !important;
+  backdrop-filter: blur(10px) saturate(160%);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.06) inset,
+    0 30px 60px -30px rgba(0, 0, 0, 0.9),
+    0 0 0 1px rgba(92, 236, 255, 0.04),
+    0 0 40px -18px rgba(92, 236, 255, 0.25) !important;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0);
+  transition: transform 0.35s cubic-bezier(.2, .7, .2, 1), box-shadow 0.35s;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+/* light-catching gradient hairline around each panel */
+.panel::before {
+  content: '' !important; display: block !important;
+  position: absolute; inset: 0; border-radius: inherit; padding: 1px; height: auto !important;
+  background: var(--edge) !important; opacity: 0.7;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+.panel:hover { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 40px 80px -30px rgba(0, 0, 0, 0.95), 0 0 60px -14px rgba(92, 236, 255, 0.35) !important; }
+.panel:hover::before { opacity: 1; }
+
+.panel-head {
+  font-family: var(--disp) !important; font-weight: 500 !important;
+  font-size: 10.5px !important; letter-spacing: 0.28em !important;
+  color: rgba(200, 235, 255, 0.62) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045) !important;
+}
+.tag { border-radius: 999px !important; background: rgba(92, 236, 255, 0.07) !important; border: 1px solid rgba(92, 236, 255, 0.2) !important; letter-spacing: 0.14em; }
+
+/* ---------- top bar ---------- */
+.topbar {
+  background: linear-gradient(180deg, rgba(1, 3, 9, 0.85), rgba(1, 3, 9, 0.35)) !important;
+  border-bottom: 1px solid rgba(92, 236, 255, 0.08) !important;
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+.brand-name { font-family: var(--disp) !important; font-weight: 300 !important; letter-spacing: 0.42em !important; color: #fff !important; text-shadow: 0 0 18px rgba(92, 236, 255, 0.45); }
+.brand-sub { letter-spacing: 0.36em !important; opacity: 0.55; font-size: 8.5px !important; }
+.icon-btn {
+  border-radius: 14px !important; border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+}
+.icon-btn:hover { transform: translateY(-1px); background: rgba(92, 236, 255, 0.08) !important; box-shadow: 0 0 18px -4px rgba(92, 236, 255, 0.5); }
+#nyClock { font-family: var(--disp) !important; font-weight: 300 !important; letter-spacing: 0.06em; }
+
+/* ---------- trade light: a slim glowing strip ---------- */
+.trade-light {
+  border: 0 !important; border-radius: 0 !important;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)) !important;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  font-family: var(--disp); letter-spacing: 0.18em;
+}
+.trade-light .tl-dot { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.04), 0 0 14px currentColor; }
+
+/* ---------- command bar ---------- */
+.cmd-form {
+  border-radius: 999px !important; border: 1px solid rgba(92, 236, 255, 0.18) !important;
+  background: rgba(2, 8, 18, 0.6) !important;
+  box-shadow: inset 0 0 30px rgba(92, 236, 255, 0.05), 0 0 0 4px rgba(92, 236, 255, 0.03);
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+.cmd-form:focus-within { border-color: rgba(92, 236, 255, 0.5) !important; box-shadow: inset 0 0 30px rgba(92, 236, 255, 0.08), 0 0 0 4px rgba(92, 236, 255, 0.08), 0 0 40px -10px rgba(92, 236, 255, 0.6); }
+.cmd-form input { font-family: 'Inter', sans-serif !important; font-weight: 400; }
+.cmd-go {
+  border-radius: 999px !important; border: 0 !important;
+  background: linear-gradient(135deg, #7ff3ff, #8f7dff) !important; color: #02060d !important;
+  font-family: var(--disp) !important; font-weight: 600 !important; letter-spacing: 0.2em;
+  box-shadow: 0 0 24px -6px rgba(92, 236, 255, 0.8);
+}
+.mic-btn { border-radius: 50% !important; }
+#cmdOutput > div { border-radius: 16px !important; border: 1px solid rgba(255, 255, 255, 0.05) !important; background: rgba(255, 255, 255, 0.02) !important; }
+
+/* ---------- numbers: thin and big ---------- */
+#price, .price-big, .amb-price, [id$="Price"] { font-family: var(--disp) !important; font-weight: 200 !important; letter-spacing: -0.01em; text-shadow: 0 0 30px rgba(92, 236, 255, 0.35); }
+.up { text-shadow: 0 0 14px rgba(47, 245, 166, 0.35); }
+.down { text-shadow: 0 0 14px rgba(255, 90, 122, 0.35); }
+
+/* ---------- buttons ---------- */
+.ghost-btn, .cal-btn {
+  border-radius: 12px !important; border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.025) !important; transition: all 0.2s;
+}
+.ghost-btn:hover, .cal-btn:hover { border-color: rgba(92, 236, 255, 0.4) !important; background: rgba(92, 236, 255, 0.07) !important; transform: translateY(-1px); }
+
+/* ---------- the core: add 3D gyroscope rings around it ---------- */
+.header-core, .boot-core, .amb-core { position: relative; transform-style: preserve-3d; perspective: 400px; }
+.header-core::before, .header-core::after, .boot-core::before, .boot-core::after, .amb-core::before, .amb-core::after {
+  content: ''; position: absolute; inset: -6%; border-radius: 50%;
+  border: 1px solid rgba(92, 236, 255, 0.45); pointer-events: none;
+  box-shadow: 0 0 12px rgba(92, 236, 255, 0.25);
+  animation: gyro 9s linear infinite;
+}
+.header-core::after, .boot-core::after, .amb-core::after { inset: -14%; border-color: rgba(157, 140, 255, 0.35); animation-duration: 13s; animation-direction: reverse; }
+@keyframes gyro { from { transform: rotateX(70deg) rotateZ(0); } to { transform: rotateX(70deg) rotateZ(360deg); } }
+body.v-listening .header-core::before, body.v-awake .header-core::before { border-color: rgba(47, 245, 166, 0.8); animation-duration: 2.5s; }
+body.v-speaking .header-core::before { animation-duration: 3s; }
+
+/* ---------- dialogs ---------- */
+dialog { border-radius: 24px !important; border: 1px solid rgba(92, 236, 255, 0.16) !important; background: rgba(4, 9, 18, 0.88) !important; backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); box-shadow: 0 40px 120px -20px rgba(0, 0, 0, 0.9), 0 0 80px -30px rgba(92, 236, 255, 0.4); }
+dialog::backdrop { background: rgba(0, 2, 6, 0.6); backdrop-filter: blur(6px); }
+
+/* ---------- learning bits ---------- */
+.cal-lesson { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.06); font-size: 13px; }
+.cal-lesson ul, .learned ul { margin: 4px 0 0 18px; padding: 0; }
+.cal-lesson.down { border-color: rgba(255, 90, 122, 0.25); }
+.cal-lesson.up { border-color: rgba(47, 245, 166, 0.25); }
+.cal-lesson li, .learned li { color: var(--text); text-shadow: none; }
+.learned { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(92, 236, 255, 0.04); border: 1px solid rgba(92, 236, 255, 0.14); }
+
+/* boot screen title */
+.boot-title { font-family: var(--disp) !important; font-weight: 200 !important; letter-spacing: 0.6em !important; text-shadow: 0 0 24px rgba(92, 236, 255, 0.6); }
+.boot { background: radial-gradient(800px 500px at 50% 45%, rgba(40, 110, 200, 0.14), transparent 70%), var(--bg) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .panel { transform: none !important; transition: none; }
+  .header-core::before, .header-core::after, .boot-core::before, .boot-core::after, .amb-core::before, .amb-core::after { animation: none; }
+}
+@media (max-width: 700px) { .panel { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); } }

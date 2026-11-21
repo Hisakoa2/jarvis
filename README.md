@@ -185,6 +185,15 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v22
+- **JARVIS learns from every trade.** After each closed trade, its confidence in that kind of setup moves right away (trend agreement, room, late entry, session, buy/sell). Recent trades count more. Three losses in a row on a pattern makes it much pickier.
+- **Practice trades.** The cloud trader also practice-trades every decent setup it doesn't take (up to one per direction per hour) and learns from how they would have ended, so it learns many times a session instead of once a day. It only fully blocks a pattern once practice trades prove it's bad (8+ trades, under 25% winners).
+- **Loss reviews.** Every closed trade gets a "Why it lost" / "What worked" note on the calendar. 3 hours after a stop-out it checks whether price hit the target anyway (stop too tight).
+- Ask **"what have you learned?"** or **"your record"** to see what's working and what it's avoiding.
+- **Better ears.** The browser still listens for "JARVIS" and when you stop talking, but your words go through Whisper running on your own device: free, no key, no account. The model downloads once (~40 MB on phone, ~75 MB on PC) and stays cached. If it can't load or takes over 7 seconds, JARVIS uses the old browser recognition.
+- **2070 look.** A live 3D holographic globe behind the HUD, floating glass panels that tilt in 3D under the mouse, gyroscope rings around the core, thin clean type.
+- Test: `node tools/learn-test.js`.
+
 ### New in v21
 - **JARVIS knows what time it is.**
   - Workout challenges fit the hour. At 10 PM you get "1 minute plank right now" or "50 push-ups before bed", never "10,000 steps before 8 PM".

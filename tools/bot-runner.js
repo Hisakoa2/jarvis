@@ -26,7 +26,7 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
 (async () => {
   const prev = readState();
   // also save straight away when the price feed goes down or comes back, so the app can show it
-  const core = (s) => JSON.stringify({ e: s.enabled, d: s.days, down: !!(s.check && /^could not reach/.test(s.check.why || '')) }, (k, v) => (k === 'lastCheck' || k === 'worst' || k === 'best' ? undefined : v));
+  const core = (s) => JSON.stringify({ e: s.enabled, d: s.days, l: s.learn && { t: s.learn.tags, n: s.learn.shadows.length }, down: !!(s.check && /^could not reach/.test(s.check.why || '')) }, (k, v) => (k === 'lastCheck' || k === 'worst' || k === 'best' ? undefined : v));
   const prevCore = core(prev);
   const key = process.env.OANDA_API_KEY, account = process.env.OANDA_ACCOUNT_ID, env = process.env.OANDA_ENV || 'practice';
   if (!key || !account) {
@@ -43,8 +43,8 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
     fetch: (url, opts) => fetch(/^https?:/.test(url) ? url : PAGES + url, opts),
   };
   vm.createContext(sb);
-  for (const f of ['sessions.js', 'bias-rules.js', 'data.js', 'news.js', 'lexicon.js', 'brain.js']) vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8'), sb, { filename: f });
-  const { Sessions, Data, News, Brain } = vm.runInContext('({ Sessions, Data, News, Brain })', sb);
+  for (const f of ['sessions.js', 'bias-rules.js', 'data.js', 'news.js', 'lexicon.js', 'learn.js', 'brain.js']) vm.runInContext(fs.readFileSync(path.join(PUB, f), 'utf8'), sb, { filename: f });
+  const { Sessions, Data, News, Brain, Learn } = vm.runInContext('({ Sessions, Data, News, Brain, Learn })', sb);
   const sessions = JSON.parse(fs.readFileSync(path.join(PUB, 'config', 'sessions.json'), 'utf8'));
 
   const now = Date.now();
@@ -53,6 +53,8 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
   const endOf = (day) => { const [y, m, d] = day.slice(0, 10).split('-').map(Number); return Sessions.zonedToUtc(y, m, d, 16, 50, NY); };
 
   const st = { ...prev, enabled: true, heartbeat: now };
+  st.learn = Learn.ensure(prev.learn);
+  const L = st.learn;
   try { await News.load(true); console.log('News events loaded:', News.ok()); } catch (e) { console.log('News not loaded:', e.message); }
   let g;
   try { g = await Data.snapshot({ forceCandles: true, sessions }); } catch (e) {
@@ -91,16 +93,44 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
       t.exit = Math.round(t.exit * 100) / 100;
       t.result = Math.round((t.exit - t.entry) * t.dir * 100) / 100; // $ per unit
       console.log(`Closed ${day}: ${t.dir > 0 ? 'BUY' : 'SELL'} ${t.entry} → ${t.exit} (${t.reason})`);
+      // v22: learn from it right away + write down why it won / lost
+      const rv = Learn.review(t);
+      t.lesson = { win: t.result > 0, reasons: rv.reasons, pending: !!rv.pending };
+      if (t.tags && t.tags.length && t.reason !== 'session_end') Learn.record(L, t.tags, t.result > 0, 'real', now);
+      else if (t.tags && t.tags.length) Learn.record(L, t.tags, t.result > 0, 'shadow', now); // session-end close: counts half
+      L.log.push({ at: now, day, win: t.result > 0, reasons: rv.reasons });
+      while (L.log.length > 50) L.log.shift();
+      console.log(`Lesson: ${rv.reasons.join('; ')}`);
     }
+  }
+
+  // ---- 1b. 3 hours after a stop-out: did price hit the target anyway? Then the stop was too tight ----
+  for (const t of Object.values(st.days)) {
+    if (!t.lesson || !t.lesson.pending || now < t.closedAt + 3 * 3600e3) continue;
+    let cs = []; try { cs = await Data.candlesSince(t.closedAt); } catch { continue; }
+    if (Learn.lateCheck(t, cs)) { t.lesson.reasons.push('stop was too tight: price hit the target within 3 hours of stopping out'); console.log(`Lesson ${t.id}: stop too tight`); }
+    t.lesson.pending = false;
+  }
+
+  // ---- 1c. settle practice trades ----
+  if (L.shadows.length) {
+    let cs = []; try { cs = await Data.candlesSince(Math.min(...L.shadows.map((x) => x.at))); } catch {}
+    const n = Learn.resolveShadows(L, cs, now, endOf);
+    if (n) console.log(`Practice trades settled: ${n} (watching ${L.shadows.length})`);
   }
 
   // ---- 2. maybe take a trade — only if it's valid. ONE a day, and only a strong setup ----
   const day = tradeDay(now);
   const busy = Object.values(st.days).some((t) => t.status === 'open');
   const slot = st.days[day] ? null : day, extra = 0;
-  if (slot && !busy) {
-    const ctx = { tz: NY, title: '', sessions, projects: [], gold: () => g, riskPct: 1, news: News };
-    const c = Brain.botCheck(ctx, { extra });
+  const ctx = { tz: NY, title: '', sessions, projects: [], gold: () => g, riskPct: 1, news: News };
+  const c = Brain.botCheck(ctx, { extra, learn: L, shadow: true });
+  const canTrade = slot && !busy;
+  // practice trade whenever a decent setup shows up and JARVIS isn't taking it for real
+  if (c.shadow && !(canTrade && c.ok)) {
+    if (Learn.addShadow(L, { day, at: now, dir: c.dir, tags: c.tags, entry: Math.round(c.shadow.entry * 100) / 100, sl: Math.round(c.shadow.sl * 100) / 100, tp: Math.round(c.shadow.tp * 100) / 100 })) console.log(`Practice trade: ${c.dir > 0 ? 'BUY' : 'SELL'} @ ${c.shadow.entry.toFixed(2)} [${c.tags.join(', ')}]`);
+  }
+  if (canTrade) {
     st.check = { at: now, ok: c.ok, why: c.ok ? 'took the trade' : c.why };
     if (c.ok) {
       const entry = c.dir > 0 ? g.price.ask : g.price.bid;
@@ -108,7 +138,7 @@ function writeState(s) { fs.mkdirSync(path.dirname(STATE), { recursive: true });
       let tp = c.tp;
       if (Math.abs(tp - entry) < risk * 2) tp = entry + c.dir * risk * 2; // at least 1:2 after the spread
       const r2 = (n) => Math.round(n * 100) / 100;
-      st.days[slot] = { id: `${day}-${c.dir > 0 ? 'B' : 'S'}${slot === day ? '' : '2'}`, status: 'open', dir: c.dir, entry: r2(entry), sl: r2(c.sl), tp: r2(tp), risk: r2(risk), rr: r2(Math.abs(tp - entry) / risk), why: c.why, openedAt: now, lastCheck: now };
+      st.days[slot] = { id: `${day}-${c.dir > 0 ? 'B' : 'S'}${slot === day ? '' : '2'}`, status: 'open', dir: c.dir, entry: r2(entry), sl: r2(c.sl), tp: r2(tp), risk: r2(risk), rr: r2(Math.abs(tp - entry) / risk), why: c.why, tags: c.tags, openedAt: now, lastCheck: now };
       console.log(`Opened ${slot}: ${c.dir > 0 ? 'BUY' : 'SELL'} @ ${r2(entry)} SL ${r2(c.sl)} TP ${r2(tp)} — ${c.why}`);
     } else console.log(`No trade: ${c.why}`);
   }

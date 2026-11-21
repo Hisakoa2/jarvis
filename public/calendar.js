@@ -127,7 +127,8 @@ const TradeCal = (() => {
       (open ? '' : line('Result', usd(h.pl), F.R != null ? `${F.R >= 0 ? '+' : ''}${F.R.toFixed(1)}R · ${long(h.closedAt - h.openedAt)} in the trade` : long(h.closedAt - h.openedAt) + ' in the trade')) +
       line('Deepest drawdown', ddTxt, F.dd ? `price reached ${f2(h.worst)}` : '') +
       line('Best profit', upTxt, F.up ? `price reached ${f2(h.best)}` : '') +
-      `</div>` + (h.bot && h.note ? `<div class="dim small">Why JARVIS took it: ${esc(h.note)}</div>` : '');
+      `</div>` + (h.bot && h.note ? `<div class="dim small">Why JARVIS took it: ${esc(h.note)}</div>` : '') +
+      (h.lesson && h.lesson.reasons ? `<div class="cal-lesson ${h.lesson.win ? 'up' : 'down'}"><b>${h.lesson.win ? 'What worked' : 'Why it lost'}:</b><ul>${h.lesson.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>` : '');
   }
 
   function render() { if (tradeOpen) renderTrade(); else if (dayOpen) renderDay(); else renderMonth(); }

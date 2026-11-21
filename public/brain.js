@@ -2576,9 +2576,16 @@ const Brain = (() => {
     const news = timingFlags(k).find((x) => x.lvl === 'stop' && /High-impact/.test(x.html));
     if (news) return { ok: false, dir, score: sc.score, why: 'high-impact news is too close' };
     const prime = mins >= 3 * 60 && mins < 11 * 60 + 30;
+    // v22: what JARVIS has learned from past real + practice trades moves the bar up or down
+    const tags = typeof Learn !== 'undefined' ? Learn.tagsFrom(sc.f, dir, mins) : [];
+    const lr = opt.learn && typeof Learn !== 'undefined' ? Learn.adjust(opt.learn, tags) : { extra: 0, block: false, why: '' };
+    // a practice trade for any half-decent setup, so JARVIS learns several times a session, not once a day
+    const shadowOf = (pl2) => (opt.shadow && sc.score >= 2 && Math.abs(pl2.entry - pl2.stop) > 0 ? { entry: pl2.entry, sl: pl2.stop, tp: Math.abs(pl2.tp1 - pl2.entry) >= Math.abs(pl2.entry - pl2.stop) * 2 ? pl2.tp1 : pl2.entry + dir * Math.abs(pl2.entry - pl2.stop) * 2 } : null);
     // one trade a day, so only the strongest setups: bias + both trends + room (or a building flip)
-    const need = (prime ? 4 : 5) + (opt.extra || 0);
-    if (sc.score < need) return { ok: false, dir, score: sc.score, why: `setup score ${sc.score} (needs ${need}${prime ? '' : ' outside London/New York hours'})` };
+    const need = (prime ? 4 : 5) + (opt.extra || 0) + lr.extra;
+    const learnTxt = lr.why ? ` · learning: ${lr.why}` : '';
+    if (lr.block) return { ok: false, dir, score: sc.score, tags, learn: lr, shadow: shadowOf(buildPlan(k, dir, 'day')), why: `setup score ${sc.score}${learnTxt}` };
+    if (sc.score < need) return { ok: false, dir, score: sc.score, tags, learn: lr, shadow: opt.shadow ? shadowOf(buildPlan(k, dir, 'day')) : null, why: `setup score ${sc.score} (needs ${need}${prime ? '' : ' outside London/New York hours'})${learnTxt}` };
     const pl = buildPlan(k, dir, 'day');
     if (!(Math.abs(pl.entry - pl.stop) > 0)) return { ok: false, dir, score: sc.score, why: 'no clean stop' };
     // stay inside the max risk ($250): tighter stop at closer structure, smaller size, or both
@@ -2588,7 +2595,7 @@ const Brain = (() => {
     let tp = fr.how === 'tightened' || fr.how === 'both' ? suggestTargets(k, dir, pl.entry, fr.stop, 'day').tp1 : pl.tp1;
     if (Math.abs(tp - pl.entry) < risk * 2) tp = pl.entry + dir * risk * 2; // at least 1 to 2
     const why = `${lc(g.bias.bias)} bias, setup score ${sc.score}${prime ? ' in prime hours' : ''}: ${sc.f.filter((x) => x.pts > 0).map((x) => x.say).slice(0, 3).join(', ')}`;
-    return { ok: true, dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why, units: fr.units, fit: fr.how };
+    return { ok: true, dir, entry: pl.entry, sl: pl.stop, tp, risk, rr: Math.abs(tp - pl.entry) / risk, score: sc.score, why: why + learnTxt, units: fr.units, fit: fr.how, tags, learn: lr, shadow: shadowOf(pl) };
   }
   function botPlan(ctx) { const c = botCheck(ctx); return c.ok ? c : null; }
 

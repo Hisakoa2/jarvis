@@ -63,7 +63,7 @@ const Life = (() => {
     if (open) return;
     if (rec) return;                 // one trade a day — the strongest setup only
     const slot = day;
-    const c = B().botCheck(ctx());
+    const c = B().botCheck(ctx(), { learn: cloud.data && cloud.data.learn });
     lastCheck = { at: now, ...c };
     if (!c.ok) return;
     const units = botUnits(c.risk, ctx().maxRisk);
@@ -97,7 +97,11 @@ const Life = (() => {
       if (!c || !c.status) continue;
       let r = st.bot.days[day];
       if (r && !r.cloud) continue;                       // the app already traded that day itself
-      if (r && r.synced) continue;                       // finished and copied already
+      if (r && r.synced) {                               // finished and copied already — just pick up a later lesson update
+        const h = c.lesson && Paper.history().find((x) => x.id === r.id);
+        if (h && JSON.stringify(h.lesson) !== JSON.stringify(c.lesson)) Paper.patchHistory(h, { lesson: c.lesson });
+        continue;
+      }
       const units = r ? r.units : botUnits(c.risk, maxRisk);
       if (!r) {
         if (c.status === 'open') {
@@ -105,6 +109,7 @@ const Life = (() => {
           r = st.bot.days[day] = { id: pos.id, at: c.openedAt, dir: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, rr: c.rr, why: c.why, cloud: true, sid: c.id };
         } else {
           const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true, worst: c.worst, best: c.best });
+          Paper.patchHistory(h, { note: c.why, lesson: c.lesson });
           st.bot.days[day] = { id: h.id, at: c.openedAt, dir: c.dir, units, entry: c.entry, sl: c.sl, tp: c.tp, rr: c.rr, why: c.why, cloud: true, sid: c.id, synced: true };
           out.push(h);
         }
@@ -112,7 +117,7 @@ const Life = (() => {
       }
       if (c.status === 'closed') {
         const pos = Paper.positions().find((p) => p.id === r.id);
-        if (pos) { const h = Paper.closeAt(pos.id, c.exit, c.reason, c.closedAt, { worst: c.worst, best: c.best }); if (h) out.push(h); }
+        if (pos) { const h = Paper.closeAt(pos.id, c.exit, c.reason, c.closedAt, { worst: c.worst, best: c.best }); if (h) { Paper.patchHistory(h, { note: c.why, lesson: c.lesson }); out.push(h); } }
         else if (!hist.some((h) => h.id === r.id)) { const h = Paper.record({ side: c.dir, units, entry: c.entry, exit: c.exit, sl: c.sl, tp: c.tp, reason: c.reason, openedAt: c.openedAt, closedAt: c.closedAt, bot: true, worst: c.worst, best: c.best }); r.id = h.id; out.push(h); }
         r.synced = true;
       }
@@ -153,13 +158,25 @@ const Life = (() => {
     return R(`No trade yet today${k.t}. I only take a trade when it's actually valid — bias pointing one way, the setup score agreeing, no big news about to hit, and a target at least twice the stop (1:2). One trade a day, only the strongest setup, never more than $${Math.round(k.maxRisk || 250)} at risk. If nothing qualifies, I sit out. That's a win too.<span class="dim">${esc(reason)}${where}</span>`,
       `No trade yet today${k.t}. I only get in when the setup is actually valid, and if nothing qualifies, I sit out.${reason}`);
   }
+  // v22: what the learning system has picked up (from the cloud trader's real + practice trades)
+  function learnedH() {
+    const L = cloud.data && cloud.data.learn;
+    if (!L || typeof Learn === 'undefined') return { html: '', say: '' };
+    const S = Learn.summary(L), li = (r) => `<li>${esc(r.name)}</li>`;
+    if (!S.good.length && !S.bad.length) return { html: `<span class="dim">Learning: ${S.seen.real || 0} real and ${S.seen.shadow || 0} practice trades so far, ${S.watching} being watched. Not enough yet to change how I trade.</span>`, say: '' };
+    return {
+      html: `<div class="learned"><b>What I've learned</b> <span class="dim">(${S.seen.real || 0} real · ${S.seen.shadow || 0} practice trades)</span>${S.good.length ? `<div class="up">Works:</div><ul>${S.good.map(li).join('')}</ul>` : ''}${S.bad.length ? `<div class="down">Avoiding:</div><ul>${S.bad.map(li).join('')}</ul>` : ''}</div>`,
+      say: `${S.good.length ? ` What's working: ${S.good.map((r) => r.name).join(', ')}.` : ''}${S.bad.length ? ` I'm being pickier with ${S.bad.map((r) => r.name).join(', ')}.` : ''}`,
+    };
+  }
   function botStatsA(k) {
     const H = botHist().filter((h) => h.reason !== 'partial');
     if (!H.length) return R(`I haven't finished a trade yet${k.t}. My first one will show up in the paper panel with a JARVIS tag.`);
     const w = H.filter((h) => h.pl > 0).length, tot = H.reduce((a, h) => a + h.pl, 0);
     const last = H.slice(0, 5).map((h) => `<li>${new Date(h.closedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${h.side > 0 ? 'BUY' : 'SELL'} ${h.units} · <span class="${h.pl >= 0 ? 'up' : 'down'}">${usd(h.pl)}</span></li>`).join('');
-    return R(`My record${k.t}: <b>${H.length}</b> trades, <b>${w}</b> wins (${Math.round(w / H.length * 100)}%), total <b class="${tot >= 0 ? 'up' : 'down'}">${usd(tot)}</b>.<ul>${last}</ul>`,
-      `I've taken ${H.length} trades${k.t}, ${w} winners, ${tot >= 0 ? 'up' : 'down'} ${sayUsd(tot)} in total.`);
+    const lh = learnedH();
+    return R(`My record${k.t}: <b>${H.length}</b> trades, <b>${w}</b> wins (${Math.round(w / H.length * 100)}%), total <b class="${tot >= 0 ? 'up' : 'down'}">${usd(tot)}</b>.<ul>${last}</ul>${lh.html}`,
+      `I've taken ${H.length} trades${k.t}, ${w} winners, ${tot >= 0 ? 'up' : 'down'} ${sayUsd(tot)} in total.${lh.say}`);
   }
 
   // =====================================================================================
@@ -1046,7 +1063,7 @@ const Life = (() => {
   // =====================================================================================
   const PHRASES = {
     bot: ['how did your trade go', 'how is your trade', 'did you trade today', 'what did you trade', 'jarvis trade', 'your position', 'are you in a trade', 'how much did you make today'],
-    botStats: ['your record', 'your stats', 'how are your trades doing', 'jarvis win rate', 'how good are your trades'],
+    botStats: ['your record', 'your stats', 'how are your trades doing', 'jarvis win rate', 'how good are your trades', 'what have you learned', 'what did you learn from your trades'],
     water: ['how much water', 'drank water', 'water today', 'log water', 'glass of water', 'hydration'],
     habit: ['my habits', 'habit tracker', 'my streaks', 'add habit', 'did my habit'],
     sleepQ: ['what time should i sleep', 'when should i go to bed', 'what time should i go to sleep', 'bedtime', 'when to sleep'],
@@ -1089,6 +1106,7 @@ const Life = (() => {
     // JARVIS's own trade
     if (/\b(your|ur)\s+(trade|trades|position|positions|p ?l|pnl|order)\b|\b(did|have) you (trade|take a trade|traded|take any trades?)\b|\bhow did (you|jarvis) (do|trade|go)\b|\bjarvis'?s? (trade|trades|position)\b|\bare you in a trade\b|\bwhat did you (trade|take)\b|\bhow much did you (make|lose)\b/.test(t)) set(/\b(record|stats|win ?rate|history|all your|overall)\b/.test(t) ? 'botStats' : 'bot', 9.7);
     if (/\b(your|jarvis'?s?)\b.*\b(record|stats|win ?rate|track record)\b/.test(t)) set('botStats', 9.7);
+    if (/\bwhat (have|did) you (learn|learned|learnt)\b|\bwhy did (you|jarvis|your trade) lose\b|\byour (lessons|learning)\b/.test(t)) set('botStats', 9.8);
     // partials
     if (hasPaper && Paper.positions().length && /\b(partials?|partial close|scale out|close half|take half|close (?:a |one )?(?:third|quarter)|take (?:some )?profits? off|take some off|close \d+|take \d+ off|close (?:out )?\d+ (?:contracts?|units?|lots?))\b/.test(t)) set('partial', 9.75);
     // best / worst
