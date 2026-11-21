@@ -1688,8 +1688,22 @@ const Brain = (() => {
     { name: 'Full body', items: ['Deadlifts 4×5', 'Push-ups 3×15', 'Goblet squats 3×12', 'Dumbbell rows 3×10 each arm', 'Plank 3×45s'] },
     { name: 'Core & mobility', items: ['Plank 3×60s', 'Dead bugs 3×12', 'Russian twists 3×20', 'Hip flexor + hamstring stretch 5 min', 'Foam roll 5 min'] },
   ];
-  function workoutA(k) {
-    const w = pick('wo', WORKOUTS);
+  // v22.6: ask for a body part, get that body part (not a random day)
+  const FOCUS = [
+    [/\b(bicep|biceps|bis|curls?|arms?|guns)\b/, { name: 'Biceps', items: ['Barbell curls 4×10', 'Incline dumbbell curls 3×12', 'Hammer curls 3×12', 'Preacher curls 3×10', 'Cable curls 2×15 (burnout)'] }],
+    [/\b(tricep|triceps|tris)\b/, { name: 'Triceps', items: ['Close-grip bench press 4×8', 'Skull crushers 3×10', 'Rope pushdowns 3×12', 'Overhead dumbbell extension 3×12', 'Dips 2× to failure'] }],
+    [/\b(chest|pecs?|bench)\b/, { name: 'Chest', items: ['Bench press 4×8', 'Incline dumbbell press 3×10', 'Cable flyes 3×12', 'Weighted dips 3×10', 'Push-ups 2× to failure'] }],
+    [/\b(back|lats?)\b/, { name: 'Back', items: ['Pull-ups 4× max', 'Barbell rows 4×8', 'Lat pulldown 3×12', 'Seated cable rows 3×12', 'Straight-arm pulldowns 3×15'] }],
+    [/\b(shoulders?|delts?)\b/, { name: 'Shoulders', items: ['Overhead press 4×8', 'Lateral raises 4×15', 'Rear delt flyes 3×15', 'Arnold press 3×10', 'Shrugs 3×12'] }],
+    [/\b(legs?|quads?|hamstrings?|glutes?|calves|calf|squats?)\b/, WORKOUTS[2]],
+    [/\b(abs|core|six pack|stomach)\b/, WORKOUTS[6]],
+    [/\b(cardio|hiit|conditioning)\b/, WORKOUTS[3]],
+    [/\b(run|running|jog)\b/, WORKOUTS[4]],
+    [/\bpush\b/, WORKOUTS[0]], [/\bpull\b/, WORKOUTS[1]], [/\bfull body\b/, WORKOUTS[5]],
+  ];
+  function workoutA(k, text = '') {
+    const hit = FOCUS.find(([re]) => re.test(text));
+    const w = hit ? hit[1] : pick('wo', WORKOUTS);
     return reply(`<b>${w.name}</b>${k.t}:<ul>${w.items.map((i) => `<li>${i}</li>`).join('')}</ul><span class="dim">Warm up first, and drink water.</span>`,
       `How about ${lc(w.name)}${k.t}? ${w.items.slice(0, 3).join(', ')}, and more on screen. Warm up first, and drink water.`);
   }
@@ -2447,7 +2461,7 @@ const Brain = (() => {
           /geo-denied|no-geo/.test(e.message) ? `I need a location for the weather${k.t}. Type your city in Settings ⚙ (Weather city), or allow location when your phone asks.` : /city-not-found/.test(e.message) ? `I couldn't find that city${k.t}. Check the spelling in Settings ⚙.` : `I can't reach the weather service right now${k.t}.`)));
       }
       case 'dayplan': return wrap(dayPlanA(k));
-      case 'workout': return wrap(workoutA(k));
+      case 'workout': return wrap(workoutA(k, (String(text) + ' ' + fixed).toLowerCase()));
       case 'weekend': return wrap(weekendA(k));
       case 'size': return needGold(() => sizeA(fixed, k, raw, dirOf));
       case 'account': return needGold(() => accountA(k));

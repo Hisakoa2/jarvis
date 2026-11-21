@@ -25,6 +25,7 @@ try { renderer = new THREE.WebGLRenderer({ antialias: !phone, alpha: true, power
 catch { throw new Error('no webgl'); }
 const cv = renderer.domElement;
 cv.id = 'core3d'; cv.setAttribute('aria-hidden', 'true');
+cv.style.opacity = '0'; // fades in after a few rendered frames, so a bright first frame never shows
 document.body.appendChild(cv);
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, phone ? 1 : 1.5));
 renderer.setClearColor(0x000000, 0);
@@ -181,7 +182,7 @@ let px = 0, py = 0, tx = 0, ty = 0;
 addEventListener('pointermove', (e) => { tx = e.clientX / W - 0.5; ty = e.clientY / H - 0.5; }, { passive: true });
 
 const clock = new THREE.Clock();
-let running = true, t = 0;
+let running = true, t = 0, drawn = 0;
 function frame() {
   if (!running) return;
   const dt = Math.min(clock.getDelta(), 0.05) * (reduce ? 0.25 : 1);
@@ -211,6 +212,7 @@ function frame() {
   core.rotation.y = px * 0.6; core.rotation.x = 0.25 + py * 0.4;
   bloom.strength = 0.85 + uni.uPulse.value * 0.8;
   composer.render();
+  if (++drawn === 4) cv.style.opacity = '1';
   requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) { clock.getDelta(); requestAnimationFrame(frame); } });
