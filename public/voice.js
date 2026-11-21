@@ -148,6 +148,12 @@ const Voice = (() => {
       flag('jarvis.whisperBusy', '1'); // crash guard: cleared when loading finishes either way
       set({ state: 'downloading', pct: 0, err: '' });
       const files = {};
+      // stalled download (phone locked / app in background / weak signal): say so and allow a retry
+      let lastTick = Date.now();
+      const watch = setInterval(() => {
+        if (st.state !== 'downloading') return clearInterval(watch);
+        if (Date.now() - lastTick > 20000) { clearInterval(watch); asr = null; flag('jarvis.whisperBusy', null); set({ state: 'error', err: `download stalled at ${st.pct}%. Keep JARVIS open on Wi-Fi and tap Download again (it picks up the finished parts)` }); }
+      }, 3000);
       asr = (async () => {
         const T = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
         let gpu = false;
@@ -158,6 +164,7 @@ const Voice = (() => {
           device: gpu ? 'webgpu' : 'wasm',
           dtype: gpu ? { encoder_model: 'fp32', decoder_model_merged: 'q4' } : 'q8',
           progress_callback: (e) => {
+            lastTick = Date.now();
             if (e.status === 'progress' && e.total) {
               files[e.file] = [e.loaded, e.total];
               const v = Object.values(files), l = v.reduce((x, y) => x + y[0], 0), t = v.reduce((x, y) => x + y[1], 0);

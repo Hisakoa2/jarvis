@@ -123,13 +123,13 @@ main.grid { perspective: 1600px; }
 
 /* ---------- the core: add 3D gyroscope rings around it ---------- */
 .header-core, .boot-core, .amb-core { position: relative; transform-style: preserve-3d; perspective: 400px; }
-.header-core::before, .header-core::after, .boot-core::before, .boot-core::after, .amb-core::before, .amb-core::after {
+.header-core::before, .header-core::after, .amb-core::before, .amb-core::after {
   content: ''; position: absolute; inset: -6%; border-radius: 50%;
   border: 1px solid rgba(92, 236, 255, 0.45); pointer-events: none;
   box-shadow: 0 0 12px rgba(92, 236, 255, 0.25);
   animation: gyro 9s linear infinite;
 }
-.header-core::after, .boot-core::after, .amb-core::after { inset: -14%; border-color: rgba(157, 140, 255, 0.35); animation-duration: 13s; animation-direction: reverse; }
+.header-core::after, .amb-core::after { inset: -14%; border-color: rgba(157, 140, 255, 0.35); animation-duration: 13s; animation-direction: reverse; }
 @keyframes gyro { from { transform: rotateX(70deg) rotateZ(0); } to { transform: rotateX(70deg) rotateZ(360deg); } }
 body.v-listening .header-core::before, body.v-awake .header-core::before { border-color: rgba(47, 245, 166, 0.8); animation-duration: 2.5s; }
 body.v-speaking .header-core::before { animation-duration: 3s; }
@@ -212,3 +212,7 @@ body:not(.core3d) .hero-core { display: none; }
 
 /* no flash of the old core while the 3D core loads */
 body.core-wait .boot .core-svg { visibility: hidden; }
+
+/* boot: nothing but the 3D core — no rings, no flat core, ever */
+.boot-core::before, .boot-core::after { content: none !important; display: none !important; }
+.boot-core { background: none !important; }
