@@ -46,12 +46,14 @@
     const [r, g, b] = col.map(Math.round);
     ctx.clearRect(0, 0, W, H);
 
+    const has3d = document.body.classList.contains('core3d');
     const R = Math.min(W, H) * (W < 700 ? 0.36 : 0.3);
     const cx = W * (W < 700 ? 0.5 : 0.72) + px * 18, cy = H * 0.42 + py * 12;
     const ay = t * 0.12 + px * 0.25, ax = 0.35 + py * 0.15;
     const cyA = Math.cos(ay), syA = Math.sin(ay), cxA = Math.cos(ax), sxA = Math.sin(ax);
     const rot = (x, y, z) => { const x1 = x * cyA + z * syA, z1 = -x * syA + z * cyA; return [x1, y * cxA - z1 * sxA, y * sxA + z1 * cxA]; };
 
+    if (!has3d) {
     // soft core glow
     const gl = ctx.createRadialGradient(cx, cy, 0, cx, cy, R * 1.6);
     gl.addColorStop(0, `rgba(${r},${g},${b},0.10)`); gl.addColorStop(0.5, `rgba(${r},${g},${b},0.03)`); gl.addColorStop(1, 'rgba(0,0,0,0)');
@@ -82,6 +84,7 @@
         const s = (0.8 + glow * 1.8) * f;
         ctx.fillRect(sx - s / 2, sy - s / 2, s, s);
       }
+    }
     }
     // drifting dust, deep parallax
     for (const d of dust) {

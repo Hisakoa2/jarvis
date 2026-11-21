@@ -996,6 +996,27 @@
   });
   $('setBoot').addEventListener('change', (e) => { prefs.boot = e.target.checked; savePrefs(); });
   $('setHandsFree').addEventListener('change', (e) => setHandsFree(e.target.checked, true));
+  // v22: Whisper status + listening mode
+  if (Voice.ear) {
+    Voice.ear.setJudge((t) => Brain.score(t, ctx()));
+    const earShow = (s) => {
+      const pill = $('earPill'), info = $('earInfo'), bar = $('earBar');
+      const W = { off: s.saved ? 'DOWNLOADED' : 'NOT LOADED', downloading: `DOWNLOADING ${s.pct}%`, warming: 'WARMING UP', ready: 'READY', error: 'ERROR' };
+      pill.textContent = W[s.state] || '—';
+      pill.className = 'ear-pill ' + s.state + (s.saved && s.state === 'off' ? ' saved' : '');
+      bar.style.width = (s.state === 'ready' || s.state === 'warming' ? 100 : s.state === 'downloading' ? s.pct : s.saved ? 100 : 0) + '%';
+      info.textContent = s.state === 'ready' ? `Ready on your ${s.device} (${s.model} model). Clear commands answer instantly; unclear ones go through Whisper.`
+        : s.state === 'downloading' ? `Downloading the ${s.model || ''} model to this device${s.device ? ` (runs on your ${s.device})` : ''}. One time only.`
+        : s.state === 'warming' ? 'Downloaded. Getting it ready…'
+        : s.state === 'error' ? `Couldn't load Whisper: ${s.err}. JARVIS uses the browser's listening for now.`
+        : s.saved ? 'Downloaded on this device. It loads automatically after your first tap.' : 'Runs on this device. Free, no key. Downloads once (about 40 to 80 MB).';
+      $('earLoad').hidden = s.state === 'ready' || s.state === 'downloading' || s.state === 'warming' || Voice.prefs.ear === 'browser';
+    };
+    Voice.ear.onStatus(earShow); earShow(Voice.ear.status());
+    $('setEar').value = Voice.prefs.ear || 'smart';
+    $('setEar').addEventListener('change', (e) => { Voice.setPref('ear', e.target.value); earShow(Voice.ear.status()); if (e.target.value !== 'browser') Voice.ear.load().catch(() => {}); });
+    $('earLoad').addEventListener('click', () => Voice.ear.load().catch(() => {}));
+  }
   $('setVoiceSel').addEventListener('change', (e) => { Voice.setPref('voiceURI', e.target.value); });
   $('setRate').addEventListener('input', (e) => { Voice.setPref('rate', +e.target.value); $('rateVal').textContent = (+e.target.value).toFixed(2); });
   $('setPitch').addEventListener('input', (e) => { Voice.setPref('pitch', +e.target.value); $('pitchVal').textContent = (+e.target.value).toFixed(2); });

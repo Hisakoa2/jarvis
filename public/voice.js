@@ -101,17 +101,21 @@ const Voice = (() => {
     return r;
   }
 
-  // ---- v22: the "good ear". The browser still spots "JARVIS" and when you stop talking, but the words
-  // themselves are recorded and run through Whisper — the same kind of speech model voice assistants use,
-  // so normal-volume, casual talk comes through. Whisper runs ON THIS DEVICE (free, no key, no account):
-  // the model downloads once (~40 MB phone / ~75 MB PC) and is cached. A Groq key, if ever added, is used
-  // instead (faster). If the model can't load, the browser's words are used as before.
+  // ---- v22: the "good ear". The browser still spots "JARVIS" and when you stop talking.
+  // SMART mode (default): if the browser is sure of what you said, JARVIS answers instantly. Only when it's
+  // unsure (or heard nothing, usually quiet talking) does the recording go through Whisper.
+  // Whisper runs ON THIS DEVICE (free, no key): on a PC with a graphics card it uses the GPU (well under a second);
+  // otherwise a smaller model on the processor. It downloads once and is cached. A Groq key, if ever added, is used instead.
   const Ear = (() => {
     const VOCAB = 'JARVIS, gold, XAU/USD, take profit, stop loss, TP, SL, liquidity sweep, higher high, lower low, 1 hour, 4 hour, London session, New York session, Asia session, bias, bullish, bearish, contracts, paper trade, calendar.';
-    const JUNK = /^(thanks?( you)?( for watching)?|you|bye|okay|\.+|subtitles.*)[.!]?$/i;
-    let stream = null, mr = null, chunks = [];
+    const JUNK = /^(thanks?( you)?( for watching)?|you|bye|okay|\.+|\[.*\]|\(.*\)|subtitles.*)[.!]?$/i;
+    let stream = null, mr = null, chunks = [], judge = null;
+    const st = { state: 'off', pct: 0, device: '', model: '', err: '' };
+    const subs = [];
+    const set = (o) => { Object.assign(st, o); subs.forEach((f) => { try { f({ ...st }); } catch {} }); };
     const key = () => { try { return (localStorage.getItem('jarvis.groqKey') || '').trim(); } catch { return ''; } };
-    const on = () => prefs.whisper !== false && typeof MediaRecorder !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const mode = () => prefs.ear || 'smart'; // smart | whisper | browser
+    const on = () => mode() !== 'browser' && typeof MediaRecorder !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     async function start() {
       if (!on() || mr) return;
       try {
@@ -131,37 +135,50 @@ const Voice = (() => {
       });
     }
     function cancel() { if (mr) { try { mr.onstop = null; mr.stop(); } catch {} mr = null; } release(); }
-    // ---- on-device Whisper (transformers.js) ----
-    const PHONE = /iPhone|iPad|Android/i.test(navigator.userAgent);
-    const MODEL = PHONE ? 'Xenova/whisper-tiny.en' : 'Xenova/whisper-base.en';
-    let asr = null, asrFail = false;
-    function loadLocal() {
-      if (asr || asrFail) return asr;
-      asr = import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2')
-        .then(({ pipeline, env }) => { env.allowLocalModels = false; return pipeline('automatic-speech-recognition', MODEL, { quantized: true }); })
-        .catch((e) => { asrFail = true; asr = null; console.warn('On-device Whisper unavailable:', e); throw e; });
+
+    // ---- on-device Whisper (transformers.js; GPU when available) ----
+    let asr = null;
+    const savedFlag = () => { try { return localStorage.getItem('jarvis.whisperReady'); } catch { return null; } };
+    function load() {
+      if (asr) return asr;
+      set({ state: 'downloading', pct: 0, err: '' });
+      const files = {};
+      asr = (async () => {
+        const T = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
+        let gpu = false;
+        try { gpu = !!(navigator.gpu && (await navigator.gpu.requestAdapter())); } catch {}
+        const model = gpu ? 'onnx-community/whisper-base.en' : 'onnx-community/whisper-tiny.en';
+        set({ device: gpu ? 'graphics card' : 'processor', model: gpu ? 'base' : 'tiny' });
+        const p = await T.pipeline('automatic-speech-recognition', model, {
+          device: gpu ? 'webgpu' : 'wasm',
+          dtype: gpu ? { encoder_model: 'fp32', decoder_model_merged: 'q4' } : 'q8',
+          progress_callback: (e) => {
+            if (e.status === 'progress' && e.total) {
+              files[e.file] = [e.loaded, e.total];
+              const v = Object.values(files), l = v.reduce((x, y) => x + y[0], 0), t = v.reduce((x, y) => x + y[1], 0);
+              set({ pct: Math.round((l / t) * 100) });
+            }
+          },
+        });
+        set({ state: 'warming', pct: 100 });
+        await p(new Float32Array(16000)); // first run compiles the GPU code: do it now, not on your first command
+        try { localStorage.setItem('jarvis.whisperReady', st.model); } catch {}
+        set({ state: 'ready' });
+        return p;
+      })().catch((e) => { asr = null; set({ state: 'error', err: String((e && e.message) || e).slice(0, 120) }); throw e; });
       return asr;
     }
     async function toPcm(blob) {
       const AC = window.AudioContext || window.webkitAudioContext;
       const ac = new AC({ sampleRate: 16000 });
-      try { const buf = await ac.decodeAudioData(await blob.arrayBuffer()); return buf.getChannelData(0); } finally { ac.close && ac.close(); }
+      try { const buf = await ac.decodeAudioData(await blob.arrayBuffer()); return buf.getChannelData(0); } finally { if (ac.close) ac.close(); }
     }
     async function local(blob) {
-      const run = await loadLocal();
-      const out = await run(await toPcm(blob), { language: 'english', task: 'transcribe' });
-      return (out && out.text || '').trim();
+      const run = await load();
+      const out = await run(await toPcm(blob));
+      return ((out && out.text) || '').trim();
     }
-    // warm the model up in the background so the first command isn't slow
-    const warm = () => { if (on() && !key()) loadLocal()?.catch(() => {}); };
-    ['click', 'touchend', 'keydown'].forEach((ev) => document.addEventListener(ev, () => setTimeout(warm, 1500), { once: true }));
-
-    async function transcribe(blob) {
-      if (!blob || blob.size < 1500) return null;
-      if (key().length < 20) {
-        // don't keep you waiting forever on a slow phone: give it 7 s, then use the browser's words
-        return Promise.race([local(blob), new Promise((_, no) => setTimeout(() => no(new Error('slow')), 7000))]);
-      }
+    async function groq(blob) {
       const ext = /mp4|aac|m4a/.test(blob.type) ? 'm4a' : /ogg/.test(blob.type) ? 'ogg' : 'webm';
       const fd = new FormData();
       fd.append('file', blob, 'speech.' + ext); fd.append('model', 'whisper-large-v3-turbo');
@@ -170,12 +187,28 @@ const Voice = (() => {
       if (!r.ok) throw new Error('whisper ' + r.status);
       return ((await r.json()).text || '').trim();
     }
-    // the better transcript, or the browser's words if Whisper isn't available / heard nothing real
-    async function finish(fallback) {
-      const b = await stop(); release();
-      try { const t = await transcribe(b); return t && !JUNK.test(t) ? t : fallback; } catch { return fallback; }
+    async function transcribe(blob) {
+      if (!blob || blob.size < 1500) return null;
+      if (key().length >= 20) return groq(blob);
+      if (st.state !== 'ready') { load().catch(() => {}); return null; } // still downloading: use the browser's words this time
+      return Promise.race([local(blob), new Promise((_, no) => setTimeout(() => no(new Error('slow')), 6000))]);
     }
-    return { on, start, finish, cancel, recording: () => !!mr };
+    // is the browser's text good enough to answer right now?
+    function sure(text, conf) {
+      if (!text || mode() === 'whisper') return false;
+      if (conf >= 0.8) return true;
+      try { return !!(judge && judge(text) >= 6); } catch { return false; }
+    }
+    // pick the words: instant if the browser is sure, otherwise Whisper (falls back to the browser's words)
+    async function finish(fallback, conf = 0) {
+      if (sure(fallback, conf)) { cancel(); return fallback; }
+      const b = await stop(); release();
+      try { const t = await transcribe(b); return t && !JUNK.test(t) ? t.replace(/^[\s.,]+|[\s.]+$/g, '') : fallback; } catch { return fallback; }
+    }
+    // get the model ready in the background on the first tap
+    const warm = () => { if (on() && !key()) load().catch(() => {}); };
+    ['click', 'touchend', 'keydown'].forEach((ev) => document.addEventListener(ev, () => setTimeout(warm, 1500), { once: true }));
+    return { on, start, finish, cancel, load, recording: () => !!mr, status: () => ({ ...st, saved: savedFlag() }), onStatus: (f) => subs.push(f), setJudge: (f) => { judge = f; } };
   })();
 
   function stopRec() { if (rec) { try { rec.onend = null; rec.abort(); } catch {} } rec = null; recMode = null; }
@@ -188,12 +221,12 @@ const Voice = (() => {
     stopRec();
     onceHandlers = h;
     rec = makeRec('once'); recMode = 'once';
-    let finalText = '', finalAlts = [];
+    let finalText = '', finalAlts = [], finalConf = 1;
     rec.onstart = () => { h.onState(true); emit('listening'); Ear.start(); };
     rec.onresult = (e) => {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) { finalText += e.results[i][0].transcript; finalAlts.push(Array.from(e.results[i]).map((a) => a.transcript)); } else interim += e.results[i][0].transcript;
+        if (e.results[i].isFinal) { finalText += e.results[i][0].transcript; finalConf = Math.min(finalConf, e.results[i][0].confidence || 0); finalAlts.push(Array.from(e.results[i]).map((a) => a.transcript)); } else interim += e.results[i][0].transcript;
       }
       h.onInterim((finalText + interim).trim());
     };
@@ -203,7 +236,7 @@ const Voice = (() => {
       h.onState(false); emit('idle');
       const heard = finalText.trim();
       // Whisper also gets a go when the browser heard nothing — that's usually quiet talking
-      const text = Ear.recording() ? await Ear.finish(heard) : heard;
+      const text = Ear.recording() ? await Ear.finish(heard, heard ? finalConf : 0) : heard;
       // one spoken chunk → offer every guess; several chunks → just the joined best text
       if (text) h.onFinal(text, text === heard && finalAlts.length === 1 ? finalAlts[0].map((x) => x.trim()).filter(Boolean) : null);
       else if (!heard) h.onError('I didn’t hear anything.');
@@ -243,7 +276,8 @@ const Voice = (() => {
           continue;
         }
         const alts = Array.from(res).map((a) => a.transcript.trim()).filter(Boolean);
-        const send = (t) => { if (!Ear.recording()) return h.onCommand(t, alts); Ear.finish(t).then((w) => { w = w || t; if (w !== t && !WAKE_RE.test(w)) w = 'Jarvis, ' + w; h.onCommand(w, w === t ? alts : [w]); }); };
+        const conf = res[0].confidence || 0;
+        const send = (t) => { if (!Ear.recording()) return h.onCommand(t, alts); Ear.finish(t, conf).then((w) => { w = w || t; if (w !== t && !WAKE_RE.test(w)) w = 'Jarvis, ' + w; h.onCommand(w, w === t ? alts : [w]); }); };
         if (awaitingCommand) { endAwait(); if (text) send(text); else Ear.cancel(); continue; }
         const m = text.match(WAKE_RE);
         if (!m) { Ear.cancel(); continue; }
@@ -284,6 +318,7 @@ const Voice = (() => {
     voices: () => { loadVoices(); return voices; },
     voiceName: () => (current() ? current().name : 'default'),
     canListen: !!Rec,
+    ear: Ear,
     canSpeak: !!synth,
     isSpeaking: () => speaking,
   };

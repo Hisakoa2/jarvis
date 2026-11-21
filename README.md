@@ -190,8 +190,8 @@ Notes:
 - **Practice trades.** The cloud trader also practice-trades every decent setup it doesn't take (up to one per direction per hour) and learns from how they would have ended, so it learns many times a session instead of once a day. It only fully blocks a pattern once practice trades prove it's bad (8+ trades, under 25% winners).
 - **Loss reviews.** Every closed trade gets a "Why it lost" / "What worked" note on the calendar. 3 hours after a stop-out it checks whether price hit the target anyway (stop too tight).
 - Ask **"what have you learned?"** or **"your record"** to see what's working and what it's avoiding.
-- **Better ears.** The browser still listens for "JARVIS" and when you stop talking, but your words go through Whisper running on your own device: free, no key, no account. The model downloads once (~40 MB on phone, ~75 MB on PC) and stays cached. If it can't load or takes over 7 seconds, JARVIS uses the old browser recognition.
-- **2070 look.** A live 3D holographic globe behind the HUD, floating glass panels that tilt in 3D under the mouse, gyroscope rings around the core, thin clean type.
+- **Better ears.** Smart listening: if the browser clearly heard you, JARVIS answers instantly. If it's unsure or missed quiet talk, your words go through Whisper running on your own device (free, no key). On a PC with a graphics card it runs on the GPU and takes well under a second; phones use a smaller model. Settings > Voice shows whether Whisper is downloaded and ready, and lets you pick Smart / Always Whisper / Browser only.
+- **2070 look.** A real 3D WebGL core with bloom lighting: plasma energy sphere in a glass shell, lattice cage, gyroscope rings with light running round them, and a particle halo. Cyan when idle, green when listening, violet and pulsing when speaking. Glass panels tilt in 3D. The hands-free button glows green when it's on.
 - Test: `node tools/learn-test.js`.
 
 ### New in v21
