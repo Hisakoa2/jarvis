@@ -34,7 +34,7 @@
       <circle class="c-core" cx="100" cy="100" r="13"/>
     </svg>`;
   }
-  $('bootCore').innerHTML = coreSVG(240);
+  // v22.5: the boot shows only the 3D core (no old flat core underneath)
   $('ambCore').innerHTML = coreSVG(320);
   $('headerCore').innerHTML = coreSVG(40);
 
