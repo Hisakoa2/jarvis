@@ -1001,7 +1001,7 @@
     Voice.ear.setJudge((t) => Brain.score(t, ctx()));
     const earShow = (s) => {
       const pill = $('earPill'), info = $('earInfo'), bar = $('earBar');
-      const W = { off: s.saved ? 'DOWNLOADED' : 'NOT LOADED', downloading: `DOWNLOADING ${s.pct}%`, warming: 'WARMING UP', ready: 'READY', error: 'ERROR' };
+      const W = { crashed: 'OFF (CRASHED)', off: s.saved ? 'DOWNLOADED' : 'NOT LOADED', downloading: `DOWNLOADING ${s.pct}%`, warming: 'WARMING UP', ready: 'READY', error: 'ERROR' };
       pill.textContent = W[s.state] || '—';
       pill.className = 'ear-pill ' + s.state + (s.saved && s.state === 'off' ? ' saved' : '');
       bar.style.width = (s.state === 'ready' || s.state === 'warming' ? 100 : s.state === 'downloading' ? s.pct : s.saved ? 100 : 0) + '%';
@@ -1009,12 +1009,14 @@
         : s.state === 'downloading' ? `Downloading the ${s.model || ''} model to this device${s.device ? ` (runs on your ${s.device})` : ''}. One time only.`
         : s.state === 'warming' ? 'Downloaded. Getting it ready…'
         : s.state === 'error' ? `Couldn't load Whisper: ${s.err}. JARVIS uses the browser's listening for now.`
+        : s.state === 'crashed' ? 'The app closed while Whisper was loading last time, so it stays off on this device. JARVIS uses the browser\'s listening. You can try again, but it may be too heavy for this phone.'
+        : Voice.ear.phone && !s.saved ? 'Optional on phones: it uses a lot of memory and can make older iPhones close the app. Tap below to try it; JARVIS works fine without it.'
         : s.saved ? 'Downloaded on this device. It loads automatically after your first tap.' : 'Runs on this device. Free, no key. Downloads once (about 40 to 80 MB).';
       $('earLoad').hidden = s.state === 'ready' || s.state === 'downloading' || s.state === 'warming' || Voice.prefs.ear === 'browser';
     };
     Voice.ear.onStatus(earShow); earShow(Voice.ear.status());
     $('setEar').value = Voice.prefs.ear || 'smart';
-    $('setEar').addEventListener('change', (e) => { Voice.setPref('ear', e.target.value); earShow(Voice.ear.status()); if (e.target.value !== 'browser') Voice.ear.load().catch(() => {}); });
+    $('setEar').addEventListener('change', (e) => { Voice.setPref('ear', e.target.value); earShow(Voice.ear.status()); if (e.target.value !== 'browser' && !Voice.ear.phone) Voice.ear.load().catch(() => {}); });
     $('earLoad').addEventListener('click', () => Voice.ear.load().catch(() => {}));
   }
   $('setVoiceSel').addEventListener('change', (e) => { Voice.setPref('voiceURI', e.target.value); });

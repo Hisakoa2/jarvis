@@ -22,7 +22,15 @@
   <link rel="stylesheet" href="future.css">
   <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
 </head>
-<body>
+<body class="core-wait">
+  <script>
+    // v22.4: hide the old flat core while the 3D one loads; show it only if 3D never arrives
+    (function () {
+      var off = false; try { off = localStorage.getItem('jarvis.core3dOff') === '1'; } catch (e) {}
+      if (off) document.body.classList.remove('core-wait');
+      else setTimeout(function () { if (!document.body.classList.contains('core3d')) document.body.classList.remove('core-wait'); }, 3500);
+    })();
+  </script>
   <div class="scanlines" aria-hidden="true"></div>
 
   <!-- BOOT SEQUENCE -->
@@ -62,7 +70,7 @@
       <button type="button" id="headerCore" class="header-core" aria-label="Talk to JARVIS" title="Talk to JARVIS"></button>
       <div>
         <div class="brand-name">J.A.R.V.I.S.</div>
-        <div class="brand-sub">PERSONAL COMMAND CENTER · <span class="ver">v22.3</span></div>
+        <div class="brand-sub">PERSONAL COMMAND CENTER · <span class="ver">v22.4</span></div>
       </div>
     </div>
     <div class="status">

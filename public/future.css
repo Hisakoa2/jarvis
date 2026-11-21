@@ -209,3 +209,6 @@ body:not(.core3d) .hero-core { display: none; }
   .panel { background: linear-gradient(180deg, rgba(14, 26, 44, 0.55), rgba(6, 12, 24, 0.5)) !important; transform: none !important; will-change: auto; }
   .header-core, .header-core::before, .header-core::after { animation-duration: 6s !important; }
 }
+
+/* no flash of the old core while the 3D core loads */
+body.core-wait .boot .core-svg { visibility: hidden; }

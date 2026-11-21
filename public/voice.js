@@ -115,7 +115,9 @@ const Voice = (() => {
     const set = (o) => { Object.assign(st, o); subs.forEach((f) => { try { f({ ...st }); } catch {} }); };
     const key = () => { try { return (localStorage.getItem('jarvis.groqKey') || '').trim(); } catch { return ''; } };
     const mode = () => prefs.ear || 'smart'; // smart | whisper | browser
-    const on = () => mode() !== 'browser' && typeof MediaRecorder !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const PHONE = /iPhone|iPad|Android/i.test(navigator.userAgent) || innerWidth < 760;
+    // only record when the recording will actually be used (Groq key, or Whisper loaded and ready)
+    const on = () => mode() !== 'browser' && (key().length >= 20 || st.state === 'ready') && typeof MediaRecorder !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     async function start() {
       if (!on() || mr) return;
       try {
@@ -138,15 +140,18 @@ const Voice = (() => {
 
     // ---- on-device Whisper (transformers.js; GPU when available) ----
     let asr = null;
-    const savedFlag = () => { try { return localStorage.getItem('jarvis.whisperReady'); } catch { return null; } };
+    const savedFlagRaw = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+    const savedFlag = () => savedFlagRaw('jarvis.whisperReady');
+    const flag = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} };
     function load() {
       if (asr) return asr;
+      flag('jarvis.whisperBusy', '1'); // crash guard: cleared when loading finishes either way
       set({ state: 'downloading', pct: 0, err: '' });
       const files = {};
       asr = (async () => {
         const T = await import('https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2');
         let gpu = false;
-        try { gpu = !!(navigator.gpu && (await navigator.gpu.requestAdapter())); } catch {}
+        try { gpu = !PHONE && !!(navigator.gpu && (await navigator.gpu.requestAdapter())); } catch {} // phones: always the small model
         const model = gpu ? 'onnx-community/whisper-base.en' : 'onnx-community/whisper-tiny.en';
         set({ device: gpu ? 'graphics card' : 'processor', model: gpu ? 'base' : 'tiny' });
         const p = await T.pipeline('automatic-speech-recognition', model, {
@@ -163,9 +168,10 @@ const Voice = (() => {
         set({ state: 'warming', pct: 100 });
         await p(new Float32Array(16000)); // first run compiles the GPU code: do it now, not on your first command
         try { localStorage.setItem('jarvis.whisperReady', st.model); } catch {}
+        flag('jarvis.whisperBusy', null);
         set({ state: 'ready' });
         return p;
-      })().catch((e) => { asr = null; set({ state: 'error', err: String((e && e.message) || e).slice(0, 120) }); throw e; });
+      })().catch((e) => { asr = null; flag('jarvis.whisperBusy', null); set({ state: 'error', err: String((e && e.message) || e).slice(0, 120) }); throw e; });
       return asr;
     }
     async function toPcm(blob) {
@@ -205,10 +211,18 @@ const Voice = (() => {
       const b = await stop(); release();
       try { const t = await transcribe(b); return t && !JUNK.test(t) ? t.replace(/^[\s.,]+|[\s.]+$/g, '') : fallback; } catch { return fallback; }
     }
-    // get the model ready in the background on the first tap
-    const warm = () => { if (on() && !key()) load().catch(() => {}); };
+    // crash guard: if the app died while Whisper was loading last time, don't auto-load it again on this device
+    if (savedFlagRaw('jarvis.whisperBusy') === '1') { flag('jarvis.whisperBusy', null); flag('jarvis.whisperCrashed', '1'); }
+    if (savedFlagRaw('jarvis.whisperCrashed') === '1') st.state = 'crashed';
+    // get the model ready in the background on the first tap. Phones: only if you turned it on before and it never crashed.
+    const auto = () => mode() !== 'browser' && !key() && st.state !== 'crashed' && (!PHONE || !!savedFlag());
+    const warm = () => { if (auto()) load().catch(() => {}); };
     ['click', 'touchend', 'keydown'].forEach((ev) => document.addEventListener(ev, () => setTimeout(warm, 1500), { once: true }));
-    return { on, start, finish, cancel, load, recording: () => !!mr, status: () => ({ ...st, saved: savedFlag() }), onStatus: (f) => subs.push(f), setJudge: (f) => { judge = f; } };
+    // manual load from Settings also clears an old crash mark (you chose to try again)
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flag('jarvis.whisperBusy', null); else if (st.state === 'downloading' || st.state === 'warming') flag('jarvis.whisperBusy', '1'); });
+    addEventListener('pagehide', () => flag('jarvis.whisperBusy', null));
+    const manualLoad = () => { flag('jarvis.whisperCrashed', null); if (st.state === 'crashed') st.state = 'off'; return load(); };
+    return { on, start, finish, cancel, load: manualLoad, phone: PHONE, recording: () => !!mr, status: () => ({ ...st, saved: savedFlag() }), onStatus: (f) => subs.push(f), setJudge: (f) => { judge = f; } };
   })();
 
   function stopRec() { if (rec) { try { rec.onend = null; rec.abort(); } catch {} } rec = null; recMode = null; }

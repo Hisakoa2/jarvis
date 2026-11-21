@@ -11,6 +11,15 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const phone = innerWidth < 760 || /iPhone|Android/i.test(navigator.userAgent);
 
+// crash guard: if the app died while the 3D core was running last time, never run it on this device again
+const LS = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+if (LS.get('jarvis.core3dBusy') === '1') LS.set('jarvis.core3dOff', '1');
+const bootGone = () => { const b = document.getElementById('boot'); return !b || b.hidden || b.classList.contains('done'); };
+if (LS.get('jarvis.core3dOff') === '1' || bootGone()) { LS.set('jarvis.core3dBusy', null); document.body.classList.remove('core-wait'); throw new Error('3D core skipped'); }
+LS.set('jarvis.core3dBusy', '1');
+// leaving the app normally (switching away / closing) isn't a crash: only an abrupt death leaves the mark
+document.addEventListener('visibilitychange', () => { if (document.hidden) LS.set('jarvis.core3dBusy', null); else if (!dead) LS.set('jarvis.core3dBusy', '1'); });
+addEventListener('pagehide', () => LS.set('jarvis.core3dBusy', null));
 let renderer;
 try { renderer = new THREE.WebGLRenderer({ antialias: !phone, alpha: true, powerPreference: 'high-performance' }); }
 catch { throw new Error('no webgl'); }
@@ -153,13 +162,14 @@ function layout() {
   // boot is over: shut the 3D core down completely so it costs nothing (phones were crashing with it running)
   shutdown();
 }
-let dead = false;
+var dead = false;
 function shutdown() {
   if (dead) return; dead = true; running = false;
   scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => m.dispose()); });
   composer.passes.forEach((p) => p.dispose && p.dispose());
   renderer.dispose(); try { renderer.forceContextLoss(); } catch {}
   cv.remove();
+  LS.set('jarvis.core3dBusy', null);
   document.body.classList.remove('core3d'); // ambient mode falls back to the light flat core
 }
 
@@ -205,5 +215,6 @@ function frame() {
 }
 document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) { clock.getDelta(); requestAnimationFrame(frame); } });
 document.body.classList.add('core3d');
+document.body.classList.remove('core-wait');
 layout(); core.position.set(target.x, target.y, 0); core.scale.setScalar(target.s); // start at the right size, no zoom-in jump
 requestAnimationFrame(frame);
