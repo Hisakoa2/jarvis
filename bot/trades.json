@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795231142026,
+ "heartbeat": 1795249844096,
  "check": {
-  "at": 1795231142026,
+  "at": 1795249844096,
   "ok": false,
   "why": "could not reach OANDA",
   "err": "Insufficient authorization to perform request. — check the API key, and that Practice/Live matches the account"
@@ -80,6 +80,16 @@
    "reason": "tp",
    "closedAt": 1795102200000,
    "result": 34.52
+  }
+ },
+ "learn": {
+  "v": 1,
+  "tags": {},
+  "shadows": [],
+  "log": [],
+  "seen": {
+   "real": 0,
+   "shadow": 0
   }
  }
 }
