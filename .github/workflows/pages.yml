@@ -40,5 +40,8 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public
+      # GitHub sometimes needs a moment before the uploaded site is visible to the deploy step
+      - name: Let the upload register
+        run: sleep 20
       - id: deployment
         uses: actions/deploy-pages@v4
