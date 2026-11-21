@@ -2,6 +2,9 @@
 // Plain canvas (no libraries), pauses when the app is hidden, calmer with "reduce motion" on.
 (() => {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // phones: no animated background at all (it fought with the glass blur and drained battery / crashed)
+  const phone = innerWidth < 760 || /iPhone|iPad|Android/i.test(navigator.userAgent);
+  if (!phone) {
   const cv = document.createElement('canvas');
   cv.id = 'holo'; cv.setAttribute('aria-hidden', 'true');
   document.body.prepend(cv);
@@ -16,7 +19,7 @@
   size(); addEventListener('resize', size);
 
   // points on a sphere (golden spiral) = the globe; a few orbit rings; loose dust further out
-  const N = innerWidth < 700 ? 420 : 760;
+  const N = 480;
   const globe = [];
   for (let i = 0; i < N; i++) {
     const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963;
@@ -37,8 +40,10 @@
     return [cx + x * R * f, cy + y * R * f, f];
   }
   let t = 0, last = performance.now(), running = true;
+  let skip = false;
   function frame(now) {
     if (!running) return;
+    skip = !skip; if (skip) { requestAnimationFrame(frame); return; } // ~30 fps is plenty for a background
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     t += dt * (reduce ? 0.15 : 1);
     px += (tx - px) * 0.04; py += (ty - py) * 0.04;
@@ -99,6 +104,7 @@
   requestAnimationFrame(frame);
   document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) { last = performance.now(); requestAnimationFrame(frame); } });
 
+  }
   // panels tilt toward the pointer in 3D (mouse / trackpad only — touch scrolling stays normal)
   if (matchMedia('(pointer: fine)').matches && !reduce) {
     let cur = null;

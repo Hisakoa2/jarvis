@@ -31,7 +31,7 @@ main.grid { perspective: 1600px; }
   position: relative;
   background:
     radial-gradient(600px circle at var(--mx, 50%) var(--my, 0%), rgba(92, 236, 255, 0.07), transparent 45%),
-    linear-gradient(180deg, rgba(14, 24, 40, 0.40), rgba(6, 10, 20, 0.34)) !important;
+    linear-gradient(180deg, rgba(14, 24, 40, 0.28), rgba(6, 10, 20, 0.22)) !important;
   border: 0 !important;
   border-radius: var(--r) !important;
   backdrop-filter: blur(10px) saturate(160%);
@@ -202,3 +202,10 @@ body.v-speaking .header-core { filter: hue-rotate(60deg); animation-duration: 0.
 .hero-ver { position: absolute; left: 0; right: 0; bottom: 4px; text-align: center; font-family: var(--disp); font-weight: 300; font-size: 10px; letter-spacing: 0.5em; color: rgba(200, 235, 255, 0.45); }
 body:not(.core3d) .hero-core { display: none; }
 .brand-sub .ver { color: var(--cyan); opacity: 1; }
+
+/* phones: glass without live blur (blur over moving content is what made iPhones lag) */
+@media (max-width: 760px), (hover: none) {
+  .panel, .topbar, .cmd-form, dialog { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  .panel { background: linear-gradient(180deg, rgba(14, 26, 44, 0.55), rgba(6, 12, 24, 0.5)) !important; transform: none !important; will-change: auto; }
+  .header-core, .header-core::before, .header-core::after { animation-duration: 6s !important; }
+}

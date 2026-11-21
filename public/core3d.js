@@ -17,7 +17,7 @@ catch { throw new Error('no webgl'); }
 const cv = renderer.domElement;
 cv.id = 'core3d'; cv.setAttribute('aria-hidden', 'true');
 document.body.appendChild(cv);
-renderer.setPixelRatio(Math.min(devicePixelRatio || 1, phone ? 1.25 : 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, phone ? 1 : 1.5));
 renderer.setClearColor(0x000000, 0);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
@@ -43,7 +43,7 @@ vec3 p0=vec3(a0.xy,h.x);vec3 p1=vec3(a0.zw,h.y);vec3 p2=vec3(a1.xy,h.z);vec3 p3=
 vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
 vec4 m=max(.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.);m=m*m;return 42.*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));}`;
 const plasma = new THREE.Mesh(
-  new THREE.SphereGeometry(1, phone ? 64 : 128, phone ? 64 : 128),
+  new THREE.SphereGeometry(1, phone ? 40 : 96, phone ? 40 : 96),
   new THREE.ShaderMaterial({
     uniforms: uni, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
     vertexShader: `uniform float uTime; uniform float uPulse; varying vec3 vN; varying vec3 vP; varying float vD; ${NOISE}
@@ -103,7 +103,7 @@ const rings = [];
 });
 
 // ---- 5. particle halo ----
-const PN = phone ? 1400 : 3200;
+const PN = phone ? 700 : 2400;
 const pg = new THREE.BufferGeometry(), pos = new Float32Array(PN * 3), seed = new Float32Array(PN);
 for (let i = 0; i < PN; i++) {
   const r = 1.7 + Math.pow(Math.random(), 2) * 2.6, th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
@@ -135,7 +135,7 @@ let W = 0, H = 0;
 function resize() {
   W = innerWidth; H = innerHeight;
   renderer.setSize(W, H, false); composer.setSize(W, H);
-  bloom.resolution.set(W / (phone ? 3 : 2), H / (phone ? 3 : 2));
+  bloom.resolution.set(W / (phone ? 4 : 2), H / (phone ? 4 : 2));
   camera.aspect = W / H; camera.updateProjectionMatrix();
 }
 resize(); addEventListener('resize', resize);
@@ -150,13 +150,17 @@ const target = { x: 0, y: 0, s: 1, front: false };
 function layout() {
   const r = visible('bootCore') || visible('ambCore');
   if (r) { Object.assign(target, place(r.left + r.width / 2, r.top + r.height / 2, Math.max(r.width, r.height) * 0.8), { front: true }); return; }
-  // its own clear space at the top of the dashboard (scrolls with the page)
-  const hero = document.getElementById('heroCore'), hr = hero && hero.getBoundingClientRect();
-  if (hr && hr.width && hr.bottom > -hr.height) { Object.assign(target, place(hr.left + hr.width / 2, hr.top + hr.height / 2, hr.height * 1.35), { front: false, hero: true }); return; }
-  target.hero = false;
-  // behind the HUD: right side on PC, top-centre on phones
-  const t = phone ? place(W / 2, H * 0.3, W * 1.25) : place(W * 0.74, H * 0.46, Math.min(W, H) * 1.05);
-  Object.assign(target, t, { front: false });
+  // boot is over: shut the 3D core down completely so it costs nothing (phones were crashing with it running)
+  shutdown();
+}
+let dead = false;
+function shutdown() {
+  if (dead) return; dead = true; running = false;
+  scene.traverse((o) => { if (o.geometry) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach((m) => m.dispose()); });
+  composer.passes.forEach((p) => p.dispose && p.dispose());
+  renderer.dispose(); try { renderer.forceContextLoss(); } catch {}
+  cv.remove();
+  document.body.classList.remove('core3d'); // ambient mode falls back to the light flat core
 }
 
 // ---- colour by voice state ----
@@ -173,11 +177,12 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05) * (reduce ? 0.25 : 1);
   t += dt; uni.uTime.value = t;
   layout();
+  if (dead) return;
   const k = 1 - Math.pow(0.002, dt);
   core.position.x += (target.x - core.position.x) * k; core.position.y += (target.y - core.position.y) * k;
   const sc = core.scale.x + (target.s - core.scale.x) * k; core.scale.setScalar(sc);
   cv.classList.toggle('front', target.front);
-  cv.style.opacity = target.front || target.hero ? '1' : (phone ? '0.4' : '0.6');
+  
 
   const s = state();
   uni.uColor.value.lerp(COL[s], 1 - Math.pow(0.02, dt));
