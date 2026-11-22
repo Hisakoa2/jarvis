@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795380030463,
+ "heartbeat": 1795383343585,
  "check": {
-  "at": 1795380030463,
+  "at": 1795383343585,
   "ok": false,
   "why": "no live price"
  },
