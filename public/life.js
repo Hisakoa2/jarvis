@@ -1136,7 +1136,7 @@ const Life = (() => {
     if (/\bsubscriptions?\b|\bsubs\b|\bmy bills\b|\bbills?\b.*\b(due|coming|next|this week)\b|\b(netflix|spotify|hulu|disney plus|youtube premium|apple music|amazon prime|xbox game pass|ps plus|tradingview|chatgpt)\b|\b(every|a|per) (month|year|week)\b.*\d|\d.*\b(a|per|every) (month|year|week)\b|\bmonthly\b.*\d|\b(rent|insurance|car payment|phone bill|internet bill|electric bill)\b.*\b(due|is|costs?|\d)/.test(t) && !/\b(spent|budget|budgets)\b/.test(t) && !/\b(gold|trade|bias|water|glass|workout|habit|remind)\b/.test(t)) set('subs', 9.65);
     if (/\bhow much (did|have) i (spend|spent)\b|\bmy (spending|expenses)\b|\bmoney tracker\b|\bspending (this|today|last)\b|\bundo (the )?last expense\b/.test(t)) set('money', 9.5);
     // to-do
-    if (/(?<!\b(?:going|gonna|want|have|got|need|supposed|trying|about|what|you|it|i|we) )\b(to ?do|todo|todos)\b|\b(on|to|from|off) my list\b|\bmy list\b|\bwhat('?s| is) on (my|the) list\b|\bwhat do i (need|have) to do\b|\b(check|cross|tick) off\b/.test(t) && !/\bremind\b/.test(t)) set('todo', 9.3);
+    if (/(?<!\b(?:going|gonna|want|have|got|need|supposed|trying|about|what|you|it|i|we) )\b(to ?do|todo|todos)\b|\b(on|to|from|off) my list\b|\bmy list\b|\bwhat('?s| is) on (my|the) list\b|\bwhat do i (need|have) to do\b|\b(check|cross|tick) off\b/.test(t) && !/\bremind\b/.test(t) && !/\b(productive|something to do|activity to do)\b/.test(t)) set('todo', 9.3);
     if (/^\s*(add|put)\s+.+\s+(to|on)\s+(my|the)\s+(list|to ?do)/.test(t)) set('todo', 9.9);
     // countdowns
     if (/\bcount ?downs?\b/.test(t) && !/\btimer\b/.test(t)) set('countdown', 9.3);

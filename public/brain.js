@@ -126,7 +126,7 @@ const Brain = (() => {
   const COMPILED = Object.entries(CONCEPTS).map(([k, list]) => [k, new RegExp(`\\b(?:${list.join('|')})\\b`)]);
   const VOCAB = new Set(Object.values(CONCEPTS).flat().flatMap((p) => p.split(' ')).filter((w) => /^[a-z]{3,}$/.test(w)));
   // trade-coach words the spell-fixer must leave alone ("bring" was turning into "being")
-  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses early premature dumb stupid mistake avoid skip exit exiting closing cash bank winner winners letting touch lock secure thinking closest nearest trouble danger leaning hunting rundown recap entries setups xau xauusd gains'.split(' ').forEach((w) => VOCAB.add(w));
+  'bring bringing hold holding ride riding trail trailing tighten tightening widen wider loosen extend extending raise raising lower lowering push pull shrink reduce increase shorten closer further farther partial partials scale breakeven contracts contract lots units ounces drawdown runner risk risking cool okay advise against calendar wins losses early premature dumb stupid mistake avoid skip exit exiting closing cash bank winner winners letting touch lock secure thinking closest nearest trouble danger leaning hunting rundown recap entries setups xau xauusd gains stretch stretches stretching warmup warmups productive useful'.split(' ').forEach((w) => VOCAB.add(w));
   const STOP = new Set('water glass glasses drank drink drinking bottle bottles hydrate trade trades trading tonight night watch watching movie movies film films show shows book books read reading novel timer timers minute minutes seconds hour hours dollar dollars bucks spent spend spending food eat hungry dinner lunch breakfast snack habit habits streak streaks list todo todos task tasks check checked countdown countdowns days weeks christmas birthday trip remember forget locker vibe vibes wear jacket coat hoodie outfit outside feeling feel feels sleep slept bed bedtime wake woke awake morning routine bored tired great good okay mood moods partial partials contracts contract units half quarter challenge best worst biggest record stats your yours jarvis milk eggs trash money expense expenses quote motivate motivation the a an is it of for to me my in on at what where when how does do till until left today now right show tell give please much long current currently get you can could would i am its are was be this that there here and or with your we us our they them good bad not about any some just like really so okay ok want need know think yeah yes no move moved even break breakeven close cancel order orders pending position positions unit units contract contracts lots balance reset trail tighten adjust bump exit flat flatten change changed last week weekly weeks report recap stats bias bullish bearish stay flip until till trend journal remind reminder reminders challenge workout plan trading weather dishes home gym estates estate'.split(' '));
 
   function lev(a, b) {
@@ -1707,6 +1707,69 @@ const Brain = (() => {
     return reply(`<b>${w.name}</b>${k.t}:<ul>${w.items.map((i) => `<li>${i}</li>`).join('')}</ul><span class="dim">Warm up first, and drink water.</span>`,
       `How about ${lc(w.name)}${k.t}? ${w.items.slice(0, 3).join(', ')}, and more on screen. Warm up first, and drink water.`);
   }
+  // v23.2: real stretch and warm-up routines (they used to fall through to a random lifting day)
+  const STRETCHES = {
+    full: { name: 'Full-body stretch (10 min)', items: ['Neck rolls, 30s each way', 'Shoulder cross-body stretch, 30s each arm', 'Standing quad stretch, 30s each leg', 'Standing hamstring fold, 45s', 'Hip flexor lunge stretch, 30s each side', 'Cat-cow, 10 slow reps', "Child's pose, 60s", 'Lying spinal twist, 30s each side'] },
+    legs: { name: 'Lower-body stretch', items: ['Standing quad stretch, 30s each leg', 'Seated hamstring stretch, 45s each leg', 'Hip flexor lunge stretch, 45s each side', 'Pigeon pose, 45s each side', 'Butterfly stretch, 60s', 'Calf stretch on a wall, 30s each leg'] },
+    upper: { name: 'Upper-body stretch', items: ['Neck side stretch, 30s each side', 'Doorway chest stretch, 45s', 'Cross-body shoulder stretch, 30s each arm', 'Overhead triceps stretch, 30s each arm', 'Wrist stretch, 20s each way', 'Thread the needle, 30s each side'] },
+    back: { name: 'Back & posture stretch', items: ['Cat-cow, 10 slow reps', "Child's pose, 60s", 'Thread the needle, 30s each side', 'Knees-to-chest, 45s', 'Lying spinal twist, 30s each side', 'Cobra, 3 x 15s'] },
+    morning: { name: 'Morning wake-up stretch (5 min)', items: ['Big overhead reach, 5 deep breaths', 'Side bends, 5 each side', 'Standing forward fold, 30s', 'Hip circles, 10 each way', 'Cat-cow, 8 reps', 'Arm circles, 10 forward and 10 back'] },
+    night: { name: 'Before-bed stretch (8 min)', items: ["Child's pose, 60s", 'Knees-to-chest, 45s', 'Lying spinal twist, 45s each side', 'Figure-four stretch, 45s each side', 'Legs up the wall, 2 min', 'Slow breathing: 4 in, 6 out, 10 times'] },
+    desk: { name: 'Desk break stretch (3 min)', items: ['Chin tucks, 10 reps', 'Shoulder rolls, 10 back', 'Seated twist, 20s each side', 'Wrist stretch, 20s each way', 'Stand up, hands on lower back, lean back gently, 5 reps', 'Look far away for 20 seconds (eyes off the charts)'] },
+  };
+  const WARMUPS = {
+    general: { name: 'Full-body warm-up (6 min)', items: ['Jumping jacks, 60s', 'Arm circles, 10 forward and 10 back', 'Leg swings, 10 each leg, front-to-back and side-to-side', 'Bodyweight squats, 15', "World's greatest stretch, 5 each side", 'Inchworms, 6', 'High knees, 30s'] },
+    legs: { name: 'Leg day warm-up', items: ['Bike or brisk walk, 3 min', 'Leg swings, 10 each direction', 'Bodyweight squats, 15', 'Walking lunges, 10 each leg', 'Glute bridges, 15', 'Ramp-up sets: empty bar, then 50% and 70% of your working weight'] },
+    upper: { name: 'Upper-body warm-up', items: ['Arm circles, 15 each way', 'Band pull-aparts, 2 x 15', 'Shoulder dislocates with a band, 10', 'Scap push-ups, 10', 'Push-ups, 10 easy', 'Ramp-up sets: 50% then 70% of your first lift'] },
+    run: { name: 'Run warm-up', items: ['Brisk walk, 3 min', 'Leg swings, 10 each direction', 'Walking lunges, 8 each leg', 'High knees, 20s', 'Butt kicks, 20s', '2 x 20s strides at a quick pace'] },
+  };
+  const routineReply = (k, w, foot) => reply(`<b>${w.name}</b>${k.t}:<ul>${w.items.map((i) => `<li>${i}</li>`).join('')}</ul><span class="dim">${foot}</span>`,
+    `Here's a ${lc(w.name.replace(/\s*\(.*\)/, ''))}${k.t}. ${w.items.slice(0, 3).join(', ')}, and the rest is on screen.`);
+  function stretchA(k, text = '') {
+    const w = /\b(legs?|hamstrings?|quads?|hips?|glutes?|calves|calf|lower body)\b/.test(text) ? STRETCHES.legs
+      : /\b(back|spine|posture)\b/.test(text) ? STRETCHES.back
+      : /\b(arms?|shoulders?|chest|neck|upper body|wrists?)\b/.test(text) ? STRETCHES.upper
+      : /\b(desk|sitting|charts?|screen|computer)\b/.test(text) ? STRETCHES.desk
+      : /\b(morning|wake up|woke up)\b/.test(text) ? STRETCHES.morning
+      : /\b(bed|bedtime|night|sleep|tonight|relax)\b/.test(text) || k.hour >= 21 || k.hour < 4 ? STRETCHES.night
+      : k.hour < 10 ? STRETCHES.morning : STRETCHES.full;
+    return routineReply(k, w, 'Ease into each one and breathe. A stretch should never hurt.');
+  }
+  function warmupA(k, text = '') {
+    const w = /\b(run|running|jog|sprint)\b/.test(text) ? WARMUPS.run
+      : /\b(legs?|leg day|squats?|deadlifts?|lower body)\b/.test(text) ? WARMUPS.legs
+      : /\b(chest|bench|push|pull|back|arms?|shoulders?|upper body|biceps?|triceps?)\b/.test(text) ? WARMUPS.upper
+      : WARMUPS.general;
+    return routineReply(k, w, 'Keep it easy. You should feel warm, not tired.');
+  }
+  // v23.2: "give me something productive to do"
+  const PRODUCTIVE = [
+    ['Review your last 3 trades', 'Write one thing you did right and one thing to fix for each.', 'any'],
+    ['Mark your levels for tomorrow', 'PDH, PDL, the weekly open and the $50 rounds, so you are ready before the open.', 'any'],
+    ['Clean your room or desk for 15 minutes', 'Set a timer and stop when it rings.', 'day'],
+    ['Read 10 pages of a book', 'Trading, business or anything that teaches you something.', 'any'],
+    ['Plan tomorrow', 'Write down your top 3 tasks, in order.', 'eve'],
+    ['Do a quick workout', 'Say "give me a workout" and I will build one.', 'day'],
+    ['Go for a 20-minute walk', 'No scrolling. Think, or listen to something useful.', 'day'],
+    ['Learn one new skill for 25 minutes', 'Pick something you have been putting off, set a timer and focus.', 'any'],
+    ['Check your budget', 'Look at what you spent this week and cancel anything you do not use.', 'any'],
+    ['Back-test one setup', 'Scroll back on the 1H chart, find 10 times your setup showed up, and note how each one played out.', 'any'],
+    ['Clear your inbox and messages', 'Reply, delete or archive until it is empty.', 'any'],
+    ['Meal prep for tomorrow', 'Cook or pack something so you are not grabbing junk later.', 'eve'],
+    ['Drink a glass of water and stretch', 'Say "give me a stretch" for a quick routine.', 'any'],
+    ['Write in a journal for 10 minutes', 'What went well today, what did not, and what you will change.', 'eve'],
+    ['Knock out one chore you have been avoiding', 'Laundry, dishes, anything. Get it off your mind.', 'day'],
+  ];
+  function productiveA(k) {
+    if (k.hour >= 23 || k.hour < 5) return reply(`It's late${k.t}. The most productive thing right now is <b>sleep</b>. Think of tomorrow's top 3 tasks, then lights out.`,
+      `It's late${k.t}. The most productive thing right now is sleep. Think of tomorrow's top three tasks, then lights out.`);
+    const when = k.hour >= 18 ? 'eve' : 'day';
+    const pool = PRODUCTIVE.filter((x) => x[2] === 'any' || x[2] === when);
+    const main = pick('prod', pool);
+    const rest = pool.filter((x) => x !== main).sort(() => Math.random() - 0.5).slice(0, 2);
+    return reply(`<b>${main[0]}</b>${k.t}. ${main[1]}<div class="dim small" style="margin-top:6px">Or: ${rest.map((x) => x[0].toLowerCase()).join(' · ')}</div>`,
+      `${main[0]}${k.t}. ${main[1]}`);
+  }
 
   function dayPlanA(k) {
     const m = k.market, g = k.g, w = typeof Weather !== 'undefined' && Weather.cached();
@@ -2181,6 +2244,9 @@ const Brain = (() => {
     if (/\b(not|no|stopped|done|finished|off|away from|break from)\s+(?:with\s+)?(?:trading|the charts|charts)\b|\bday off\b|\bnot in the mood to trade\b|\b(?:dont|do not) (?:want|feel like) (?:to )?trad(?:e|ing)\b|\bwhat (?:else )?(?:can|should) i do (?:instead|besides trading|other than trading)\b/.test(text)) set('freetime', 8.4);
     if (/\b(workout|exercise|fitness|gym|training|push ups?|pushups?|squats?|lifting)\b/.test(text) && /\b(plan|program|split|schedule|weekly|week)\b/.test(text) && !any('SELL', 'BUY')) set('workoutPlan', 8.6);
     if (/\bchallenge\b/.test(text) && !/\b(trading|prop|funded|ftmo|account)\b/.test(text)) set('workoutChallenge', 8.6);
+    if (/\b(stretch|stretches|stretching|cool ?down|flexibility)\b/.test(text) && !any('SELL', 'BUY') && !/\b(price|range|gold|market|target|tp|stretched)\b/.test(text)) set('stretch', 8.8);
+    if (/\b(warm ?ups?|warming up)\b/.test(text) && !/\bwarm ?up first\b/.test(text)) set('warmup', 8.9);
+    if (/\bproductive\b|\bsomething (?:useful|to do)\b/.test(text) && !any('SELL', 'BUY')) set('productive', 8.7);
     if (any('WEATHER')) set('weather', 8.5);
     if (any('DAYPLAN') && !any('SELL', 'BUY', 'WEEKEND')) set('dayplan', 6.4);
     if (any('WORKOUT') && !any('SELL', 'BUY')) set('workout', /give|suggest|need|want|what|recommend|routine|plan/.test(text) || text.split(' ').length <= 3 ? 6.6 : 4);
@@ -2462,6 +2528,9 @@ const Brain = (() => {
       }
       case 'dayplan': return wrap(dayPlanA(k));
       case 'workout': return wrap(workoutA(k, (String(text) + ' ' + fixed).toLowerCase()));
+      case 'stretch': return wrap(stretchA(k, (String(text) + ' ' + fixed).toLowerCase()));
+      case 'warmup': return wrap(warmupA(k, (String(text) + ' ' + fixed).toLowerCase()));
+      case 'productive': return wrap(productiveA(k));
       case 'weekend': return wrap(weekendA(k));
       case 'size': return needGold(() => sizeA(fixed, k, raw, dirOf));
       case 'account': return needGold(() => accountA(k));
