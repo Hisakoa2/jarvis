@@ -1040,7 +1040,7 @@
   const bootTicker = setInterval(() => {
     if ($('boot').hidden) return clearInterval(bootTicker);
     const rows = (n) => Array.from({ length: n }, () => `${hex()} ${hex()} ${Math.random() > 0.8 ? 'OK ' : '.. '}${hex()}`).join('\n');
-    $('bootHexL').textContent = rows(6);
+    $('bootHexL').textContent = rows(innerWidth <= 520 ? 4 : 6);
     $('bootHexR').textContent = rows(6);
   }, 140);
   async function boot() {
