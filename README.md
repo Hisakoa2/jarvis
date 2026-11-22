@@ -185,6 +185,13 @@ Notes:
 - **iPhone:** if the mic gives an error, check Settings → Safari → Microphone, and Settings → General → Keyboard → Enable Dictation. Hands-free on iPhone may stop listening now and then. If it does, tap 🎧 or the core to wake it.
 - Hands-free and the mic need a secure (https) page, so use the GitHub Pages address on your phone, not the home Wi-Fi address.
 
+### New in v23
+- **Brand-new boot screen.** The old boots (flat core and the 3D sphere) are gone. JARVIS now boots with a HUD emblem whose rings lock into place one by one, a radar sweep, live diagnostics and a progress bar.
+- **New emblem** in the top-left corner, on the ambient screen, and as the home-screen icon.
+- **Color themes.** Settings → Color theme: Arc Blue, Mark Red, Matrix Green, Gold, Ultra Purple, Ember Orange, Ice White, or Auto (gold at dawn, blue by day, purple at sunset, red at night).
+- **Smoother on iPhone.** The 3D library is gone, every animation runs on the GPU, and phones get no fixed backgrounds, no live blur and lighter shadows.
+- To see the new home-screen icon on iPhone, remove JARVIS from the home screen and add it again (iOS keeps the old icon until then).
+
 ### New in v22
 - **JARVIS learns from every trade.** After each closed trade, its confidence in that kind of setup moves right away (trend agreement, room, late entry, session, buy/sell). Recent trades count more. Three losses in a row on a pattern makes it much pickier.
 - **Practice trades.** The cloud trader also practice-trades every decent setup it doesn't take (up to one per direction per hour) and learns from how they would have ended, so it learns many times a session instead of once a day. It only fully blocks a pattern once practice trades prove it's bad (8+ trades, under 25% winners).

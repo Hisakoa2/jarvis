@@ -16,27 +16,10 @@
   const fmtT = (ms, day) => Sessions.fmtTime(ms, TZ(), day);
   const cls = (b) => (b === 'Bullish' ? 'up' : b === 'Bearish' ? 'down' : 'warn');
 
-  // ---------- the core (shared SVG for boot, ambient, header) ----------
-  function coreSVG(size = 200) {
-    const segs = Array.from({ length: 12 }, (_, i) => {
-      const a0 = (i * 30 + 4) * Math.PI / 180, a1 = (i * 30 + 26) * Math.PI / 180, r = 78;
-      return `<path d="M${100 + r * Math.cos(a0)},${100 + r * Math.sin(a0)} A${r},${r} 0 0 1 ${100 + r * Math.cos(a1)},${100 + r * Math.sin(a1)}"/>`;
-    }).join('');
-    const hex = Array.from({ length: 6 }, (_, i) => { const a = (-90 + i * 60) * Math.PI / 180; return `${100 + 34 * Math.cos(a)},${100 + 34 * Math.sin(a)}`; }).join(' ');
-    return `<svg class="core-svg" viewBox="0 0 200 200" width="${size}" height="${size}" aria-hidden="true">
-      <circle class="c-outer" cx="100" cy="100" r="94"/>
-      <g class="c-ticks">${[0, 90, 180, 270].map((d) => `<line x1="100" y1="2" x2="100" y2="12" transform="rotate(${d} 100 100)"/>`).join('')}</g>
-      <g class="c-segs">${segs}</g>
-      <circle class="c-ring" cx="100" cy="100" r="60"/>
-      <circle class="c-ring2" cx="100" cy="100" r="48"/>
-      <polygon class="c-hex" points="${hex}"/>
-      <circle class="c-glow" cx="100" cy="100" r="26"/>
-      <circle class="c-core" cx="100" cy="100" r="13"/>
-    </svg>`;
-  }
-  // v22.5: the boot shows only the 3D core (no old flat core underneath)
-  $('ambCore').innerHTML = coreSVG(320);
-  $('headerCore').innerHTML = coreSVG(40);
+  // ---------- the v23 emblem (boot, ambient, header) ----------
+  Emblem.build($('bootCore'), { sweep: true });
+  Emblem.build($('ambCore'));
+  Emblem.build($('headerCore'), { mini: true });
 
   // voice state → body classes (core reacts everywhere)
   Voice.onState((s) => {
@@ -995,6 +978,8 @@
     $('paperMsg').textContent = `Paper account reset to $${n.toLocaleString()}.`;
   });
   $('setBoot').addEventListener('change', (e) => { prefs.boot = e.target.checked; savePrefs(); });
+  $('setTheme').value = Themes.choice();
+  $('setTheme').addEventListener('change', (e) => Themes.set(e.target.value));
   $('setHandsFree').addEventListener('change', (e) => setHandsFree(e.target.checked, true));
   // v22: Whisper status + listening mode
   if (Voice.ear) {
@@ -1035,15 +1020,33 @@
     line.className = 'boot-line';
     line.innerHTML = `<span>${label}</span><span class="dots"></span><span class="res">…</span>`;
     bootLog.appendChild(line);
+    $('bootStage').textContent = label;
     let res = 'ONLINE', ok = true;
     try { res = (await Promise.all([task(), wait(fast ? 0 : 260)]))[0] || 'ONLINE'; } catch (e) { res = 'FAULT'; ok = false; }
     line.querySelector('.res').textContent = res;
     line.classList.add(ok ? 'ok' : 'bad');
+    bootStep();
   }
+  // progress readout + scrolling diagnostics on the sides
+  const BOOT_STEPS = 9;
+  let bootDone = 0;
+  function bootStep() {
+    bootDone++;
+    const p = Math.min(1, bootDone / BOOT_STEPS);
+    $('bootBar').style.transform = `scaleX(${p})`;
+    $('bootPct').textContent = String(Math.round(p * 100)).padStart(3, '0') + '%';
+  }
+  const hex = () => Math.floor(Math.random() * 0xffff).toString(16).toUpperCase().padStart(4, '0');
+  const bootTicker = setInterval(() => {
+    if ($('boot').hidden) return clearInterval(bootTicker);
+    const rows = (n) => Array.from({ length: n }, () => `${hex()} ${hex()} ${Math.random() > 0.8 ? 'OK ' : '.. '}${hex()}`).join('\n');
+    $('bootHexL').textContent = rows(6);
+    $('bootHexR').textContent = rows(6);
+  }, 140);
   async function boot() {
     const fast = prefs.boot === false;
     document.body.classList.add('booting');
-    if (!fast) await wait(900); // core powers on
+    if (!fast) await wait(1300); // rings assemble
     await bootLine('CORE SYSTEMS', async () => 'ONLINE', fast);
     await bootLine('CONFIG', async () => { await loadConfig(); return `${config.projects.length} APPS`; }, fast);
     await bootLine('MARKET LINK', async () => { const g = await fetchGold(); if (!g) throw new Error(); return g.mode === 'demo' ? 'DEMO' : 'OANDA ' + String(g.env).toUpperCase(); }, fast);
@@ -1053,6 +1056,8 @@
     await bootLine('PAPER DESK', async () => { await paperCatchUp(); renderPaper(); const n = Paper.positions().length; return n ? `${n} OPEN` : '$' + Math.round(Paper.stats().balance).toLocaleString('en-US'); }, fast);
     await bootLine('NEWS FEED', async () => { const ev = await News.load(); const n = News.relevant().filter((e) => News.isHigh(e) && e.at > Date.now()).length; return ev.length ? `${n} RED THIS WEEK` : 'OFFLINE'; }, fast);
     await bootLine('VOICE', async () => (Voice.canSpeak ? Voice.voiceName().split(' ')[0].toUpperCase() : 'TEXT ONLY'), fast);
+    $('bootStage').textContent = 'ONLINE';
+    $('boot').classList.add('ready');
     $('bootGo').hidden = false;
     $('bootGo').focus();
   }

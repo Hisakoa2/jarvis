@@ -1,64 +1,10 @@
 /* ============ JARVIS v3: core, boot, ambient, callouts, new panels ============ */
 [hidden] { display: none !important; }
-.boot { overflow-y: auto; }
 
-/* ---------- the core ---------- */
-.core-svg { display: block; overflow: visible; }
-.core-svg * { fill: none; stroke: var(--cyan); vector-effect: non-scaling-stroke; transform-origin: 100px 100px; transform-box: view-box; }
-.core-svg .c-outer { stroke-width: 1; opacity: 0.5; stroke-dasharray: 3 6; animation: spin 40s linear infinite; }
-.core-svg .c-ticks line { stroke-width: 2; }
-.core-svg .c-segs path { stroke-width: 9; opacity: 0.9; filter: drop-shadow(0 0 4px var(--cyan)); vector-effect: none; }
-.core-svg .c-segs { animation: spin 24s linear infinite reverse; }
-.core-svg .c-ring { stroke-width: 1.5; opacity: 0.85; }
-.core-svg .c-ring2 { stroke-width: 1; opacity: 0.5; stroke-dasharray: 2 4; animation: spin 12s linear infinite; }
-.core-svg .c-hex { stroke-width: 2; opacity: 0.9; }
-.core-svg .c-glow { fill: rgba(0, 229, 255, 0.18); stroke: none; filter: blur(4px); animation: breathe 3s ease-in-out infinite; }
-.core-svg .c-core { fill: #d2fcff; stroke: none; filter: drop-shadow(0 0 8px var(--cyan)) drop-shadow(0 0 16px var(--cyan)); animation: breathe 3s ease-in-out infinite; }
-@keyframes breathe { 50% { opacity: 0.6; transform: scale(0.92); } }
-/* speaking: the core pulses like a voice */
-body.v-speaking .core-svg .c-core, body.v-speaking .core-svg .c-glow { animation: talk 0.42s ease-in-out infinite alternate; }
-body.v-speaking .core-svg .c-segs { animation-duration: 6s; }
-@keyframes talk { from { transform: scale(0.85); opacity: 0.75; } to { transform: scale(1.35); opacity: 1; } }
-/* listening: green ring sweep */
-body.v-listening .core-svg .c-ring, body.v-awake .core-svg .c-ring { stroke: var(--bull); stroke-width: 3; filter: drop-shadow(0 0 6px var(--bull)); animation: listen 1s ease-in-out infinite; }
-body.v-listening .core-svg .c-core, body.v-awake .core-svg .c-core { fill: #c9ffe6; }
-@keyframes listen { 50% { transform: scale(1.08); opacity: 0.6; } }
-/* hands-free idle: slow gentle ring */
-body.v-hf .core-svg .c-ring { stroke-dasharray: 8 6; animation: spin 8s linear infinite; }
 
 .header-core { padding: 0; border: 0; background: none; cursor: pointer; width: 40px; height: 40px; flex: none; border-radius: 50%; }
 .header-core:focus-visible { outline: 1px solid var(--cyan); }
 
-/* ---------- boot ---------- */
-.boot {
-  position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(ellipse at center, #031421 0%, var(--bg) 70%); transition: opacity 0.7s ease, transform 0.7s ease;
-  padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
-}
-.boot.done { opacity: 0; transform: scale(1.08); pointer-events: none; }
-.boot-inner { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(420px, 100%); }
-.boot-core { width: 240px; height: 240px; max-width: 60vw; }
-.boot-core .core-svg { width: 100%; height: 100%; }
-.boot .c-segs path { stroke-dasharray: 60; stroke-dashoffset: 60; animation: drawseg 0.5s ease-out forwards; }
-.boot .c-segs path:nth-child(n) { animation-delay: calc(var(--i, 0) * 1s); }
-.boot .c-ring, .boot .c-hex, .boot .c-outer { stroke-dasharray: 400; stroke-dashoffset: 400; animation: draw 1s ease-out 0.2s forwards; }
-.boot .c-core, .boot .c-glow { opacity: 0; animation: ignite 0.6s ease-out 0.8s forwards; }
-@keyframes draw { to { stroke-dashoffset: 0; } }
-@keyframes drawseg { to { stroke-dashoffset: 0; } }
-@keyframes ignite { 0% { opacity: 0; transform: scale(0.2); } 60% { opacity: 1; transform: scale(1.4); } 100% { opacity: 1; transform: scale(1); } }
-.boot-title { font-family: var(--disp); font-weight: 700; font-size: 26px; letter-spacing: 0.4em; color: var(--cyan); text-shadow: var(--glow); padding-left: 0.4em; opacity: 0; animation: fadein2 0.6s ease 0.6s forwards; }
-@keyframes fadein2 { to { opacity: 1; } }
-.boot-log { width: 100%; font-size: 13px; letter-spacing: 0.14em; min-height: 150px; }
-.boot-line { display: flex; gap: 6px; align-items: baseline; color: var(--dim); animation: fadein 0.2s ease-out; padding: 2px 0; }
-.boot-line .dots { flex: 1; border-bottom: 1px dotted rgba(0, 229, 255, 0.25); transform: translateY(-3px); }
-.boot-line.ok .res { color: var(--bull); text-shadow: 0 0 6px rgba(34, 255, 154, 0.5); }
-.boot-line.bad .res { color: var(--bear); }
-.boot-line span:first-child { color: var(--text); }
-.boot-go {
-  font-family: var(--disp); font-size: 15px; letter-spacing: 0.3em; padding: 16px 30px; margin-top: 6px; cursor: pointer;
-  color: var(--bg); background: var(--cyan); border: 0; box-shadow: 0 0 22px rgba(0, 229, 255, 0.6); animation: pulse 1.6s ease-in-out infinite;
-}
-body.booting { overflow: hidden; }
 
 /* ---------- panels slide in once engaged ---------- */
 body.engaged .grid > .panel { animation: rise 0.55s cubic-bezier(.2, .8, .2, 1) both; }
@@ -70,7 +16,7 @@ body.engaged .grid > .panel:nth-child(6) { animation-delay: 0.25s; }
 body.engaged .grid > .panel:nth-child(7) { animation-delay: 0.3s; }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
 .panel { transition: box-shadow 0.3s, border-color 0.3s; }
-.panel:hover { border-color: rgba(0, 229, 255, 0.55); }
+.panel:hover { border-color: rgba(var(--acc), 0.55); }
 
 /* ---------- layout for new panels ---------- */
 .mtf-panel { grid-column: span 4; }
@@ -128,17 +74,16 @@ body.engaged .grid > .panel:nth-child(7) { animation-delay: 0.3s; }
 /* ---------- ambient ---------- */
 .ambient {
   position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;
-  background: radial-gradient(ellipse at 30% 50%, rgba(0, 229, 255, 0.10), transparent 60%), var(--bg);
+  background: radial-gradient(ellipse at 30% 50%, rgba(var(--acc), 0.10), transparent 60%), var(--bg);
   padding: calc(18px + env(safe-area-inset-top)) calc(24px + env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) calc(24px + env(safe-area-inset-left));
   animation: fadein 0.5s ease-out;
 }
 .amb-top { display: flex; justify-content: space-between; font-family: var(--disp); letter-spacing: 0.3em; color: var(--cyan); text-shadow: var(--glow); font-size: clamp(14px, 1.6vw, 22px); }
 .amb-center { display: flex; align-items: center; justify-content: center; gap: clamp(20px, 5vw, 80px); flex-wrap: wrap; }
 .amb-core { width: clamp(180px, 30vmin, 360px); height: clamp(180px, 30vmin, 360px); }
-.amb-core .core-svg { width: 100%; height: 100%; }
 .amb-read { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .amb-label { font-size: clamp(12px, 1.2vw, 16px); letter-spacing: 0.3em; color: var(--dim); }
-.amb-price { font-family: var(--disp); font-weight: 700; font-size: clamp(56px, 11vw, 168px); line-height: 1; color: var(--cyan); text-shadow: var(--glow), 0 0 40px rgba(0, 229, 255, 0.25); }
+.amb-price { font-family: var(--disp); font-weight: 700; font-size: clamp(56px, 11vw, 168px); line-height: 1; color: var(--cyan); text-shadow: var(--glow), 0 0 40px rgba(var(--acc), 0.25); }
 .amb-change { font-size: clamp(18px, 2.2vw, 30px); }
 .amb-bias { font-family: var(--disp); font-weight: 700; font-size: clamp(30px, 5vw, 72px); letter-spacing: 0.1em; margin-top: 10px; }
 .amb-bias.Bullish { color: var(--bull); text-shadow: 0 0 20px rgba(34, 255, 154, 0.5); }
@@ -162,7 +107,6 @@ body.ambient-on .toasts { z-index: 95; }
 @media (max-width: 760px) {
   .status-item.link, #ambientBtn { display: none; }
   .header-core { width: 32px; height: 32px; }
-  .header-core .core-svg { width: 32px; height: 32px; }
   .status { gap: 6px; }
   .mtf-row { grid-template-columns: 82px auto; }
   .mtf-why { grid-column: 1 / -1; text-align: left; }
@@ -171,11 +115,9 @@ body.ambient-on .toasts { z-index: 95; }
   .amb-read { align-items: center; text-align: center; }
   .amb-mtf { justify-content: center; }
   .toasts { top: calc(60px + env(safe-area-inset-top)); right: 16px; }
-  .boot-core { width: 200px; height: 200px; }
 }
 @media (max-width: 440px) {
   .brand-name { display: none; }
-  .header-core, .header-core .core-svg { width: 38px; height: 38px; }
 }
 @media (max-width: 400px) {
   .icon-btn { width: 32px; height: 32px; }

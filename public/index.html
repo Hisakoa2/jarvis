@@ -21,24 +21,21 @@
   <link rel="stylesheet" href="hud.css">
   <link rel="stylesheet" href="theme.css">
   <link rel="stylesheet" href="future.css">
-  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/" } }</script>
+  <link rel="stylesheet" href="jarvis-ui.css">
+  <script src="themes.js"></script>
 </head>
-<body class="core-wait">
-  <script>
-    // v22.4: hide the old flat core while the 3D one loads; show it only if 3D never arrives
-    (function () {
-      var off = false; try { off = localStorage.getItem('jarvis.core3dOff') === '1'; } catch (e) {}
-      if (off) document.body.classList.remove('core-wait');
-      else setTimeout(function () { if (!document.body.classList.contains('core3d')) document.body.classList.remove('core-wait'); }, 3500);
-    })();
-  </script>
+<body>
   <div class="scanlines" aria-hidden="true"></div>
 
-  <!-- BOOT SEQUENCE -->
+  <!-- BOOT SEQUENCE (v23 HUD) -->
   <div id="boot" class="boot">
+    <div class="boot-grid" aria-hidden="true"></div>
+    <div class="boot-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="boot-side boot-side-l" aria-hidden="true"><b>SYS.DIAG</b><span id="bootHexL"></span></div>
+    <div class="boot-side boot-side-r" aria-hidden="true"><b>NET.LINK</b><span id="bootHexR"></span></div>
     <div class="boot-inner">
-      <div id="bootCore" class="boot-core"></div>
-      <div class="boot-title">J.A.R.V.I.S.</div>
+      <div id="bootCore" class="emb emb-boot"></div>
+      <div class="boot-meta"><span id="bootPct">000%</span><span class="boot-bar"><i id="bootBar"></i></span><span id="bootStage">INITIALISING</span></div>
       <div id="bootLog" class="boot-log"></div>
       <button type="button" id="bootGo" class="boot-go" hidden>TAP TO ENGAGE</button>
     </div>
@@ -71,7 +68,7 @@
       <button type="button" id="headerCore" class="header-core" aria-label="Talk to JARVIS" title="Talk to JARVIS"></button>
       <div>
         <div class="brand-name">J.A.R.V.I.S.</div>
-        <div class="brand-sub">PERSONAL COMMAND CENTER · <span class="ver">v22.7</span></div>
+        <div class="brand-sub">PERSONAL COMMAND CENTER · <span class="ver">v23.0</span></div>
       </div>
     </div>
     <div class="status">
@@ -343,6 +340,8 @@
       <div class="set-block">
         <div class="set-title">DISPLAY</div>
         <label class="row"><input type="checkbox" id="setBoot"> Boot animation on launch</label>
+        <label>Color theme<select id="setTheme"><option value="auto">Auto - changes through the day</option><option value="blue">Arc Blue</option><option value="red">Mark Red</option><option value="green">Matrix Green</option><option value="gold">Gold</option><option value="purple">Ultra Purple</option><option value="orange">Ember Orange</option><option value="white">Ice White</option></select></label>
+        <div class="dim small">Auto: gold at dawn, blue by day, purple at sunset, red at night.</div>
       </div>
     </form>
   </dialog>
@@ -363,8 +362,8 @@
   <script src="brain.js"></script>
   <script src="life.js"></script>
   <script src="ai.js"></script>
+  <script src="emblem.js"></script>
   <script src="app.js"></script>
   <script src="future.js"></script>
-  <script type="module" src="core3d.js"></script>
 </body>
 </html>
