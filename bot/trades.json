@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795473810447,
+ "heartbeat": 1795477119274,
  "check": {
-  "at": 1795473810447,
+  "at": 1795477119274,
   "ok": false,
-  "why": "no live price"
+  "why": "setup score -1 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
