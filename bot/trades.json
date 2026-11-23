@@ -1,12 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795446953949,
+ "heartbeat": 1795447266659,
  "check": {
-  "at": 1795446953949,
+  "at": 1795447266659,
   "ok": false,
-  "why": "could not reach OANDA",
-  "err": "HTTP 504"
+  "why": "setup score -2 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
