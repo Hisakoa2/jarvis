@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795441498873,
+ "heartbeat": 1795442404974,
  "check": {
-  "at": 1795441498873,
+  "at": 1795442404974,
   "ok": false,
-  "why": "setup score -1 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
+  "why": "setup score -2 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
@@ -86,51 +86,51 @@
   "tags": {
    "bias_with": {
     "w": 0,
-    "l": 1.383,
+    "l": 1.772,
     "sw": 0,
-    "sl": 3,
+    "sl": 4,
     "streak": 0,
-    "at": 1795411690089
+    "at": 1795442404974
    },
    "h4_agree": {
     "w": 0,
-    "l": 1.383,
+    "l": 1.772,
     "sw": 0,
-    "sl": 3,
+    "sl": 4,
     "streak": 0,
-    "at": 1795411690089
+    "at": 1795442404974
    },
    "d_agree": {
     "w": 0,
-    "l": 1.383,
+    "l": 1.772,
     "sw": 0,
-    "sl": 3,
+    "sl": 4,
     "streak": 0,
-    "at": 1795411690089
+    "at": 1795442404974
    },
    "room_tight": {
     "w": 0,
-    "l": 1.383,
+    "l": 1.772,
     "sw": 0,
-    "sl": 3,
+    "sl": 4,
     "streak": 0,
-    "at": 1795411690089
+    "at": 1795442404974
    },
    "sess:asia": {
     "w": 0,
-    "l": 1.383,
+    "l": 1.772,
     "sw": 0,
-    "sl": 3,
+    "sl": 4,
     "streak": 0,
-    "at": 1795411690089
+    "at": 1795442404974
    },
    "dir:sell": {
     "w": 0,
-    "l": 1.383,
+    "l": 1.772,
     "sw": 0,
-    "sl": 3,
+    "sl": 4,
     "streak": 0,
-    "at": 1795411690089
+    "at": 1795442404974
    },
    "flip_against": {
     "w": 0,
@@ -141,28 +141,11 @@
     "at": 1795411690089
    }
   },
-  "shadows": [
-   {
-    "day": "2026-11-23",
-    "at": 1795396615426,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "sess:asia",
-     "dir:sell"
-    ],
-    "entry": 3619.44,
-    "sl": 3643.76,
-    "tp": 3562.89
-   }
-  ],
+  "shadows": [],
   "log": [],
   "seen": {
    "real": 0,
-   "shadow": 3
+   "shadow": 4
   }
  }
 }
