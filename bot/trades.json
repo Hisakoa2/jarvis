@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795447266659,
+ "heartbeat": 1795450591034,
  "check": {
-  "at": 1795447266659,
+  "at": 1795450591034,
   "ok": false,
   "why": "setup score -2 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
  },
