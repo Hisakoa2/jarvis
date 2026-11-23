@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795392700061,
+ "heartbeat": 1795393002523,
  "check": {
-  "at": 1795392700061,
+  "at": 1795393002523,
   "ok": false,
   "why": "setup score 2 (needs 5 outside London/New York hours)"
  },
@@ -100,6 +100,23 @@
     "entry": 3577.6,
     "sl": 3607.06,
     "tp": 3517.1
+   },
+   {
+    "day": "2026-11-23",
+    "at": 1795393002523,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "flip_against",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3575.2,
+    "sl": 3607.45,
+    "tp": 3505.74
    }
   ],
   "log": [],
