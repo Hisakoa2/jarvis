@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795399925962,
+ "heartbeat": 1795400228840,
  "check": {
-  "at": 1795399925962,
+  "at": 1795400228840,
   "ok": false,
   "why": "setup score 2 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of trading with the 1H bias"
  },
@@ -157,6 +157,23 @@
     "entry": 3619.44,
     "sl": 3643.76,
     "tp": 3562.89
+   },
+   {
+    "day": "2026-11-23",
+    "at": 1795400228840,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "flip_against",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3584.18,
+    "sl": 3617.78,
+    "tp": 3513.11
    }
   ],
   "log": [],
