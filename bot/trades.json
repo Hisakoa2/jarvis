@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795396312699,
+ "heartbeat": 1795396615426,
  "check": {
-  "at": 1795396312699,
+  "at": 1795396615426,
   "ok": false,
-  "why": "setup score 3 (needs 5 outside London/New York hours)"
+  "why": "setup score 3 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
@@ -83,11 +83,68 @@
  },
  "learn": {
   "v": 1,
-  "tags": {},
+  "tags": {
+   "bias_with": {
+    "w": 0,
+    "l": 0.96,
+    "sw": 0,
+    "sl": 2,
+    "streak": 0,
+    "at": 1795396615426
+   },
+   "h4_agree": {
+    "w": 0,
+    "l": 0.96,
+    "sw": 0,
+    "sl": 2,
+    "streak": 0,
+    "at": 1795396615426
+   },
+   "d_agree": {
+    "w": 0,
+    "l": 0.96,
+    "sw": 0,
+    "sl": 2,
+    "streak": 0,
+    "at": 1795396615426
+   },
+   "room_tight": {
+    "w": 0,
+    "l": 0.96,
+    "sw": 0,
+    "sl": 2,
+    "streak": 0,
+    "at": 1795396615426
+   },
+   "sess:asia": {
+    "w": 0,
+    "l": 0.96,
+    "sw": 0,
+    "sl": 2,
+    "streak": 0,
+    "at": 1795396615426
+   },
+   "dir:sell": {
+    "w": 0,
+    "l": 0.96,
+    "sw": 0,
+    "sl": 2,
+    "streak": 0,
+    "at": 1795396615426
+   },
+   "flip_against": {
+    "w": 0,
+    "l": 0.5,
+    "sw": 0,
+    "sl": 1,
+    "streak": 0,
+    "at": 1795396615426
+   }
+  },
   "shadows": [
    {
     "day": "2026-11-23",
-    "at": 1795389388732,
+    "at": 1795396615426,
     "dir": -1,
     "tags": [
      "bias_with",
@@ -97,32 +154,15 @@
      "sess:asia",
      "dir:sell"
     ],
-    "entry": 3577.6,
-    "sl": 3607.06,
-    "tp": 3517.1
-   },
-   {
-    "day": "2026-11-23",
-    "at": 1795393002523,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "flip_against",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "sess:asia",
-     "dir:sell"
-    ],
-    "entry": 3575.2,
-    "sl": 3607.45,
-    "tp": 3505.74
+    "entry": 3619.44,
+    "sl": 3643.76,
+    "tp": 3562.89
    }
   ],
   "log": [],
   "seen": {
    "real": 0,
-   "shadow": 0
+   "shadow": 2
   }
  }
 }
