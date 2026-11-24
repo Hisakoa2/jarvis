@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795560403232,
+ "heartbeat": 1795562223797,
  "check": {
-  "at": 1795560403232,
+  "at": 1795562223797,
   "ok": false,
-  "why": "no live price"
+  "why": "setup score 3 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of Asia hours"
  },
  "days": {
   "2026-11-12": {
@@ -157,7 +157,24 @@
     "at": 1795537455094
    }
   },
-  "shadows": [],
+  "shadows": [
+   {
+    "day": "2026-11-25",
+    "at": 1795562223797,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3562.03,
+    "sl": 3580.3,
+    "tp": 3521.89
+   }
+  ],
   "log": [],
   "seen": {
    "real": 0,
