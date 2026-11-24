@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795535036049,
+ "heartbeat": 1795535940198,
  "check": {
-  "at": 1795535036049,
+  "at": 1795535940198,
   "ok": false,
-  "why": "setup score 2 · learning: blocked: trading with the 1H bias has won only 1 of 8 practice trades"
+  "why": "setup score 2 · learning: blocked: trading with the 1H bias has won only 2 of 9 practice trades"
  },
  "days": {
   "2026-11-12": {
@@ -85,36 +85,36 @@
   "v": 1,
   "tags": {
    "bias_with": {
-    "w": 0.5,
-    "l": 2.542,
-    "sw": 1,
+    "w": 0.96,
+    "l": 2.339,
+    "sw": 2,
     "sl": 7,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    },
    "h4_agree": {
-    "w": 0.5,
-    "l": 2.542,
-    "sw": 1,
+    "w": 0.96,
+    "l": 2.339,
+    "sw": 2,
     "sl": 7,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    },
    "d_agree": {
-    "w": 0.5,
-    "l": 2.542,
-    "sw": 1,
+    "w": 0.96,
+    "l": 2.339,
+    "sw": 2,
     "sl": 7,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    },
    "room_tight": {
-    "w": 0.5,
-    "l": 2.542,
-    "sw": 1,
+    "w": 0.96,
+    "l": 2.339,
+    "sw": 2,
     "sl": 7,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    },
    "sess:asia": {
     "w": 0,
@@ -125,48 +125,31 @@
     "at": 1795442404974
    },
    "dir:sell": {
-    "w": 0.5,
-    "l": 2.542,
-    "sw": 1,
+    "w": 0.96,
+    "l": 2.339,
+    "sw": 2,
     "sl": 7,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    },
    "flip_against": {
-    "w": 0.5,
-    "l": 0.883,
-    "sw": 1,
+    "w": 0.96,
+    "l": 0.812,
+    "sw": 2,
     "sl": 2,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    },
    "sess:london": {
-    "w": 0.5,
-    "l": 1.272,
-    "sw": 1,
+    "w": 0.96,
+    "l": 1.17,
+    "sw": 2,
     "sl": 3,
     "streak": 0,
-    "at": 1795535036049
+    "at": 1795535940198
    }
   },
   "shadows": [
-   {
-    "day": "2026-11-24",
-    "at": 1795518120758,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "flip_against",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "sess:london",
-     "dir:sell"
-    ],
-    "entry": 3628.4,
-    "sl": 3654.91,
-    "tp": 3571.97
-   },
    {
     "day": "2026-11-24",
     "at": 1795532616112,
@@ -187,7 +170,7 @@
   "log": [],
   "seen": {
    "real": 0,
-   "shadow": 8
+   "shadow": 9
   }
  }
 }
