@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795531108516,
+ "heartbeat": 1795532616112,
  "check": {
-  "at": 1795531108516,
+  "at": 1795532616112,
   "ok": false,
-  "why": "setup score -2 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
+  "why": "setup score 3 (needs 6) · learning: being pickier (+2) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
@@ -183,6 +183,22 @@
     "entry": 3630.59,
     "sl": 3654.81,
     "tp": 3581.92
+   },
+   {
+    "day": "2026-11-24",
+    "at": 1795532616112,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:ny_am",
+     "dir:sell"
+    ],
+    "entry": 3613.23,
+    "sl": 3636.07,
+    "tp": 3560.05
    }
   ],
   "log": [],
