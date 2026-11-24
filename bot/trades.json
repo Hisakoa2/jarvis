@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795503947396,
+ "heartbeat": 1795507258774,
  "check": {
-  "at": 1795503947396,
+  "at": 1795507258774,
   "ok": false,
-  "why": "bias is neutral, so there is no edge"
+  "why": "setup score 3 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
@@ -141,7 +141,24 @@
     "at": 1795411690089
    }
   },
-  "shadows": [],
+  "shadows": [
+   {
+    "day": "2026-11-24",
+    "at": 1795507258774,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:london",
+     "dir:sell"
+    ],
+    "entry": 3621.13,
+    "sl": 3642.95,
+    "tp": 3572.09
+   }
+  ],
   "log": [],
   "seen": {
    "real": 0,
