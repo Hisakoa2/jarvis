@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795518120758,
+ "heartbeat": 1795521438666,
  "check": {
-  "at": 1795518120758,
+  "at": 1795521438666,
   "ok": false,
   "why": "setup score 2 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
  },
@@ -86,35 +86,35 @@
   "tags": {
    "bias_with": {
     "w": 0,
-    "l": 1.772,
+    "l": 2.13,
     "sw": 0,
-    "sl": 4,
+    "sl": 5,
     "streak": 0,
-    "at": 1795442404974
+    "at": 1795521438666
    },
    "h4_agree": {
     "w": 0,
-    "l": 1.772,
+    "l": 2.13,
     "sw": 0,
-    "sl": 4,
+    "sl": 5,
     "streak": 0,
-    "at": 1795442404974
+    "at": 1795521438666
    },
    "d_agree": {
     "w": 0,
-    "l": 1.772,
+    "l": 2.13,
     "sw": 0,
-    "sl": 4,
+    "sl": 5,
     "streak": 0,
-    "at": 1795442404974
+    "at": 1795521438666
    },
    "room_tight": {
     "w": 0,
-    "l": 1.772,
+    "l": 2.13,
     "sw": 0,
-    "sl": 4,
+    "sl": 5,
     "streak": 0,
-    "at": 1795442404974
+    "at": 1795521438666
    },
    "sess:asia": {
     "w": 0,
@@ -126,11 +126,11 @@
    },
    "dir:sell": {
     "w": 0,
-    "l": 1.772,
+    "l": 2.13,
     "sw": 0,
-    "sl": 4,
+    "sl": 5,
     "streak": 0,
-    "at": 1795442404974
+    "at": 1795521438666
    },
    "flip_against": {
     "w": 0,
@@ -139,6 +139,14 @@
     "sl": 2,
     "streak": 0,
     "at": 1795411690089
+   },
+   "sess:london": {
+    "w": 0,
+    "l": 0.5,
+    "sw": 0,
+    "sl": 1,
+    "streak": 0,
+    "at": 1795521438666
    }
   },
   "shadows": [
@@ -157,22 +165,6 @@
     "entry": 3621.13,
     "sl": 3642.95,
     "tp": 3572.09
-   },
-   {
-    "day": "2026-11-24",
-    "at": 1795510887489,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "sess:london",
-     "dir:sell"
-    ],
-    "entry": 3618.91,
-    "sl": 3637.28,
-    "tp": 3582.1
    },
    {
     "day": "2026-11-24",
@@ -211,7 +203,7 @@
   "log": [],
   "seen": {
    "real": 0,
-   "shadow": 4
+   "shadow": 5
   }
  }
 }
