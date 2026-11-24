@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795521741569,
+ "heartbeat": 1795524466875,
  "check": {
-  "at": 1795521741569,
+  "at": 1795524466875,
   "ok": false,
-  "why": "setup score 2 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
+  "why": "setup score 2 (needs 6) · learning: being pickier (+2) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
@@ -86,35 +86,35 @@
   "tags": {
    "bias_with": {
     "w": 0,
-    "l": 2.13,
+    "l": 2.763,
     "sw": 0,
-    "sl": 5,
+    "sl": 7,
     "streak": 0,
-    "at": 1795521438666
+    "at": 1795524466875
    },
    "h4_agree": {
     "w": 0,
-    "l": 2.13,
+    "l": 2.763,
     "sw": 0,
-    "sl": 5,
+    "sl": 7,
     "streak": 0,
-    "at": 1795521438666
+    "at": 1795524466875
    },
    "d_agree": {
     "w": 0,
-    "l": 2.13,
+    "l": 2.763,
     "sw": 0,
-    "sl": 5,
+    "sl": 7,
     "streak": 0,
-    "at": 1795521438666
+    "at": 1795524466875
    },
    "room_tight": {
     "w": 0,
-    "l": 2.13,
+    "l": 2.763,
     "sw": 0,
-    "sl": 5,
+    "sl": 7,
     "streak": 0,
-    "at": 1795521438666
+    "at": 1795524466875
    },
    "sess:asia": {
     "w": 0,
@@ -126,11 +126,11 @@
    },
    "dir:sell": {
     "w": 0,
-    "l": 2.13,
+    "l": 2.763,
     "sw": 0,
-    "sl": 5,
+    "sl": 7,
     "streak": 0,
-    "at": 1795521438666
+    "at": 1795524466875
    },
    "flip_against": {
     "w": 0,
@@ -142,46 +142,14 @@
    },
    "sess:london": {
     "w": 0,
-    "l": 0.5,
+    "l": 1.383,
     "sw": 0,
-    "sl": 1,
+    "sl": 3,
     "streak": 0,
-    "at": 1795521438666
+    "at": 1795524466875
    }
   },
   "shadows": [
-   {
-    "day": "2026-11-24",
-    "at": 1795507258774,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "sess:london",
-     "dir:sell"
-    ],
-    "entry": 3621.13,
-    "sl": 3642.95,
-    "tp": 3572.09
-   },
-   {
-    "day": "2026-11-24",
-    "at": 1795514503004,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "sess:london",
-     "dir:sell"
-    ],
-    "entry": 3622.08,
-    "sl": 3642.78,
-    "tp": 3577.6
-   },
    {
     "day": "2026-11-24",
     "at": 1795518120758,
@@ -220,7 +188,7 @@
   "log": [],
   "seen": {
    "real": 0,
-   "shadow": 5
+   "shadow": 7
   }
  }
 }
