@@ -1,11 +1,12 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795507258774,
+ "heartbeat": 1795507565996,
  "check": {
-  "at": 1795507258774,
+  "at": 1795507565996,
   "ok": false,
-  "why": "setup score 3 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
+  "why": "could not reach OANDA",
+  "err": "Insufficient authorization to perform request. — check the API key, and that Practice/Live matches the account"
  },
  "days": {
   "2026-11-12": {
