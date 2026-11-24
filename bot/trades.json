@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795514199958,
+ "heartbeat": 1795514503004,
  "check": {
-  "at": 1795514199958,
+  "at": 1795514503004,
   "ok": false,
   "why": "setup score 3 (needs 5) · learning: being pickier (+1) because of trading with the 1H bias"
  },
@@ -173,6 +173,22 @@
     "entry": 3618.91,
     "sl": 3637.28,
     "tp": 3582.1
+   },
+   {
+    "day": "2026-11-24",
+    "at": 1795514503004,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:london",
+     "dir:sell"
+    ],
+    "entry": 3622.08,
+    "sl": 3642.78,
+    "tp": 3577.6
    }
   ],
   "log": [],
