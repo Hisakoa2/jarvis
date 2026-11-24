@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795553780952,
+ "heartbeat": 1795557091523,
  "check": {
-  "at": 1795553780952,
+  "at": 1795557091523,
   "ok": false,
-  "why": "setup score 1 (needs 5 outside London/New York hours)"
+  "why": "outside the trading window (6:15 PM to 4 PM New York)"
  },
  "days": {
   "2026-11-12": {
@@ -157,76 +157,7 @@
     "at": 1795537455094
    }
   },
-  "shadows": [
-   {
-    "day": "2026-11-24",
-    "at": 1795536242553,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "late",
-     "sess:ny_am",
-     "dir:sell"
-    ],
-    "entry": 3565.97,
-    "sl": 3585.67,
-    "tp": 3522.27
-   },
-   {
-    "day": "2026-11-24",
-    "at": 1795539870497,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "late",
-     "sess:ny_pm",
-     "dir:sell"
-    ],
-    "entry": 3563.92,
-    "sl": 3585.56,
-    "tp": 3512.22
-   },
-   {
-    "day": "2026-11-24",
-    "at": 1795543524143,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "late",
-     "sess:ny_pm",
-     "dir:sell"
-    ],
-    "entry": 3563.5,
-    "sl": 3580.97,
-    "tp": 3522.16
-   },
-   {
-    "day": "2026-11-24",
-    "at": 1795547151107,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "late",
-     "sess:ny_pm",
-     "dir:sell"
-    ],
-    "entry": 3556.41,
-    "sl": 3575.29,
-    "tp": 3512.12
-   }
-  ],
+  "shadows": [],
   "log": [],
   "seen": {
    "real": 0,
