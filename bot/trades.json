@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795573973854,
+ "heartbeat": 1795577285470,
  "check": {
-  "at": 1795573973854,
+  "at": 1795577285470,
   "ok": false,
   "why": "setup score 3 · learning: blocked: trading with the 1H bias has won only 3 of 13 practice trades"
  },
