@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795606590184,
+ "heartbeat": 1795607797021,
  "check": {
-  "at": 1795606590184,
-  "ok": false,
-  "why": "setup score 3 (needs 4)"
+  "at": 1795607797021,
+  "ok": true,
+  "why": "took the trade"
  },
  "days": {
   "2026-11-12": {
@@ -79,6 +79,27 @@
    "reason": "tp",
    "closedAt": 1795102200000,
    "result": 34.52
+  },
+  "2026-11-25": {
+   "id": "2026-11-25-S",
+   "status": "open",
+   "dir": -1,
+   "entry": 3509.57,
+   "sl": 3524.7,
+   "tp": 3471.88,
+   "risk": 15.13,
+   "rr": 2.49,
+   "why": "bearish bias, setup score 4 in prime hours: the bias is bearish, which is with you, the four hour trend agrees, the daily trend agrees",
+   "tags": [
+    "bias_with",
+    "h4_agree",
+    "d_agree",
+    "room_some",
+    "sess:london",
+    "dir:sell"
+   ],
+   "openedAt": 1795607797021,
+   "lastCheck": 1795607797021
   }
  },
  "learn": {
