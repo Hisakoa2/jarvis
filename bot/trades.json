@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795577285470,
+ "heartbeat": 1795577587396,
  "check": {
-  "at": 1795577285470,
+  "at": 1795577587396,
   "ok": false,
   "why": "setup score 3 · learning: blocked: trading with the 1H bias has won only 3 of 13 practice trades"
  },
@@ -189,6 +189,22 @@
     "entry": 3570.97,
     "sl": 3594.8,
     "tp": 3521.92
+   },
+   {
+    "day": "2026-11-25",
+    "at": 1795577587396,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3552.3,
+    "sl": 3575,
+    "tp": 3502
    }
   ],
   "log": [],
