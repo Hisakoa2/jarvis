@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795592067117,
+ "heartbeat": 1795595381052,
  "check": {
-  "at": 1795592067117,
+  "at": 1795595381052,
   "ok": false,
-  "why": "setup score 3 · learning: blocked: Asia hours has won only 2 of 9 practice trades"
+  "why": "setup score 3 (needs 4)"
  },
  "days": {
   "2026-11-12": {
