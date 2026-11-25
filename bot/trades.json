@@ -1,7 +1,7 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795641616767,
+ "heartbeat": 1795643423177,
  "check": {
   "at": 1795607797021,
   "ok": true,
@@ -216,25 +216,7 @@
     "at": 1795638289420
    }
   },
-  "shadows": [
-   {
-    "day": "2026-11-25",
-    "at": 1795637685701,
-    "dir": -1,
-    "tags": [
-     "bias_with",
-     "h4_agree",
-     "d_agree",
-     "room_tight",
-     "timing_bad",
-     "sess:ny_pm",
-     "dir:sell"
-    ],
-    "entry": 3565.87,
-    "sl": 3597.37,
-    "tp": 3492.95
-   }
-  ],
+  "shadows": [],
   "log": [
    {
     "at": 1795609912487,
