@@ -1,7 +1,7 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795614141864,
+ "heartbeat": 1795614444822,
  "check": {
   "at": 1795607797021,
   "ok": true,
@@ -215,6 +215,23 @@
     "entry": 3512.49,
     "sl": 3534.7,
     "tp": 3461.88
+   },
+   {
+    "day": "2026-11-25",
+    "at": 1795614444822,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "late",
+     "sess:ny_am",
+     "dir:sell"
+    ],
+    "entry": 3482.75,
+    "sl": 3505.59,
+    "tp": 3432.24
    }
   ],
   "log": [
