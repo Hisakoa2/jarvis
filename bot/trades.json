@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795569157144,
+ "heartbeat": 1795569458893,
  "check": {
-  "at": 1795569157144,
+  "at": 1795569458893,
   "ok": false,
   "why": "setup score 3 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of Asia hours"
  },
@@ -189,6 +189,22 @@
     "entry": 3546.76,
     "sl": 3564.08,
     "tp": 3511.9
+   },
+   {
+    "day": "2026-11-25",
+    "at": 1795569458893,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3537.06,
+    "sl": 3554.75,
+    "tp": 3491.9
    }
   ],
   "log": [],
