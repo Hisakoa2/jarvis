@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795588450064,
+ "heartbeat": 1795591764339,
  "check": {
-  "at": 1795588450064,
+  "at": 1795591764339,
   "ok": false,
   "why": "setup score 3 · learning: blocked: Asia hours has won only 2 of 9 practice trades"
  },
