@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795599005671,
+ "heartbeat": 1795599316547,
  "check": {
-  "at": 1795599005671,
+  "at": 1795599316547,
   "ok": false,
   "why": "setup score 3 (needs 4)"
  },
@@ -253,6 +253,22 @@
     "entry": 3533.41,
     "sl": 3551.27,
     "tp": 3491.96
+   },
+   {
+    "day": "2026-11-25",
+    "at": 1795599316547,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:london",
+     "dir:sell"
+    ],
+    "entry": 3526.67,
+    "sl": 3544.98,
+    "tp": 3481.99
    }
   ],
   "log": [],
