@@ -1,7 +1,7 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795619887492,
+ "heartbeat": 1795620793575,
  "check": {
   "at": 1795607797021,
   "ok": true,
@@ -109,9 +109,10 @@
    "lesson": {
     "win": false,
     "reasons": [
-     "it was working, then reversed (target may have been too far)"
+     "it was working, then reversed (target may have been too far)",
+     "stop was too tight: price hit the target within 3 hours of stopping out"
     ],
-    "pending": true
+    "pending": false
    }
   }
  },
