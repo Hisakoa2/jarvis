@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795573371063,
+ "heartbeat": 1795573973854,
  "check": {
-  "at": 1795573371063,
+  "at": 1795573973854,
   "ok": false,
-  "why": "setup score 3 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of Asia hours"
+  "why": "setup score 3 · learning: blocked: trading with the 1H bias has won only 3 of 13 practice trades"
  },
  "days": {
   "2026-11-12": {
@@ -85,52 +85,52 @@
   "v": 1,
   "tags": {
    "bias_with": {
-    "w": 1.17,
-    "l": 2.782,
+    "w": 1.076,
+    "l": 3.059,
     "sw": 3,
-    "sl": 9,
+    "sl": 10,
     "streak": 0,
-    "at": 1795573371063
+    "at": 1795573973854
    },
    "h4_agree": {
-    "w": 1.17,
-    "l": 2.782,
+    "w": 1.076,
+    "l": 3.059,
     "sw": 3,
-    "sl": 9,
+    "sl": 10,
     "streak": 0,
-    "at": 1795573371063
+    "at": 1795573973854
    },
    "d_agree": {
-    "w": 1.17,
-    "l": 2.782,
+    "w": 1.076,
+    "l": 3.059,
     "sw": 3,
-    "sl": 9,
+    "sl": 10,
     "streak": 0,
-    "at": 1795573371063
+    "at": 1795573973854
    },
    "room_tight": {
-    "w": 1.17,
-    "l": 2.782,
+    "w": 1.076,
+    "l": 3.059,
     "sw": 3,
-    "sl": 9,
+    "sl": 10,
     "streak": 0,
-    "at": 1795573371063
+    "at": 1795573973854
    },
    "sess:asia": {
     "w": 0,
-    "l": 2.46,
+    "l": 2.763,
     "sw": 0,
-    "sl": 6,
+    "sl": 7,
     "streak": 0,
-    "at": 1795573371063
+    "at": 1795573973854
    },
    "dir:sell": {
-    "w": 1.17,
-    "l": 2.782,
+    "w": 1.076,
+    "l": 3.059,
     "sw": 3,
-    "sl": 9,
+    "sl": 10,
     "streak": 0,
-    "at": 1795573371063
+    "at": 1795573973854
    },
    "flip_against": {
     "w": 0.96,
@@ -176,7 +176,7 @@
    },
    {
     "day": "2026-11-25",
-    "at": 1795570963763,
+    "at": 1795573973854,
     "dir": -1,
     "tags": [
      "bias_with",
@@ -186,15 +186,15 @@
      "sess:asia",
      "dir:sell"
     ],
-    "entry": 3552.97,
-    "sl": 3574.75,
-    "tp": 3501.9
+    "entry": 3570.97,
+    "sl": 3594.8,
+    "tp": 3521.92
    }
   ],
   "log": [],
   "seen": {
    "real": 0,
-   "shadow": 12
+   "shadow": 13
   }
  }
 }
