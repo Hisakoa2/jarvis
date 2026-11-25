@@ -1,7 +1,7 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795608099876,
+ "heartbeat": 1795609912487,
  "check": {
   "at": 1795607797021,
   "ok": true,
@@ -82,7 +82,7 @@
   },
   "2026-11-25": {
    "id": "2026-11-25-S",
-   "status": "open",
+   "status": "closed",
    "dir": -1,
    "entry": 3509.57,
    "sl": 3524.7,
@@ -99,37 +99,48 @@
     "dir:sell"
    ],
    "openedAt": 1795607797021,
-   "lastCheck": 1795608000000,
-   "worst": 3512.23,
-   "best": 3484.84
+   "lastCheck": 1795609500000,
+   "worst": 3526.15,
+   "best": 3484.84,
+   "exit": 3524.7,
+   "reason": "stop",
+   "closedAt": 1795609800000,
+   "result": -15.13,
+   "lesson": {
+    "win": false,
+    "reasons": [
+     "it was working, then reversed (target may have been too far)"
+    ],
+    "pending": true
+   }
   }
  },
  "learn": {
   "v": 1,
   "tags": {
    "bias_with": {
-    "w": 3.113,
-    "l": 1.855,
+    "w": 2.864,
+    "l": 2.707,
     "sw": 9,
     "sl": 10,
-    "streak": 0,
-    "at": 1795608099876
+    "streak": -1,
+    "at": 1795609912487
    },
    "h4_agree": {
-    "w": 3.113,
-    "l": 1.855,
+    "w": 2.864,
+    "l": 2.707,
     "sw": 9,
     "sl": 10,
-    "streak": 0,
-    "at": 1795608099876
+    "streak": -1,
+    "at": 1795609912487
    },
    "d_agree": {
-    "w": 3.113,
-    "l": 1.855,
+    "w": 2.864,
+    "l": 2.707,
     "sw": 9,
     "sl": 10,
-    "streak": 0,
-    "at": 1795608099876
+    "streak": -1,
+    "at": 1795609912487
    },
    "room_tight": {
     "w": 3.113,
@@ -148,12 +159,12 @@
     "at": 1795608099876
    },
    "dir:sell": {
-    "w": 3.113,
-    "l": 1.855,
+    "w": 2.864,
+    "l": 2.707,
     "sw": 9,
     "sl": 10,
-    "streak": 0,
-    "at": 1795608099876
+    "streak": -1,
+    "at": 1795609912487
    },
    "flip_against": {
     "w": 0.96,
@@ -164,12 +175,12 @@
     "at": 1795535940198
    },
    "sess:london": {
-    "w": 1.383,
-    "l": 1.076,
+    "w": 1.272,
+    "l": 1.99,
     "sw": 3,
     "sl": 3,
-    "streak": 0,
-    "at": 1795608099876
+    "streak": -1,
+    "at": 1795609912487
    },
    "sess:ny_am": {
     "w": 0.5,
@@ -178,6 +189,14 @@
     "sl": 0,
     "streak": 0,
     "at": 1795537455094
+   },
+   "room_some": {
+    "w": 0,
+    "l": 1,
+    "sw": 0,
+    "sl": 0,
+    "streak": -1,
+    "at": 1795609912487
    }
   },
   "shadows": [
@@ -262,9 +281,18 @@
     "tp": 3461.88
    }
   ],
-  "log": [],
+  "log": [
+   {
+    "at": 1795609912487,
+    "day": "2026-11-25",
+    "win": false,
+    "reasons": [
+     "it was working, then reversed (target may have been too far)"
+    ]
+   }
+  ],
   "seen": {
-   "real": 0,
+   "real": 1,
    "shadow": 19
   }
  }
