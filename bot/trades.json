@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795591764339,
+ "heartbeat": 1795592067117,
  "check": {
-  "at": 1795591764339,
+  "at": 1795592067117,
   "ok": false,
   "why": "setup score 3 · learning: blocked: Asia hours has won only 2 of 9 practice trades"
  },
@@ -221,6 +221,22 @@
     "entry": 3520.83,
     "sl": 3544.97,
     "tp": 3471.99
+   },
+   {
+    "day": "2026-11-25",
+    "at": 1795592067117,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3524.33,
+    "sl": 3544.93,
+    "tp": 3481.97
    }
   ],
   "log": [],
