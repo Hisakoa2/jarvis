@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795707867603,
+ "heartbeat": 1795711183124,
  "check": {
-  "at": 1795707867603,
+  "at": 1795711183124,
   "ok": false,
-  "why": "setup score -1 (needs 4)"
+  "why": "setup score -1 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of New York afternoon"
  },
  "days": {
   "2026-11-12": {
