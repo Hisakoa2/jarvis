@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795684677162,
+ "heartbeat": 1795687985056,
  "check": {
-  "at": 1795684677162,
+  "at": 1795687985056,
   "ok": false,
-  "why": "bias is neutral, so there is no edge"
+  "why": "setup score -1 (needs 4)"
  },
  "days": {
   "2026-11-12": {
