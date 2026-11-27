@@ -1,9 +1,9 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795804631305,
+ "heartbeat": 1795807943216,
  "check": {
-  "at": 1795804631305,
+  "at": 1795807943216,
   "ok": false,
   "why": "setup score -2 · learning: blocked: late entries (range mostly used) has won only 1 of 9 practice trades"
  },
