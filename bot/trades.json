@@ -1,12 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795784411471,
+ "heartbeat": 1795784718735,
  "check": {
-  "at": 1795784411471,
+  "at": 1795784718735,
   "ok": false,
-  "why": "could not reach OANDA",
-  "err": "Insufficient authorization to perform request. — check the API key, and that Practice/Live matches the account"
+  "why": "setup score -1 · learning: blocked: late entries (range mostly used) has won only 1 of 9 practice trades"
  },
  "days": {
   "2026-11-12": {
