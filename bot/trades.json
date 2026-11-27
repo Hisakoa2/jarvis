@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795738034898,
+ "heartbeat": 1795741344002,
  "check": {
-  "at": 1795738034898,
+  "at": 1795741344002,
   "ok": false,
-  "why": "bias is neutral, so there is no edge"
+  "why": "setup score 3 (needs 5 outside London/New York hours)"
  },
  "days": {
   "2026-11-12": {
@@ -216,7 +216,24 @@
     "at": 1795638289420
    }
   },
-  "shadows": [],
+  "shadows": [
+   {
+    "day": "2026-11-27",
+    "at": 1795741344002,
+    "dir": -1,
+    "tags": [
+     "bias_with",
+     "h4_agree",
+     "d_agree",
+     "room_tight",
+     "sess:asia",
+     "dir:sell"
+    ],
+    "entry": 3561.93,
+    "sl": 3578.12,
+    "tp": 3521.65
+   }
+  ],
   "log": [
    {
     "at": 1795609912487,
