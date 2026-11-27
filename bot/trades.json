@@ -1,11 +1,11 @@
 {
  "v": 1,
  "enabled": true,
- "heartbeat": 1795743149131,
+ "heartbeat": 1795744954676,
  "check": {
-  "at": 1795743149131,
+  "at": 1795744954676,
   "ok": false,
-  "why": "setup score 3 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of trading with the 1H bias"
+  "why": "setup score 2 (needs 6 outside London/New York hours) · learning: being pickier (+1) because of trading with the 1H bias"
  },
  "days": {
   "2026-11-12": {
@@ -120,52 +120,52 @@
   "v": 1,
   "tags": {
    "bias_with": {
-    "w": 2.058,
-    "l": 4.013,
+    "w": 1.893,
+    "l": 4.192,
     "sw": 16,
-    "sl": 19,
+    "sl": 20,
     "streak": -1,
-    "at": 1795743149131
+    "at": 1795744954676
    },
    "h4_agree": {
-    "w": 2.058,
-    "l": 4.013,
+    "w": 1.893,
+    "l": 4.192,
     "sw": 16,
-    "sl": 19,
+    "sl": 20,
     "streak": -1,
-    "at": 1795743149131
+    "at": 1795744954676
    },
    "d_agree": {
-    "w": 2.058,
-    "l": 4.013,
+    "w": 1.893,
+    "l": 4.192,
     "sw": 16,
-    "sl": 19,
+    "sl": 20,
     "streak": -1,
-    "at": 1795743149131
+    "at": 1795744954676
    },
    "room_tight": {
-    "w": 2.124,
-    "l": 3.787,
+    "w": 1.954,
+    "l": 3.984,
     "sw": 16,
-    "sl": 19,
+    "sl": 20,
     "streak": 0,
-    "at": 1795743149131
+    "at": 1795744954676
    },
    "sess:asia": {
-    "w": 2.542,
-    "l": 1.919,
+    "w": 2.339,
+    "l": 2.265,
     "sw": 7,
-    "sl": 8,
+    "sl": 9,
     "streak": 0,
-    "at": 1795743149131
+    "at": 1795744954676
    },
    "dir:sell": {
-    "w": 2.058,
-    "l": 4.013,
+    "w": 1.893,
+    "l": 4.192,
     "sw": 16,
-    "sl": 19,
+    "sl": 20,
     "streak": -1,
-    "at": 1795743149131
+    "at": 1795744954676
    },
    "flip_against": {
     "w": 0.96,
@@ -219,19 +219,20 @@
   "shadows": [
    {
     "day": "2026-11-27",
-    "at": 1795743149131,
+    "at": 1795744954676,
     "dir": -1,
     "tags": [
      "bias_with",
+     "flip_against",
      "h4_agree",
      "d_agree",
      "room_tight",
      "sess:asia",
      "dir:sell"
     ],
-    "entry": 3571.96,
-    "sl": 3594.12,
-    "tp": 3521.65
+    "entry": 3597.87,
+    "sl": 3614.48,
+    "tp": 3559.21
    }
   ],
   "log": [
@@ -246,7 +247,7 @@
   ],
   "seen": {
    "real": 1,
-   "shadow": 35
+   "shadow": 36
   }
  }
 }
